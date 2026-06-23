@@ -1,0 +1,4 @@
+id,firstName,lastName,username,password,active,specialization
+1,John,Smith,John.Smith,pass1234AB,true,Yoga
+2,Anna,Jones,Anna.Jones,xK9mPqWz1L,true,CrossFit
+3,Mike,Brown,Mike.Brown,Tz7nVbCx4R,false,Boxing
