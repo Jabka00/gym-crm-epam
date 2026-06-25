@@ -1,6 +1,7 @@
 package com.epam.gymcrm.service;
 
 import com.epam.gymcrm.exception.EntityNotFoundException;
+import com.epam.gymcrm.exception.InvalidOperationException;
 import com.epam.gymcrm.model.Trainee;
 import com.epam.gymcrm.repository.TraineeRepository;
 import lombok.extern.slf4j.Slf4j;
@@ -57,6 +58,19 @@ public class TraineeService {
 
     public Optional<Trainee> findById(Long id) {
         return traineeRepository.findById(id);
+    }
+
+    public Trainee getById(Long id) {
+        return findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Trainee not found: id=" + id));
+    }
+
+    public Trainee getActiveById(Long id) {
+        Trainee trainee = getById(id);
+        if (!trainee.isActive()) {
+            throw new InvalidOperationException("Trainee is inactive: id=" + id);
+        }
+        return trainee;
     }
 
     public Collection<Trainee> findAll() {

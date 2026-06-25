@@ -1,5 +1,8 @@
 package com.epam.gymcrm.storage;
 
+import com.epam.gymcrm.model.Trainee;
+import com.epam.gymcrm.model.Trainer;
+import com.epam.gymcrm.model.Training;
 import com.epam.gymcrm.repository.TraineeRepository;
 import com.epam.gymcrm.repository.TrainerRepository;
 import com.epam.gymcrm.repository.TrainingRepository;
@@ -11,6 +14,8 @@ import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 
 @Slf4j
 @Component
@@ -26,24 +31,33 @@ public class StorageSeedBeanPostProcessor implements BeanPostProcessor, Environm
     @Override
     public Object postProcessAfterInitialization(Object bean, String beanName) throws BeansException {
         try {
-            if (bean instanceof TrainerRepository repository && repository.findAll().isEmpty()) {
-                var trainers = StorageCsvSeeder.readTrainers(
-                        environment.getRequiredProperty("storage.data.trainers"));
-                repository.load(trainers);
-                log.info("Seeded {} trainers", trainers.size());
-            } else if (bean instanceof TraineeRepository repository && repository.findAll().isEmpty()) {
-                var trainees = StorageCsvSeeder.readTrainees(
-                        environment.getRequiredProperty("storage.data.trainees"));
-                repository.load(trainees);
-                log.info("Seeded {} trainees", trainees.size());
-            } else if (bean instanceof TrainingRepository repository && repository.findAll().isEmpty()) {
-                var trainings = StorageCsvSeeder.readTrainings(
-                        environment.getRequiredProperty("storage.data.trainings"));
-                repository.load(trainings);
-                log.info("Seeded {} trainings", trainings.size());
+            if (bean instanceof TrainerRepository repository) {
+                Map<Long, Trainer> storage = new HashMap<>();
+                for (Trainer trainer : StorageCsvSeeder.readTrainers(
+                        environment.getRequiredProperty("storage.data.trainers"))) {
+                    storage.put(trainer.getUserId(), trainer);
+                }
+                repository.setStorage(storage);
+                log.info("Initialized trainer storage with {} entries", storage.size());
+            } else if (bean instanceof TraineeRepository repository) {
+                Map<Long, Trainee> storage = new HashMap<>();
+                for (Trainee trainee : StorageCsvSeeder.readTrainees(
+                        environment.getRequiredProperty("storage.data.trainees"))) {
+                    storage.put(trainee.getUserId(), trainee);
+                }
+                repository.setStorage(storage);
+                log.info("Initialized trainee storage with {} entries", storage.size());
+            } else if (bean instanceof TrainingRepository repository) {
+                Map<Long, Training> storage = new HashMap<>();
+                for (Training training : StorageCsvSeeder.readTrainings(
+                        environment.getRequiredProperty("storage.data.trainings"))) {
+                    storage.put(training.getTrainingId(), training);
+                }
+                repository.setStorage(storage);
+                log.info("Initialized training storage with {} entries", storage.size());
             }
         } catch (IOException e) {
-            throw new IllegalStateException("Failed to seed repository bean: " + beanName, e);
+            throw new IllegalStateException("Failed to initialize repository bean: " + beanName, e);
         }
         return bean;
     }

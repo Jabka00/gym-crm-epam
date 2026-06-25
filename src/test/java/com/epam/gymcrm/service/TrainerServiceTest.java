@@ -1,6 +1,9 @@
 package com.epam.gymcrm.service;
 
+import com.epam.gymcrm.exception.EntityNotFoundException;
+import com.epam.gymcrm.exception.InvalidOperationException;
 import com.epam.gymcrm.model.Trainer;
+import com.epam.gymcrm.model.TrainingType;
 import com.epam.gymcrm.repository.TrainerRepository;
 import com.epam.gymcrm.support.TestDataFactory;
 import org.junit.jupiter.api.Test;
@@ -14,6 +17,7 @@ import java.util.Optional;
 import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
@@ -80,5 +84,63 @@ class TrainerServiceTest {
         when(trainerRepository.findAll()).thenReturn(List.of(trainer));
 
         assertThat(trainerService.findAll()).containsExactly(trainer);
+    }
+
+    @Test
+    void shouldThrowWhenGettingMissingTrainer() {
+        when(trainerRepository.findById(99L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> trainerService.getById(99L))
+                .isInstanceOf(EntityNotFoundException.class);
+    }
+
+    @Test
+    void shouldThrowWhenTrainerInactive() {
+        Trainer trainer = TestDataFactory.createTrainerWithCredentials();
+        trainer.setUserId(2L);
+        trainer.setActive(false);
+        when(trainerRepository.findById(2L)).thenReturn(Optional.of(trainer));
+
+        assertThatThrownBy(() -> trainerService.getActiveById(2L))
+                .isInstanceOf(InvalidOperationException.class)
+                .hasMessageContaining("inactive");
+    }
+
+    @Test
+    void shouldThrowWhenSpecializationDoesNotMatch() {
+        Trainer trainer = TestDataFactory.createTrainerWithCredentials();
+        trainer.setUserId(2L);
+        trainer.setSpecialization(new TrainingType("Boxing"));
+        when(trainerRepository.findById(2L)).thenReturn(Optional.of(trainer));
+
+        assertThatThrownBy(() -> trainerService.getActiveForSpecialization(2L, "Yoga"))
+                .isInstanceOf(InvalidOperationException.class)
+                .hasMessageContaining("specialization");
+    }
+
+    @Test
+    void shouldReturnActiveTrainerMatchingSpecialization() {
+        Trainer trainer = TestDataFactory.createTrainerWithCredentials();
+        trainer.setUserId(2L);
+        when(trainerRepository.findById(2L)).thenReturn(Optional.of(trainer));
+
+        assertThat(trainerService.getActiveForSpecialization(2L, "Yoga")).isSameAs(trainer);
+    }
+
+    @Test
+    void shouldFindActiveTrainerBySpecialization() {
+        Trainer trainer = TestDataFactory.createTrainerWithCredentials();
+        trainer.setUserId(5L);
+        when(trainerRepository.findAll()).thenReturn(List.of(trainer));
+
+        assertThat(trainerService.findActiveBySpecialization("Yoga")).isSameAs(trainer);
+    }
+
+    @Test
+    void shouldThrowWhenNoActiveTrainerForSpecialization() {
+        when(trainerRepository.findAll()).thenReturn(List.of());
+
+        assertThatThrownBy(() -> trainerService.findActiveBySpecialization("Swimming"))
+                .isInstanceOf(EntityNotFoundException.class);
     }
 }

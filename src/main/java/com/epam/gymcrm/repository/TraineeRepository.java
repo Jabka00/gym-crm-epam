@@ -5,7 +5,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Repository;
 
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
@@ -13,7 +12,14 @@ import java.util.Optional;
 @Repository
 public class TraineeRepository {
 
-    private final Map<Long, Trainee> storage = new HashMap<>();
+    private Map<Long, Trainee> storage;
+
+    public void setStorage(Map<Long, Trainee> storage) {
+        if (this.storage != null) {
+            throw new IllegalStateException("Trainee storage is already initialized");
+        }
+        this.storage = storage;
+    }
 
     public Trainee save(Trainee trainee) {
         long id = storage.keySet().stream().mapToLong(Long::longValue).max().orElse(0L) + 1;
@@ -46,10 +52,5 @@ public class TraineeRepository {
 
     public boolean existsById(Long id) {
         return storage.containsKey(id);
-    }
-
-    public void load(Collection<Trainee> trainees) {
-        trainees.forEach(trainee -> storage.put(trainee.getUserId(), trainee));
-        log.debug("Loaded {} trainees into storage", trainees.size());
     }
 }

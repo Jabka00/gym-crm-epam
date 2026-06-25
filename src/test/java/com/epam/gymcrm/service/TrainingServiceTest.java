@@ -1,5 +1,6 @@
 package com.epam.gymcrm.service;
 
+import com.epam.gymcrm.exception.EntityNotFoundException;
 import com.epam.gymcrm.model.Training;
 import com.epam.gymcrm.repository.TrainingRepository;
 import com.epam.gymcrm.support.TestDataFactory;
@@ -13,7 +14,9 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -65,5 +68,51 @@ class TrainingServiceTest {
 
         assertThat(trainingService.existsByTraineeId(1L)).isTrue();
         assertThat(trainingService.existsByTraineeId(99L)).isFalse();
+    }
+
+    @Test
+    void shouldUpdateExistingTraining() {
+        Training training = TestDataFactory.createDefaultTraining(1L, 2L);
+        training.setTrainingId(10L);
+        when(trainingRepository.findById(10L)).thenReturn(Optional.of(training));
+        when(trainingRepository.update(training)).thenReturn(training);
+
+        Training updated = trainingService.update(training);
+
+        assertThat(updated).isSameAs(training);
+        verify(trainingRepository).update(training);
+    }
+
+    @Test
+    void shouldThrowWhenUpdatingMissingTraining() {
+        Training training = TestDataFactory.createDefaultTraining(1L, 2L);
+        training.setTrainingId(99L);
+        when(trainingRepository.findById(99L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> trainingService.update(training))
+                .isInstanceOf(EntityNotFoundException.class);
+
+        verify(trainingRepository, never()).update(any());
+    }
+
+    @Test
+    void shouldDeleteExistingTraining() {
+        Training training = TestDataFactory.createDefaultTraining(1L, 2L);
+        training.setTrainingId(10L);
+        when(trainingRepository.findById(10L)).thenReturn(Optional.of(training));
+
+        trainingService.delete(10L);
+
+        verify(trainingRepository).delete(10L);
+    }
+
+    @Test
+    void shouldThrowWhenDeletingMissingTraining() {
+        when(trainingRepository.findById(10L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> trainingService.delete(10L))
+                .isInstanceOf(EntityNotFoundException.class);
+
+        verify(trainingRepository, never()).delete(10L);
     }
 }

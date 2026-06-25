@@ -1,6 +1,7 @@
 package com.epam.gymcrm.service;
 
 import com.epam.gymcrm.exception.EntityNotFoundException;
+import com.epam.gymcrm.exception.InvalidOperationException;
 import com.epam.gymcrm.model.Trainee;
 import com.epam.gymcrm.repository.TraineeRepository;
 import com.epam.gymcrm.support.TestDataFactory;
@@ -119,5 +120,36 @@ class TraineeServiceTest {
         when(traineeRepository.findAll()).thenReturn(List.of(trainee));
 
         assertThat(traineeService.findAll()).containsExactly(trainee);
+    }
+
+    @Test
+    void shouldThrowWhenGettingMissingTrainee() {
+        when(traineeRepository.findById(99L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> traineeService.getById(99L))
+                .isInstanceOf(EntityNotFoundException.class)
+                .hasMessageContaining("99");
+    }
+
+    @Test
+    void shouldReturnActiveTrainee() {
+        Trainee trainee = TestDataFactory.createTraineeWithCredentials();
+        trainee.setUserId(1L);
+        trainee.setActive(true);
+        when(traineeRepository.findById(1L)).thenReturn(Optional.of(trainee));
+
+        assertThat(traineeService.getActiveById(1L)).isSameAs(trainee);
+    }
+
+    @Test
+    void shouldThrowWhenTraineeInactive() {
+        Trainee trainee = TestDataFactory.createTraineeWithCredentials();
+        trainee.setUserId(1L);
+        trainee.setActive(false);
+        when(traineeRepository.findById(1L)).thenReturn(Optional.of(trainee));
+
+        assertThatThrownBy(() -> traineeService.getActiveById(1L))
+                .isInstanceOf(InvalidOperationException.class)
+                .hasMessageContaining("inactive");
     }
 }

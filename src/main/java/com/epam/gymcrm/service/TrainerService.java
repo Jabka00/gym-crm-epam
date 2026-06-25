@@ -1,5 +1,7 @@
 package com.epam.gymcrm.service;
 
+import com.epam.gymcrm.exception.EntityNotFoundException;
+import com.epam.gymcrm.exception.InvalidOperationException;
 import com.epam.gymcrm.model.Trainer;
 import com.epam.gymcrm.repository.TrainerRepository;
 import lombok.extern.slf4j.Slf4j;
@@ -48,6 +50,37 @@ public class TrainerService {
 
     public Optional<Trainer> findById(Long id) {
         return trainerRepository.findById(id);
+    }
+
+    public Trainer getById(Long id) {
+        return findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Trainer not found: id=" + id));
+    }
+
+    public Trainer getActiveById(Long id) {
+        Trainer trainer = getById(id);
+        if (!trainer.isActive()) {
+            throw new InvalidOperationException("Trainer is inactive: id=" + id);
+        }
+        return trainer;
+    }
+
+    public Trainer getActiveForSpecialization(Long id, String trainingTypeName) {
+        Trainer trainer = getActiveById(id);
+        if (!trainer.matchesSpecialization(trainingTypeName)) {
+            throw new InvalidOperationException(
+                    "Trainer specialization does not match training type: " + trainingTypeName);
+        }
+        return trainer;
+    }
+
+    public Trainer findActiveBySpecialization(String trainingTypeName) {
+        return trainerRepository.findAll().stream()
+                .filter(Trainer::isActive)
+                .filter(trainer -> trainer.matchesSpecialization(trainingTypeName))
+                .findFirst()
+                .orElseThrow(() -> new EntityNotFoundException(
+                        "No active trainer found for type: " + trainingTypeName));
     }
 
     public Collection<Trainer> findAll() {

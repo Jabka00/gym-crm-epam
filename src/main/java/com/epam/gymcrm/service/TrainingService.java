@@ -1,5 +1,6 @@
 package com.epam.gymcrm.service;
 
+import com.epam.gymcrm.exception.EntityNotFoundException;
 import com.epam.gymcrm.model.Training;
 import com.epam.gymcrm.repository.TrainingRepository;
 import lombok.extern.slf4j.Slf4j;
@@ -25,6 +26,21 @@ public class TrainingService {
         log.info("Created training: {} (traineeId={}, trainerId={})",
                 saved.getTrainingName(), saved.getTraineeId(), saved.getTrainerId());
         return saved;
+    }
+
+    public Training update(Training training) {
+        findById(training.getTrainingId())
+                .orElseThrow(() -> new EntityNotFoundException(
+                        "Training not found: id=" + training.getTrainingId()));
+        Training updated = trainingRepository.update(training);
+        log.info("Updated training id={}", updated.getTrainingId());
+        return updated;
+    }
+
+    public void delete(Long id) {
+        findById(id).orElseThrow(() -> new EntityNotFoundException("Training not found: id=" + id));
+        trainingRepository.delete(id);
+        log.info("Deleted training id={}", id);
     }
 
     public Optional<Training> findById(Long id) {

@@ -5,6 +5,8 @@ import com.epam.gymcrm.support.TestDataFactory;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.util.HashMap;
+
 import static org.assertj.core.api.Assertions.assertThat;
 
 class TrainerRepositoryTest {
@@ -14,6 +16,7 @@ class TrainerRepositoryTest {
     @BeforeEach
     void setUp() {
         trainerRepository = new TrainerRepository();
+        trainerRepository.setStorage(new HashMap<>());
     }
 
     @Test
