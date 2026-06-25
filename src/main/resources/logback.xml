@@ -10,6 +10,6 @@
         <appender-ref ref="CONSOLE"/>
     </root>
 
-    <logger name="com.epum.gymcrm" level="DEBUG"/>
+    <logger name="com.epam.gymcrm" level="DEBUG"/>
 
 </configuration>

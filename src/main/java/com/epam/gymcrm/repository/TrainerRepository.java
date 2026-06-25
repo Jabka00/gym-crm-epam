@@ -1,23 +1,22 @@
-package com.epum.gymcrm.dao;
+package com.epam.gymcrm.repository;
 
-import com.epum.gymcrm.model.Trainer;
+import com.epam.gymcrm.model.Trainer;
+import com.epam.gymcrm.storage.TrainerStorage;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Repository;
 
 import java.util.Collection;
-import java.util.Map;
 import java.util.Optional;
 
 @Slf4j
 @Repository
-public class TrainerDao {
+public class TrainerRepository {
 
-    private Map<Long, Trainer> storage;
+    private TrainerStorage storage;
 
     @Autowired
-    public void setStorage(@Qualifier("trainerStorage") Map<Long, Trainer> storage) {
+    public void setStorage(TrainerStorage storage) {
         this.storage = storage;
     }
 
@@ -43,5 +42,9 @@ public class TrainerDao {
     public Collection<Trainer> findAll() {
         log.debug("findAll trainers, count={}", storage.size());
         return storage.values();
+    }
+
+    public boolean existsById(Long id) {
+        return storage.containsKey(id);
     }
 }

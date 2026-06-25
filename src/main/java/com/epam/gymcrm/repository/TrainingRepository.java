@@ -1,23 +1,22 @@
-package com.epum.gymcrm.dao;
+package com.epam.gymcrm.repository;
 
-import com.epum.gymcrm.model.Training;
+import com.epam.gymcrm.model.Training;
+import com.epam.gymcrm.storage.TrainingStorage;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Repository;
 
 import java.util.Collection;
-import java.util.Map;
 import java.util.Optional;
 
 @Slf4j
 @Repository
-public class TrainingDao {
+public class TrainingRepository {
 
-    private Map<Long, Training> storage;
+    private TrainingStorage storage;
 
     @Autowired
-    public void setStorage(@Qualifier("trainingStorage") Map<Long, Training> storage) {
+    public void setStorage(TrainingStorage storage) {
         this.storage = storage;
     }
 

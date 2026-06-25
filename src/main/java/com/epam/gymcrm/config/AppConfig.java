@@ -1,11 +1,11 @@
-package com.epum.gymcrm.config;
+package com.epam.gymcrm.config;
 
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.PropertySource;
 
 @Configuration
-@ComponentScan(basePackages = "com.epum.gymcrm")
+@ComponentScan(basePackages = "com.epam.gymcrm")
 @PropertySource("classpath:application.properties")
 public class AppConfig {
 }
