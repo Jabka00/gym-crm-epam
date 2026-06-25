@@ -1,7 +1,6 @@
 package com.epam.gymcrm.repository;
 
 import com.epam.gymcrm.model.Trainee;
-import com.epam.gymcrm.storage.TraineeStorage;
 import com.epam.gymcrm.support.TestDataFactory;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -15,7 +14,6 @@ class TraineeRepositoryTest {
     @BeforeEach
     void setUp() {
         traineeRepository = new TraineeRepository();
-        traineeRepository.setStorage(new TraineeStorage());
     }
 
     @Test

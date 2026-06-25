@@ -10,43 +10,35 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.time.Duration;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Objects;
+import java.util.function.Function;
 
 final class StorageCsvSeeder {
 
     private StorageCsvSeeder() {
     }
 
-    static void seedTrainers(TrainerStorage storage, String resourcePath) throws IOException {
-        try (var reader = openResource(resourcePath)) {
-            reader.lines()
-                    .skip(1)
-                    .filter(line -> !line.isBlank())
-                    .map(line -> line.split(","))
-                    .map(StorageCsvSeeder::parseTrainer)
-                    .forEach(trainer -> storage.put(trainer.getUserId(), trainer));
-        }
+    static List<Trainer> readTrainers(String resourcePath) throws IOException {
+        return readLines(resourcePath, StorageCsvSeeder::parseTrainer);
     }
 
-    static void seedTrainees(TraineeStorage storage, String resourcePath) throws IOException {
-        try (var reader = openResource(resourcePath)) {
-            reader.lines()
-                    .skip(1)
-                    .filter(line -> !line.isBlank())
-                    .map(line -> line.split(","))
-                    .map(StorageCsvSeeder::parseTrainee)
-                    .forEach(trainee -> storage.put(trainee.getUserId(), trainee));
-        }
+    static List<Trainee> readTrainees(String resourcePath) throws IOException {
+        return readLines(resourcePath, StorageCsvSeeder::parseTrainee);
     }
 
-    static void seedTrainings(TrainingStorage storage, String resourcePath) throws IOException {
+    static List<Training> readTrainings(String resourcePath) throws IOException {
+        return readLines(resourcePath, StorageCsvSeeder::parseTraining);
+    }
+
+    private static <T> List<T> readLines(String resourcePath, Function<String[], T> mapper) throws IOException {
         try (var reader = openResource(resourcePath)) {
-            reader.lines()
+            return reader.lines()
                     .skip(1)
                     .filter(line -> !line.isBlank())
                     .map(line -> line.split(","))
-                    .map(StorageCsvSeeder::parseTraining)
-                    .forEach(training -> storage.put(training.getTrainingId(), training));
+                    .map(mapper)
+                    .toList();
         }
     }
 

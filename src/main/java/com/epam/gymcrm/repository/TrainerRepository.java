@@ -1,24 +1,19 @@
 package com.epam.gymcrm.repository;
 
 import com.epam.gymcrm.model.Trainer;
-import com.epam.gymcrm.storage.TrainerStorage;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 
 import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
 
 @Slf4j
 @Repository
 public class TrainerRepository {
 
-    private TrainerStorage storage;
-
-    @Autowired
-    public void setStorage(TrainerStorage storage) {
-        this.storage = storage;
-    }
+    private final Map<Long, Trainer> storage = new HashMap<>();
 
     public Trainer save(Trainer trainer) {
         long id = storage.keySet().stream().mapToLong(Long::longValue).max().orElse(0L) + 1;
@@ -46,5 +41,10 @@ public class TrainerRepository {
 
     public boolean existsById(Long id) {
         return storage.containsKey(id);
+    }
+
+    public void load(Collection<Trainer> trainers) {
+        trainers.forEach(trainer -> storage.put(trainer.getUserId(), trainer));
+        log.debug("Loaded {} trainers into storage", trainers.size());
     }
 }

@@ -35,11 +35,13 @@ mvn test
 ## Structure
 
 - `model` — domain entities
-- `repository` — in-memory repositories backed by `Map`
+- `repository` — in-memory repositories, each holding its own `Map`
 - `service` - business logic (including credential generation)
-- `storage` - typed in-memory storage beans, CSV seed loading via `BeanPostProcessor`
+- `storage` - CSV parsing (`StorageCsvSeeder`) and startup seeding (`StorageSeedBeanPostProcessor`)
 
 ## Seed data
 
 CSV file paths are configured in `src/main/resources/application.properties`.
-Storage maps are populated at startup by `StorageSeedBeanPostProcessor`, which detects storage beans by type (`TrainerStorage`, `TraineeStorage`, `TrainingStorage`).
+Repositories are populated at startup by `StorageSeedBeanPostProcessor`, which detects
+repository beans by type (`TrainerRepository`, `TraineeRepository`, `TrainingRepository`),
+parses the CSV files via `StorageCsvSeeder`, and calls each repository's `load(...)` method.

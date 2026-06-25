@@ -1,14 +1,8 @@
 package com.epam.gymcrm.service;
 
 import com.epam.gymcrm.dto.AutoScheduleTrainingRequest;
-import com.epam.gymcrm.dto.CreateTraineeRequest;
-import com.epam.gymcrm.dto.CreateTrainerRequest;
 import com.epam.gymcrm.dto.ScheduleTrainingRequest;
-import com.epam.gymcrm.dto.TraineeResponse;
-import com.epam.gymcrm.dto.TrainerResponse;
 import com.epam.gymcrm.dto.TrainingResponse;
-import com.epam.gymcrm.dto.UpdateTraineeRequest;
-import com.epam.gymcrm.dto.UpdateTrainerRequest;
 import com.epam.gymcrm.exception.EntityNotFoundException;
 import com.epam.gymcrm.exception.InvalidOperationException;
 import com.epam.gymcrm.model.Trainee;
@@ -17,9 +11,7 @@ import com.epam.gymcrm.model.Training;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
-import java.util.Collection;
 import java.util.Objects;
-import java.util.Optional;
 
 @Slf4j
 @Service
@@ -36,80 +28,6 @@ public class GymFacade {
         this.traineeService = traineeService;
         this.trainingService = trainingService;
     }
-
-
-    public TraineeResponse createTrainee(CreateTraineeRequest request) {
-        Trainee trainee = new Trainee();
-        trainee.setFirstName(request.firstName());
-        trainee.setLastName(request.lastName());
-        trainee.setDateOfBirth(request.dateOfBirth());
-        trainee.setAddress(request.address());
-        return toTraineeResponse(traineeService.create(trainee));
-    }
-
-    public TraineeResponse updateTrainee(UpdateTraineeRequest request) {
-        Trainee trainee = new Trainee();
-        trainee.setUserId(request.userId());
-        trainee.setFirstName(request.firstName());
-        trainee.setLastName(request.lastName());
-        trainee.setDateOfBirth(request.dateOfBirth());
-        trainee.setAddress(request.address());
-        trainee.setActive(request.active());
-        return toTraineeResponse(traineeService.update(trainee));
-    }
-
-    public void deleteTrainee(Long id) {
-        traineeService.delete(id);
-    }
-
-    public Optional<TraineeResponse> findTrainee(Long id) {
-        return traineeService.findById(id).map(this::toTraineeResponse);
-    }
-
-    public Collection<TraineeResponse> findAllTrainees() {
-        return traineeService.findAll().stream()
-                .map(this::toTraineeResponse)
-                .toList();
-    }
-
-    public void removeTraineeProfile(Long traineeId) {
-        requireExistingTrainee(traineeId);
-        if (trainingService.existsByTraineeId(traineeId)) {
-            throw new InvalidOperationException(
-                    "Cannot remove trainee id=" + traineeId + ": active trainings exist");
-        }
-        traineeService.delete(traineeId);
-        log.info("Removed trainee profile id={}", traineeId);
-    }
-
-    public TrainerResponse createTrainer(CreateTrainerRequest request) {
-        Trainer trainer = new Trainer();
-        trainer.setFirstName(request.firstName());
-        trainer.setLastName(request.lastName());
-        trainer.setSpecialization(request.specialization());
-        return toTrainerResponse(trainerService.create(trainer));
-    }
-
-    public TrainerResponse updateTrainer(UpdateTrainerRequest request) {
-        Trainer trainer = new Trainer();
-        trainer.setUserId(request.userId());
-        trainer.setFirstName(request.firstName());
-        trainer.setLastName(request.lastName());
-        trainer.setSpecialization(request.specialization());
-        trainer.setActive(request.active());
-        return toTrainerResponse(trainerService.update(trainer));
-    }
-
-    public Optional<TrainerResponse> findTrainer(Long id) {
-        return trainerService.findById(id).map(this::toTrainerResponse);
-    }
-
-    public Collection<TrainerResponse> findAllTrainers() {
-        return trainerService.findAll().stream()
-                .map(this::toTrainerResponse)
-                .toList();
-    }
-
 
     public TrainingResponse scheduleTraining(ScheduleTrainingRequest request) {
         Trainee trainee = requireActiveTrainee(request.traineeId());
@@ -151,31 +69,14 @@ public class GymFacade {
         return toTrainingResponse(trainingService.create(training));
     }
 
-    public Optional<TrainingResponse> findTraining(Long id) {
-        return trainingService.findById(id).map(this::toTrainingResponse);
-    }
-
-    private TraineeResponse toTraineeResponse(Trainee trainee) {
-        return new TraineeResponse(
-                trainee.getUserId(),
-                trainee.getFirstName(),
-                trainee.getLastName(),
-                trainee.getUsername(),
-                trainee.isActive(),
-                trainee.getDateOfBirth(),
-                trainee.getAddress()
-        );
-    }
-
-    private TrainerResponse toTrainerResponse(Trainer trainer) {
-        return new TrainerResponse(
-                trainer.getUserId(),
-                trainer.getFirstName(),
-                trainer.getLastName(),
-                trainer.getUsername(),
-                trainer.isActive(),
-                trainer.getSpecialization()
-        );
+    public void removeTraineeProfile(Long traineeId) {
+        requireExistingTrainee(traineeId);
+        if (trainingService.existsByTraineeId(traineeId)) {
+            throw new InvalidOperationException(
+                    "Cannot remove trainee id=" + traineeId + ": active trainings exist");
+        }
+        traineeService.delete(traineeId);
+        log.info("Removed trainee profile id={}", traineeId);
     }
 
     private TrainingResponse toTrainingResponse(Training training) {
