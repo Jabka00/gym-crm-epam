@@ -1,5 +1,8 @@
 package com.epam.gymcrm.service;
 
+import com.epam.gymcrm.dto.AutoScheduleTrainingRequest;
+import com.epam.gymcrm.dto.ScheduleTrainingRequest;
+import com.epam.gymcrm.dto.TrainingResponse;
 import com.epam.gymcrm.exception.EntityNotFoundException;
 import com.epam.gymcrm.exception.InvalidOperationException;
 import com.epam.gymcrm.model.Trainee;
@@ -54,16 +57,24 @@ class GymFacadeTest {
         trainer.setUserId(2L);
         trainer.setActive(true);
 
-        Training training = TestDataFactory.createDefaultTraining(1L, 2L);
+        Training savedTraining = TestDataFactory.createDefaultTraining(1L, 2L);
+        savedTraining.setTrainingId(10L);
 
         when(traineeService.findById(1L)).thenReturn(Optional.of(trainee));
         when(trainerService.findById(2L)).thenReturn(Optional.of(trainer));
-        when(trainingService.create(training)).thenReturn(training);
+        when(trainingService.create(any(Training.class))).thenReturn(savedTraining);
 
-        Training scheduled = gymFacade.scheduleTraining(training);
+        ScheduleTrainingRequest request = new ScheduleTrainingRequest(
+                1L, 2L, "Morning Yoga", new TrainingType("Yoga"),
+                LocalDate.of(2024, 3, 1), Duration.ofMinutes(60));
 
-        assertThat(scheduled).isEqualTo(training);
-        verify(trainingService).create(training);
+        TrainingResponse response = gymFacade.scheduleTraining(request);
+
+        assertThat(response.trainingId()).isEqualTo(10L);
+        assertThat(response.trainingName()).isEqualTo("Morning Yoga");
+        assertThat(response.traineeId()).isEqualTo(1L);
+        assertThat(response.trainerId()).isEqualTo(2L);
+        verify(trainingService).create(any(Training.class));
     }
 
     @Test
@@ -79,12 +90,14 @@ class GymFacadeTest {
         trainer.setActive(true);
         trainer.setSpecialization(new TrainingType("Boxing"));
 
-        Training training = TestDataFactory.createDefaultTraining(1L, 2L);
-
         when(traineeService.findById(1L)).thenReturn(Optional.of(trainee));
         when(trainerService.findById(2L)).thenReturn(Optional.of(trainer));
 
-        assertThatThrownBy(() -> gymFacade.scheduleTraining(training))
+        ScheduleTrainingRequest request = new ScheduleTrainingRequest(
+                1L, 2L, "Morning Yoga", new TrainingType("Yoga"),
+                LocalDate.of(2024, 3, 1), Duration.ofMinutes(60));
+
+        assertThatThrownBy(() -> gymFacade.scheduleTraining(request))
                 .isInstanceOf(InvalidOperationException.class)
                 .hasMessageContaining("specialization");
 
@@ -109,15 +122,14 @@ class GymFacadeTest {
             return saved;
         });
 
-        Training scheduled = gymFacade.scheduleTrainingWithAvailableTrainer(
-                1L,
-                "Morning Yoga",
-                new TrainingType("Yoga"),
-                LocalDate.now(),
-                Duration.ofMinutes(60));
+        AutoScheduleTrainingRequest request = new AutoScheduleTrainingRequest(
+                1L, "Morning Yoga", new TrainingType("Yoga"),
+                LocalDate.now(), Duration.ofMinutes(60));
 
-        assertThat(scheduled.getTrainerId()).isEqualTo(5L);
-        assertThat(scheduled.getTrainingName()).isEqualTo("Morning Yoga");
+        TrainingResponse response = gymFacade.autoScheduleTraining(request);
+
+        assertThat(response.trainerId()).isEqualTo(5L);
+        assertThat(response.trainingName()).isEqualTo("Morning Yoga");
     }
 
     @Test
@@ -147,11 +159,13 @@ class GymFacadeTest {
         trainee.setUserId(1L);
         trainee.setActive(false);
 
-        Training training = TestDataFactory.createDefaultTraining(1L, 2L);
-
         when(traineeService.findById(1L)).thenReturn(Optional.of(trainee));
 
-        assertThatThrownBy(() -> gymFacade.scheduleTraining(training))
+        ScheduleTrainingRequest request = new ScheduleTrainingRequest(
+                1L, 2L, "Morning Yoga", new TrainingType("Yoga"),
+                LocalDate.of(2024, 3, 1), Duration.ofMinutes(60));
+
+        assertThatThrownBy(() -> gymFacade.scheduleTraining(request))
                 .isInstanceOf(InvalidOperationException.class)
                 .hasMessageContaining("inactive");
 
@@ -168,12 +182,14 @@ class GymFacadeTest {
         trainer.setUserId(2L);
         trainer.setActive(false);
 
-        Training training = TestDataFactory.createDefaultTraining(1L, 2L);
-
         when(traineeService.findById(1L)).thenReturn(Optional.of(trainee));
         when(trainerService.findById(2L)).thenReturn(Optional.of(trainer));
 
-        assertThatThrownBy(() -> gymFacade.scheduleTraining(training))
+        ScheduleTrainingRequest request = new ScheduleTrainingRequest(
+                1L, 2L, "Morning Yoga", new TrainingType("Yoga"),
+                LocalDate.of(2024, 3, 1), Duration.ofMinutes(60));
+
+        assertThatThrownBy(() -> gymFacade.scheduleTraining(request))
                 .isInstanceOf(InvalidOperationException.class)
                 .hasMessageContaining("inactive");
 
@@ -189,8 +205,11 @@ class GymFacadeTest {
         when(traineeService.findById(1L)).thenReturn(Optional.of(trainee));
         when(trainerService.findAll()).thenReturn(List.of());
 
-        assertThatThrownBy(() -> gymFacade.scheduleTrainingWithAvailableTrainer(
-                1L, "Swim", new TrainingType("Swimming"), LocalDate.now(), Duration.ofMinutes(30)))
+        AutoScheduleTrainingRequest request = new AutoScheduleTrainingRequest(
+                1L, "Swim", new TrainingType("Swimming"),
+                LocalDate.now(), Duration.ofMinutes(30));
+
+        assertThatThrownBy(() -> gymFacade.autoScheduleTraining(request))
                 .isInstanceOf(EntityNotFoundException.class);
     }
 }

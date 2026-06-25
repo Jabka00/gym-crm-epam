@@ -1,9 +1,13 @@
 package com.epam.gymcrm;
 
 import com.epam.gymcrm.config.AppConfig;
-import com.epam.gymcrm.model.Trainee;
-import com.epam.gymcrm.model.Trainer;
-import com.epam.gymcrm.model.Training;
+import com.epam.gymcrm.dto.AutoScheduleTrainingRequest;
+import com.epam.gymcrm.dto.CreateTraineeRequest;
+import com.epam.gymcrm.dto.CreateTrainerRequest;
+import com.epam.gymcrm.dto.ScheduleTrainingRequest;
+import com.epam.gymcrm.dto.TraineeResponse;
+import com.epam.gymcrm.dto.TrainerResponse;
+import com.epam.gymcrm.dto.TrainingResponse;
 import com.epam.gymcrm.model.TrainingType;
 import com.epam.gymcrm.service.GymFacade;
 import com.epam.gymcrm.service.TraineeService;
@@ -33,42 +37,30 @@ public class GymCrmApp {
             trainingService.findAll().forEach(training ->
                     log.info("Training: {} {}", training.getTrainingId(), training.getTrainingName()));
 
-            Trainer newTrainer = new Trainer();
-            newTrainer.setFirstName("John");
-            newTrainer.setLastName("Smith");
-            newTrainer.setSpecialization(new TrainingType("Pilates"));
-            newTrainer = trainerService.create(newTrainer);
-            log.info("Created trainer: username={}, password={}",
-                    newTrainer.getUsername(), newTrainer.getPassword());
+            TrainerResponse newTrainer = facade.createTrainer(new CreateTrainerRequest(
+                    "John", "Smith", new TrainingType("Pilates")));
+            log.info("Created trainer: username={}", newTrainer.username());
 
-            Trainee newTrainee = new Trainee();
-            newTrainee.setFirstName("Jane");
-            newTrainee.setLastName("Doe");
-            newTrainee.setDateOfBirth(LocalDate.of(1998, 5, 20));
-            newTrainee.setAddress("Kyiv");
-            newTrainee = traineeService.create(newTrainee);
-            log.info("Created trainee: username={}, password={}",
-                    newTrainee.getUsername(), newTrainee.getPassword());
+            TraineeResponse newTrainee = facade.createTrainee(new CreateTraineeRequest(
+                    "Jane", "Doe", LocalDate.of(1998, 5, 20), "Kyiv"));
+            log.info("Created trainee: username={}", newTrainee.username());
 
-            Training trainingToSchedule = new Training();
-            trainingToSchedule.setTraineeId(newTrainee.getUserId());
-            trainingToSchedule.setTrainerId(newTrainer.getUserId());
-            trainingToSchedule.setTrainingName("Evening Pilates");
-            trainingToSchedule.setTrainingType(new TrainingType("Pilates"));
-            trainingToSchedule.setTrainingDate(LocalDate.now());
-            trainingToSchedule.setTrainingDuration(Duration.ofMinutes(60));
-            Training scheduled = facade.scheduleTraining(trainingToSchedule);
-            log.info("Scheduled training: id={}, name={}",
-                    scheduled.getTrainingId(), scheduled.getTrainingName());
+            TrainingResponse scheduled = facade.scheduleTraining(new ScheduleTrainingRequest(
+                    newTrainee.userId(),
+                    newTrainer.userId(),
+                    "Evening Pilates",
+                    new TrainingType("Pilates"),
+                    LocalDate.now(),
+                    Duration.ofMinutes(60)));
+            log.info("Scheduled training: id={}, name={}", scheduled.trainingId(), scheduled.trainingName());
 
-            Training autoScheduled = facade.scheduleTrainingWithAvailableTrainer(
-                    newTrainee.getUserId(),
+            TrainingResponse autoScheduled = facade.autoScheduleTraining(new AutoScheduleTrainingRequest(
+                    newTrainee.userId(),
                     "Morning Yoga",
                     new TrainingType("Yoga"),
                     LocalDate.now().plusDays(1),
-                    Duration.ofMinutes(45));
-            log.info("Auto-scheduled training: id={}, trainerId={}",
-                    autoScheduled.getTrainingId(), autoScheduled.getTrainerId());
+                    Duration.ofMinutes(45)));
+            log.info("Auto-scheduled training: id={}, trainerId={}", autoScheduled.trainingId(), autoScheduled.trainerId());
         }
     }
 }
