@@ -61,7 +61,7 @@ class GymServiceTest {
         AutoScheduleTrainingRequest request = new AutoScheduleTrainingRequest(
                 1L, "Morning Yoga", TrainingType.YOGA,
                 LocalDate.of(2024, 3, 1), Duration.ofMinutes(60));
-        TrainerResponse trainer = new TrainerResponse(5L, "John.Smith", TrainingType.YOGA);
+        TrainerResponse trainer = new TrainerResponse(5L, "John Smith", "John.Smith", TrainingType.YOGA);
         TrainingResponse autoScheduled = new TrainingResponse(
                 100L, "Morning Yoga", TrainingType.YOGA,
                 LocalDate.of(2024, 3, 1), Duration.ofMinutes(60), 1L, 5L);

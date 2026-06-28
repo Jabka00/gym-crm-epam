@@ -32,13 +32,13 @@ class TrainerRepositoryTest {
     }
 
     @Test
-    void shouldUpdateTrainer() {
+    void shouldOverwriteExistingTrainerOnSave() {
         TrainerEntity trainer = TestDataFactory.createTrainerWithCredentials();
         trainer.setUserId(1L);
         trainerRepository.save(trainer);
         trainer.setFirstName("Jonathan");
 
-        TrainerEntity updated = trainerRepository.update(trainer);
+        TrainerEntity updated = trainerRepository.save(trainer);
 
         assertThat(updated.getFirstName()).isEqualTo("Jonathan");
         assertThat(trainerRepository.findById(1L))

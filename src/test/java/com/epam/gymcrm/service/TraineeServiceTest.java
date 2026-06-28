@@ -63,6 +63,7 @@ class TraineeServiceTest {
         TraineeResponse created = traineeService.create(request);
 
         assertThat(created.userId()).isEqualTo(1L);
+        assertThat(created.fullName()).isEqualTo("Alice Walker");
         assertThat(created.username()).isEqualTo("Alice.Walker");
         assertThat(created.address()).isEqualTo("Kyiv");
         verify(credentialGenerator, times(1)).generatePassword();

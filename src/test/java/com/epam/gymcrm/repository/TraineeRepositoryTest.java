@@ -32,13 +32,13 @@ class TraineeRepositoryTest {
     }
 
     @Test
-    void shouldUpdateTrainee() {
+    void shouldOverwriteExistingTraineeOnSave() {
         TraineeEntity trainee = TestDataFactory.createTraineeWithCredentials();
         trainee.setUserId(1L);
         traineeRepository.save(trainee);
         trainee.setAddress("Odesa");
 
-        TraineeEntity updated = traineeRepository.update(trainee);
+        TraineeEntity updated = traineeRepository.save(trainee);
 
         assertThat(updated.getAddress()).isEqualTo("Odesa");
         assertThat(traineeRepository.findById(1L))

@@ -63,6 +63,7 @@ class TrainerServiceTest {
         TrainerResponse created = trainerService.create(request);
 
         assertThat(created.userId()).isEqualTo(1L);
+        assertThat(created.fullName()).isEqualTo("John Smith");
         assertThat(created.username()).isEqualTo("John.Smith");
         assertThat(created.specialization()).isEqualTo(TrainingType.YOGA);
         verify(credentialGenerator, times(1)).generatePassword();

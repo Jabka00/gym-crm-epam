@@ -27,12 +27,6 @@ public class TrainingRepository {
         return training;
     }
 
-    public TrainingEntity update(TrainingEntity training) {
-        storage.put(training.getTrainingId(), training);
-        log.debug("Updated training id={}", training.getTrainingId());
-        return training;
-    }
-
     public void delete(Long id) {
         storage.remove(id);
         log.debug("Deleted training id={}", id);

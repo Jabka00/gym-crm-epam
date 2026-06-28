@@ -1,4 +1,4 @@
-package com.epam.gymcrm.storage;
+package com.epam.gymcrm.util;
 
 import com.epam.gymcrm.entity.TraineeEntity;
 import com.epam.gymcrm.entity.TrainerEntity;
@@ -14,11 +14,11 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-class StorageCsvSeederTest {
+class CsvDataReaderTest {
 
     @Test
     void shouldReadTrainersFromCsv() throws IOException {
-        List<TrainerEntity> trainers = StorageCsvSeeder.readTrainers("data/trainers.csv");
+        List<TrainerEntity> trainers = CsvDataReader.readTrainers("data/trainers.csv");
 
         assertThat(trainers).hasSize(3);
 
@@ -37,7 +37,7 @@ class StorageCsvSeederTest {
 
     @Test
     void shouldReadTraineesFromCsv() throws IOException {
-        List<TraineeEntity> trainees = StorageCsvSeeder.readTrainees("data/trainees.csv");
+        List<TraineeEntity> trainees = CsvDataReader.readTrainees("data/trainees.csv");
 
         assertThat(trainees).hasSize(3);
 
@@ -57,7 +57,7 @@ class StorageCsvSeederTest {
 
     @Test
     void shouldReadTrainingsFromCsv() throws IOException {
-        List<TrainingEntity> trainings = StorageCsvSeeder.readTrainings("data/trainings.csv");
+        List<TrainingEntity> trainings = CsvDataReader.readTrainings("data/trainings.csv");
 
         assertThat(trainings).hasSize(3);
 
@@ -75,7 +75,7 @@ class StorageCsvSeederTest {
 
     @Test
     void shouldThrowWhenResourceNotFound() {
-        assertThatThrownBy(() -> StorageCsvSeeder.readTrainers("data/missing.csv"))
+        assertThatThrownBy(() -> CsvDataReader.readTrainers("data/missing.csv"))
                 .isInstanceOf(NullPointerException.class)
                 .hasMessageContaining("data/missing.csv");
     }

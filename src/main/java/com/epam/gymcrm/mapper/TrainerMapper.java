@@ -10,6 +10,7 @@ public class TrainerMapper {
     public TrainerResponse toResponse(TrainerEntity trainer) {
         return new TrainerResponse(
                 trainer.getUserId(),
+                trainer.getFirstName() + " " + trainer.getLastName(),
                 trainer.getUsername(),
                 trainer.getSpecialization()
         );

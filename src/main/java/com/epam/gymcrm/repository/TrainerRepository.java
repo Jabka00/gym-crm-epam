@@ -27,12 +27,6 @@ public class TrainerRepository {
         return trainer;
     }
 
-    public TrainerEntity update(TrainerEntity trainer) {
-        storage.put(trainer.getUserId(), trainer);
-        log.debug("Updated trainer id={}", trainer.getUserId());
-        return trainer;
-    }
-
     public Optional<TrainerEntity> findById(Long id) {
         log.debug("findById trainer id={}", id);
         return Optional.ofNullable(storage.get(id));
