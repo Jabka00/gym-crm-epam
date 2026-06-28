@@ -1,17 +1,21 @@
 package com.epam.gymcrm.service;
 
+import com.epam.gymcrm.dto.CreateTrainerRequest;
+import com.epam.gymcrm.dto.TrainerResponse;
+import com.epam.gymcrm.dto.UpdateTrainerRequest;
 import com.epam.gymcrm.entity.TrainerEntity;
 import com.epam.gymcrm.entity.TrainingType;
 import com.epam.gymcrm.exception.EntityNotFoundException;
 import com.epam.gymcrm.exception.InvalidOperationException;
+import com.epam.gymcrm.mapper.TrainerMapper;
 import com.epam.gymcrm.repository.TrainerRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.util.Collection;
-import java.util.Optional;
+import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
@@ -24,6 +28,7 @@ public class TrainerService implements InitializingBean {
 
     private TrainerRepository trainerRepository;
     private CredentialGenerator credentialGenerator;
+    private TrainerMapper trainerMapper;
 
     private static final Pattern SUFFIX_PATTERN = Pattern.compile("^(.*?)(\\d+)$");
 
@@ -38,6 +43,11 @@ public class TrainerService implements InitializingBean {
     @Autowired
     public void setCredentialGenerator(CredentialGenerator credentialGenerator) {
         this.credentialGenerator = credentialGenerator;
+    }
+
+    @Autowired
+    public void setTrainerMapper(TrainerMapper trainerMapper) {
+        this.trainerMapper = trainerMapper;
     }
 
     @Override
@@ -71,7 +81,11 @@ public class TrainerService implements InitializingBean {
         }
     }
 
-    public TrainerEntity create(TrainerEntity trainer) {
+    public TrainerResponse create(CreateTrainerRequest request) {
+        TrainerEntity trainer = new TrainerEntity();
+        trainer.setFirstName(request.user().firstName());
+        trainer.setLastName(request.user().lastName());
+        trainer.setSpecialization(request.specialization());
         trainer.setUserId(idSequence.incrementAndGet());
         trainer.setUsername(credentialGenerator.generateUsername(
                 trainer.getFirstName(), trainer.getLastName(), usernameCounters));
@@ -79,51 +93,73 @@ public class TrainerService implements InitializingBean {
         trainer.setActive(true);
         TrainerEntity saved = trainerRepository.save(trainer);
         log.info("Created trainer id={}", saved.getUserId());
-        return saved;
+        return trainerMapper.toResponse(saved);
     }
 
-    public TrainerEntity update(TrainerEntity trainer) {
-        TrainerEntity updated = trainerRepository.update(trainer);
-        log.info("Updated trainer id={}", updated.getUserId());
-        return updated;
+    public TrainerResponse update(UpdateTrainerRequest request) {
+        TrainerEntity trainer = getEntity(request.userId());
+        String newFirstName = request.user().firstName();
+        String newLastName = request.user().lastName();
+        boolean nameChanged = !Objects.equals(trainer.getFirstName(), newFirstName)
+                || !Objects.equals(trainer.getLastName(), newLastName);
+
+        trainer.setFirstName(newFirstName);
+        trainer.setLastName(newLastName);
+        trainer.setSpecialization(request.specialization());
+        trainer.setActive(request.active());
+
+        if (nameChanged) {
+            trainer.setUsername(credentialGenerator.generateUsername(
+                    newFirstName, newLastName, usernameCounters));
+            log.debug("Regenerated username for trainer id={}", trainer.getUserId());
+        }
+
+        TrainerEntity saved = trainerRepository.save(trainer);
+        log.info("Updated trainer id={}", saved.getUserId());
+        return trainerMapper.toResponse(saved);
     }
 
-    public Optional<TrainerEntity> findById(Long id) {
-        return trainerRepository.findById(id);
+    public TrainerResponse getById(Long id) {
+        return trainerMapper.toResponse(getEntity(id));
     }
 
-    public TrainerEntity getById(Long id) {
-        return findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Trainer not found: id=" + id));
+    public TrainerResponse getActiveById(Long id) {
+        return trainerMapper.toResponse(getActiveEntity(id));
     }
 
-    public TrainerEntity getActiveById(Long id) {
-        TrainerEntity trainer = getById(id);
+    public TrainerResponse getActiveForSpecialization(Long id, TrainingType type) {
+        TrainerEntity trainer = getActiveEntity(id);
+        if (!trainer.matchesSpecialization(type)) {
+            throw new InvalidOperationException(
+                    "Trainer specialization does not match training type: " + type);
+        }
+        return trainerMapper.toResponse(trainer);
+    }
+
+    public TrainerResponse findActiveBySpecialization(TrainingType type) {
+        TrainerEntity trainer = trainerRepository.findAll()
+                .filter(TrainerEntity::isActive)
+                .filter(t -> t.matchesSpecialization(type))
+                .findFirst()
+                .orElseThrow(() -> new EntityNotFoundException(
+                        "No active trainer found for type: " + type));
+        return trainerMapper.toResponse(trainer);
+    }
+
+    public List<TrainerResponse> findAll() {
+        return trainerRepository.findAll().map(trainerMapper::toResponse).toList();
+    }
+
+    private TrainerEntity getActiveEntity(Long id) {
+        TrainerEntity trainer = getEntity(id);
         if (!trainer.isActive()) {
             throw new InvalidOperationException("Trainer is inactive: id=" + id);
         }
         return trainer;
     }
 
-    public TrainerEntity getActiveForSpecialization(Long id, TrainingType type) {
-        TrainerEntity trainer = getActiveById(id);
-        if (!trainer.matchesSpecialization(type)) {
-            throw new InvalidOperationException(
-                    "Trainer specialization does not match training type: " + type);
-        }
-        return trainer;
-    }
-
-    public TrainerEntity findActiveBySpecialization(TrainingType type) {
-        return trainerRepository.findAll()
-                .filter(TrainerEntity::isActive)
-                .filter(trainer -> trainer.matchesSpecialization(type))
-                .findFirst()
-                .orElseThrow(() -> new EntityNotFoundException(
-                        "No active trainer found for type: " + type));
-    }
-
-    public Collection<TrainerEntity> findAll() {
-        return trainerRepository.findAll().toList();
+    private TrainerEntity getEntity(Long id) {
+        return trainerRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Trainer not found: id=" + id));
     }
 }

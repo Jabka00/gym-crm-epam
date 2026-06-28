@@ -1,16 +1,20 @@
 package com.epam.gymcrm.service;
 
+import com.epam.gymcrm.dto.CreateTraineeRequest;
+import com.epam.gymcrm.dto.TraineeResponse;
+import com.epam.gymcrm.dto.UpdateTraineeRequest;
 import com.epam.gymcrm.entity.TraineeEntity;
 import com.epam.gymcrm.exception.EntityNotFoundException;
 import com.epam.gymcrm.exception.InvalidOperationException;
+import com.epam.gymcrm.mapper.TraineeMapper;
 import com.epam.gymcrm.repository.TraineeRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.util.Collection;
-import java.util.Optional;
+import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
@@ -23,6 +27,7 @@ public class TraineeService implements InitializingBean {
 
     private TraineeRepository traineeRepository;
     private CredentialGenerator credentialGenerator;
+    private TraineeMapper traineeMapper;
 
     private static final Pattern SUFFIX_PATTERN = Pattern.compile("^(.*?)(\\d+)$");
 
@@ -37,6 +42,11 @@ public class TraineeService implements InitializingBean {
     @Autowired
     public void setCredentialGenerator(CredentialGenerator credentialGenerator) {
         this.credentialGenerator = credentialGenerator;
+    }
+
+    @Autowired
+    public void setTraineeMapper(TraineeMapper traineeMapper) {
+        this.traineeMapper = traineeMapper;
     }
 
     @Override
@@ -70,7 +80,12 @@ public class TraineeService implements InitializingBean {
         }
     }
 
-    public TraineeEntity create(TraineeEntity trainee) {
+    public TraineeResponse create(CreateTraineeRequest request) {
+        TraineeEntity trainee = new TraineeEntity();
+        trainee.setFirstName(request.user().firstName());
+        trainee.setLastName(request.user().lastName());
+        trainee.setDateOfBirth(request.dateOfBirth());
+        trainee.setAddress(request.address());
         trainee.setUserId(idSequence.incrementAndGet());
         trainee.setUsername(credentialGenerator.generateUsername(
                 trainee.getFirstName(), trainee.getLastName(), usernameCounters));
@@ -78,41 +93,57 @@ public class TraineeService implements InitializingBean {
         trainee.setActive(true);
         TraineeEntity saved = traineeRepository.save(trainee);
         log.info("Created trainee id={}", saved.getUserId());
-        return saved;
+        return traineeMapper.toResponse(saved);
     }
 
-    public TraineeEntity update(TraineeEntity trainee) {
-        findById(trainee.getUserId())
-                .orElseThrow(() -> new EntityNotFoundException("Trainee not found: id=" + trainee.getUserId()));
-        TraineeEntity updated = traineeRepository.update(trainee);
-        log.info("Updated trainee id={}", updated.getUserId());
-        return updated;
+    public TraineeResponse update(UpdateTraineeRequest request) {
+        TraineeEntity trainee = getEntity(request.userId());
+        String newFirstName = request.user().firstName();
+        String newLastName = request.user().lastName();
+        boolean nameChanged = !Objects.equals(trainee.getFirstName(), newFirstName)
+                || !Objects.equals(trainee.getLastName(), newLastName);
+
+        trainee.setFirstName(newFirstName);
+        trainee.setLastName(newLastName);
+        trainee.setDateOfBirth(request.dateOfBirth());
+        trainee.setAddress(request.address());
+        trainee.setActive(request.active());
+
+        if (nameChanged) {
+            trainee.setUsername(credentialGenerator.generateUsername(
+                    newFirstName, newLastName, usernameCounters));
+            log.debug("Regenerated username for trainee id={}", trainee.getUserId());
+        }
+
+        TraineeEntity saved = traineeRepository.save(trainee);
+        log.info("Updated trainee id={}", saved.getUserId());
+        return traineeMapper.toResponse(saved);
     }
 
     public void delete(Long id) {
-        findById(id).orElseThrow(() -> new EntityNotFoundException("Trainee not found: id=" + id));
+        getEntity(id);
         traineeRepository.delete(id);
         log.info("Deleted trainee id={}", id);
     }
 
-    public Optional<TraineeEntity> findById(Long id) {
-        return traineeRepository.findById(id);
+    public TraineeResponse getById(Long id) {
+        return traineeMapper.toResponse(getEntity(id));
     }
 
-    public TraineeEntity getById(Long id) {
-        return findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Trainee not found: id=" + id));
-    }
-
-    public TraineeEntity getActiveById(Long id) {
-        TraineeEntity trainee = getById(id);
+    public TraineeResponse getActiveById(Long id) {
+        TraineeEntity trainee = getEntity(id);
         if (!trainee.isActive()) {
             throw new InvalidOperationException("Trainee is inactive: id=" + id);
         }
-        return trainee;
+        return traineeMapper.toResponse(trainee);
     }
 
-    public Collection<TraineeEntity> findAll() {
-        return traineeRepository.findAll().toList();
+    public List<TraineeResponse> findAll() {
+        return traineeRepository.findAll().map(traineeMapper::toResponse).toList();
+    }
+
+    private TraineeEntity getEntity(Long id) {
+        return traineeRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Trainee not found: id=" + id));
     }
 }

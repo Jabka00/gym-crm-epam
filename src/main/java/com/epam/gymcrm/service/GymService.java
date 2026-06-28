@@ -2,10 +2,9 @@ package com.epam.gymcrm.service;
 
 import com.epam.gymcrm.dto.AutoScheduleTrainingRequest;
 import com.epam.gymcrm.dto.ScheduleTrainingRequest;
+import com.epam.gymcrm.dto.TrainerResponse;
 import com.epam.gymcrm.dto.TrainingResponse;
-import com.epam.gymcrm.entity.TrainerEntity;
 import com.epam.gymcrm.exception.InvalidOperationException;
-import com.epam.gymcrm.mapper.TrainingMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
@@ -16,29 +15,26 @@ public class GymService {
     private final TrainerService trainerService;
     private final TraineeService traineeService;
     private final TrainingService trainingService;
-    private final TrainingMapper trainingMapper;
 
     public GymService(TrainerService trainerService,
                       TraineeService traineeService,
-                      TrainingService trainingService,
-                      TrainingMapper trainingMapper) {
+                      TrainingService trainingService) {
         this.trainerService = trainerService;
         this.traineeService = traineeService;
         this.trainingService = trainingService;
-        this.trainingMapper = trainingMapper;
     }
 
     public TrainingResponse scheduleTraining(ScheduleTrainingRequest request) {
         traineeService.getActiveById(request.traineeId());
         trainerService.getActiveForSpecialization(request.trainerId(), request.type());
-        return trainingMapper.toResponse(trainingService.schedule(request));
+        return trainingService.schedule(request);
     }
 
     public TrainingResponse autoScheduleTraining(AutoScheduleTrainingRequest request) {
         traineeService.getActiveById(request.traineeId());
-        TrainerEntity trainer = trainerService.findActiveBySpecialization(request.type());
-        log.info("Auto-assigned trainer id={} for training '{}'", trainer.getUserId(), request.name());
-        return trainingMapper.toResponse(trainingService.autoSchedule(request, trainer.getUserId()));
+        TrainerResponse trainer = trainerService.findActiveBySpecialization(request.type());
+        log.info("Auto-assigned trainer id={} for training '{}'", trainer.userId(), request.name());
+        return trainingService.autoSchedule(request, trainer.userId());
     }
 
     public void removeTraineeProfile(Long traineeId) {

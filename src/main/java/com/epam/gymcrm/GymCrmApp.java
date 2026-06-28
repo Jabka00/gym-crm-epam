@@ -2,10 +2,13 @@ package com.epam.gymcrm;
 
 import com.epam.gymcrm.config.AppConfig;
 import com.epam.gymcrm.dto.AutoScheduleTrainingRequest;
+import com.epam.gymcrm.dto.CreateTraineeRequest;
+import com.epam.gymcrm.dto.CreateTrainerRequest;
 import com.epam.gymcrm.dto.ScheduleTrainingRequest;
+import com.epam.gymcrm.dto.TraineeResponse;
+import com.epam.gymcrm.dto.TrainerResponse;
 import com.epam.gymcrm.dto.TrainingResponse;
-import com.epam.gymcrm.entity.TraineeEntity;
-import com.epam.gymcrm.entity.TrainerEntity;
+import com.epam.gymcrm.dto.UserInfo;
 import com.epam.gymcrm.entity.TrainingType;
 import com.epam.gymcrm.service.GymService;
 import com.epam.gymcrm.service.TraineeService;
@@ -28,29 +31,25 @@ public class GymCrmApp {
             var trainingService = context.getBean(TrainingService.class);
 
             log.info("Loaded data");
-            trainerService.findAll().forEach(trainer -> log.info("Trainer: {}", trainer.getUserId()));
-            traineeService.findAll().forEach(trainee -> log.info("Trainee: {}", trainee.getUserId()));
+            trainerService.findAll().forEach(trainer -> log.info("Trainer: {}", trainer.userId()));
+            traineeService.findAll().forEach(trainee -> log.info("Trainee: {}", trainee.userId()));
             trainingService.findAll().forEach(training ->
-                    log.info("Training: {} {}", training.getTrainingId(), training.getTrainingName()));
+                    log.info("Training: {} {}", training.id(), training.name()));
 
-            TrainerEntity newTrainer = new TrainerEntity();
-            newTrainer.setFirstName("John");
-            newTrainer.setLastName("Smith");
-            newTrainer.setSpecialization(TrainingType.PILATES);
-            newTrainer = trainerService.create(newTrainer);
-            log.info("Created trainer id={}", newTrainer.getUserId());
+            TrainerResponse newTrainer = trainerService.create(new CreateTrainerRequest(
+                    new UserInfo("John", "Smith"),
+                    TrainingType.PILATES));
+            log.info("Created trainer id={}", newTrainer.userId());
 
-            TraineeEntity newTrainee = new TraineeEntity();
-            newTrainee.setFirstName("Jane");
-            newTrainee.setLastName("Doe");
-            newTrainee.setDateOfBirth(LocalDate.of(1998, 5, 20));
-            newTrainee.setAddress("Kyiv");
-            newTrainee = traineeService.create(newTrainee);
-            log.info("Created trainee id={}", newTrainee.getUserId());
+            TraineeResponse newTrainee = traineeService.create(new CreateTraineeRequest(
+                    new UserInfo("Jane", "Doe"),
+                    LocalDate.of(1998, 5, 20),
+                    "Kyiv"));
+            log.info("Created trainee id={}", newTrainee.userId());
 
             TrainingResponse scheduled = facade.scheduleTraining(new ScheduleTrainingRequest(
-                    newTrainee.getUserId(),
-                    newTrainer.getUserId(),
+                    newTrainee.userId(),
+                    newTrainer.userId(),
                     "Evening Pilates",
                     TrainingType.PILATES,
                     LocalDate.now(),
@@ -58,7 +57,7 @@ public class GymCrmApp {
             log.info("Scheduled training: id={}, name={}", scheduled.id(), scheduled.name());
 
             TrainingResponse autoScheduled = facade.autoScheduleTraining(new AutoScheduleTrainingRequest(
-                    newTrainee.getUserId(),
+                    newTrainee.userId(),
                     "Morning Yoga",
                     TrainingType.YOGA,
                     LocalDate.now().plusDays(1),
