@@ -11,6 +11,7 @@ import com.epam.gymcrm.repository.TrainingRepository;
 import com.epam.gymcrm.support.TestDataFactory;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Spy;
@@ -56,9 +57,10 @@ class TrainingServiceTest {
 
         TrainingResponse response = trainingService.getById(10L);
 
-        assertThat(response.id()).isEqualTo(10L);
-        assertThat(response.traineeId()).isEqualTo(1L);
-        assertThat(response.trainerId()).isEqualTo(2L);
+        TrainingResponse expected = new TrainingResponse(
+                10L, "Morning Yoga", TrainingType.YOGA,
+                LocalDate.of(2024, 3, 1), Duration.ofMinutes(60), 1L, 2L);
+        assertThat(response).isEqualTo(expected);
     }
 
     @Test
@@ -77,7 +79,10 @@ class TrainingServiceTest {
 
         List<TrainingResponse> all = trainingService.findAll();
 
-        assertThat(all).extracting(TrainingResponse::id).containsExactly(7L);
+        TrainingResponse expected = new TrainingResponse(
+                7L, "Morning Yoga", TrainingType.YOGA,
+                LocalDate.of(2024, 3, 1), Duration.ofMinutes(60), 1L, 2L);
+        assertThat(all).containsExactly(expected);
     }
 
     @Test
@@ -114,7 +119,7 @@ class TrainingServiceTest {
     void shouldScheduleTrainingFromRequest() {
         when(trainingRepository.findAll()).thenAnswer(inv -> Stream.empty());
         trainingService.initIdSequence();
-        when(trainingRepository.save(any(TrainingEntity.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(trainingRepository.save(any(TrainingEntity.class))).thenAnswer(inv -> inv.getArgument(0));
 
         ScheduleTrainingRequest request = new ScheduleTrainingRequest(
                 1L, 2L, "Morning Yoga", TrainingType.YOGA,
@@ -122,18 +127,25 @@ class TrainingServiceTest {
 
         TrainingResponse result = trainingService.schedule(request);
 
-        assertThat(result.traineeId()).isEqualTo(1L);
-        assertThat(result.trainerId()).isEqualTo(2L);
-        assertThat(result.name()).isEqualTo("Morning Yoga");
-        assertThat(result.id()).isEqualTo(1L);
-        verify(trainingRepository, times(1)).save(any(TrainingEntity.class));
+        TrainingResponse expected = new TrainingResponse(
+                1L, "Morning Yoga", TrainingType.YOGA,
+                LocalDate.of(2024, 3, 1), Duration.ofMinutes(60), 1L, 2L);
+        assertThat(result).isEqualTo(expected);
+
+        ArgumentCaptor<TrainingEntity> captor = ArgumentCaptor.forClass(TrainingEntity.class);
+        verify(trainingRepository, times(1)).save(captor.capture());
+        assertThat(captor.getValue().getTrainingName()).isEqualTo("Morning Yoga");
+        assertThat(captor.getValue().getTraineeId()).isEqualTo(1L);
+        assertThat(captor.getValue().getTrainerId()).isEqualTo(2L);
+        verify(traineeService, times(1)).getById(1L);
+        verify(trainerService, times(1)).getById(2L);
     }
 
     @Test
     void shouldAutoScheduleTrainingFromRequest() {
         when(trainingRepository.findAll()).thenAnswer(inv -> Stream.empty());
         trainingService.initIdSequence();
-        when(trainingRepository.save(any(TrainingEntity.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(trainingRepository.save(any(TrainingEntity.class))).thenAnswer(inv -> inv.getArgument(0));
 
         AutoScheduleTrainingRequest request = new AutoScheduleTrainingRequest(
                 1L, "Boxing Session", TrainingType.BOXING,
@@ -141,10 +153,17 @@ class TrainingServiceTest {
 
         TrainingResponse result = trainingService.autoSchedule(request, 5L);
 
-        assertThat(result.traineeId()).isEqualTo(1L);
-        assertThat(result.trainerId()).isEqualTo(5L);
-        assertThat(result.name()).isEqualTo("Boxing Session");
-        assertThat(result.type()).isEqualTo(TrainingType.BOXING);
+        TrainingResponse expected = new TrainingResponse(
+                1L, "Boxing Session", TrainingType.BOXING,
+                LocalDate.of(2024, 3, 1), Duration.ofMinutes(45), 1L, 5L);
+        assertThat(result).isEqualTo(expected);
+
+        ArgumentCaptor<TrainingEntity> captor = ArgumentCaptor.forClass(TrainingEntity.class);
+        verify(trainingRepository, times(1)).save(captor.capture());
+        assertThat(captor.getValue().getTrainerId()).isEqualTo(5L);
+        assertThat(captor.getValue().getTraineeId()).isEqualTo(1L);
+        verify(traineeService, times(1)).getById(1L);
+        verify(trainerService, times(1)).getById(5L);
     }
 
     @Test

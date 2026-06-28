@@ -26,8 +26,8 @@ class TrainingRepositoryTest {
 
         TrainingEntity saved = trainingRepository.save(training);
 
-        assertThat(saved.getTrainingId()).isEqualTo(1L);
-        assertThat(trainingRepository.findById(1L)).contains(saved);
+        assertThat(saved).isEqualTo(training);
+        assertThat(trainingRepository.findById(1L)).contains(training);
     }
 
     @Test
@@ -40,21 +40,8 @@ class TrainingRepositoryTest {
         trainingRepository.save(t1);
         trainingRepository.save(t2);
 
-        assertThat(trainingRepository.findAll().toList()).hasSize(2);
-    }
-
-    @Test
-    void shouldSaveMultipleTrainings() {
-        TrainingEntity first = TestDataFactory.createDefaultTraining(1L, 2L);
-        first.setTrainingId(1L);
-        TrainingEntity second = TestDataFactory.createDefaultTraining(3L, 4L);
-        second.setTrainingId(2L);
-
-        trainingRepository.save(first);
-        trainingRepository.save(second);
-
-        assertThat(trainingRepository.findById(1L)).isPresent();
-        assertThat(trainingRepository.findById(2L)).isPresent();
+        assertThat(trainingRepository.findAll().toList())
+                .containsExactlyInAnyOrder(t1, t2);
     }
 
     @Test

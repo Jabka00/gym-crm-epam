@@ -26,8 +26,8 @@ class TraineeRepositoryTest {
 
         TraineeEntity saved = traineeRepository.save(trainee);
 
-        assertThat(saved.getUserId()).isEqualTo(1L);
-        assertThat(traineeRepository.findById(1L)).contains(saved);
+        assertThat(saved).isEqualTo(trainee);
+        assertThat(traineeRepository.findById(1L)).contains(trainee);
         assertThat(traineeRepository.existsById(1L)).isTrue();
     }
 
@@ -40,10 +40,8 @@ class TraineeRepositoryTest {
 
         TraineeEntity updated = traineeRepository.save(trainee);
 
-        assertThat(updated.getAddress()).isEqualTo("Odesa");
-        assertThat(traineeRepository.findById(1L))
-                .map(TraineeEntity::getAddress)
-                .contains("Odesa");
+        assertThat(updated).isEqualTo(trainee);
+        assertThat(traineeRepository.findById(1L)).contains(trainee);
     }
 
     @Test
@@ -68,9 +66,8 @@ class TraineeRepositoryTest {
         traineeRepository.save(first);
         traineeRepository.save(second);
 
-        assertThat(traineeRepository.findAll().toList()).hasSize(2);
-        assertThat(traineeRepository.findById(1L)).isPresent();
-        assertThat(traineeRepository.findById(2L)).isPresent();
+        assertThat(traineeRepository.findAll().toList())
+                .containsExactlyInAnyOrder(first, second);
     }
 
     @Test

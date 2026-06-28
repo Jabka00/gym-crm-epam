@@ -20,57 +20,39 @@ class CsvDataReaderTest {
     void shouldReadTrainersFromCsv() throws IOException {
         List<TrainerEntity> trainers = CsvDataReader.readTrainers("data/trainers.csv");
 
-        assertThat(trainers).hasSize(3);
-
-        TrainerEntity expected = new TrainerEntity();
-        expected.setUserId(1L);
-        expected.setFirstName("John");
-        expected.setLastName("Smith");
-        expected.setUsername("John.Smith");
-        expected.setPassword("pass1234AB");
-        expected.setActive(true);
-        expected.setSpecialization(TrainingType.YOGA);
-
-        assertThat(trainers.get(0)).isEqualTo(expected);
-        assertThat(trainers.get(2).isActive()).isFalse();
+        assertThat(trainers).containsExactly(
+                trainer(1L, "John", "Smith", "John.Smith", "pass1234AB", true, TrainingType.YOGA),
+                trainer(2L, "Anna", "Jones", "Anna.Jones", "xK9mPqWz1L", true, TrainingType.CROSSFIT),
+                trainer(3L, "Mike", "Brown", "Mike.Brown", "Tz7nVbCx4R", false, TrainingType.BOXING)
+        );
     }
 
     @Test
     void shouldReadTraineesFromCsv() throws IOException {
         List<TraineeEntity> trainees = CsvDataReader.readTrainees("data/trainees.csv");
 
-        assertThat(trainees).hasSize(3);
-
-        TraineeEntity expected = new TraineeEntity();
-        expected.setUserId(1L);
-        expected.setFirstName("Alice");
-        expected.setLastName("Walker");
-        expected.setUsername("Alice.Walker");
-        expected.setPassword("qW3eRt5yUi");
-        expected.setActive(true);
-        expected.setDateOfBirth(LocalDate.of(1995, 4, 12));
-        expected.setAddress("123 Main St");
-
-        assertThat(trainees.get(0)).isEqualTo(expected);
-        assertThat(trainees.get(2).isActive()).isFalse();
+        assertThat(trainees).containsExactly(
+                trainee(1L, "Alice", "Walker", "Alice.Walker", "qW3eRt5yUi", true,
+                        LocalDate.of(1995, 4, 12), "123 Main St"),
+                trainee(2L, "Bob", "Taylor", "Bob.Taylor", "Lm6oPs8dFg", true,
+                        LocalDate.of(1990, 7, 30), "456 Oak Ave"),
+                trainee(3L, "Carol", "White", "Carol.White", "Hn2jKx9cVb", false,
+                        LocalDate.of(2000, 1, 15), "789 Pine Rd")
+        );
     }
 
     @Test
     void shouldReadTrainingsFromCsv() throws IOException {
         List<TrainingEntity> trainings = CsvDataReader.readTrainings("data/trainings.csv");
 
-        assertThat(trainings).hasSize(3);
-
-        TrainingEntity expected = new TrainingEntity();
-        expected.setTrainingId(1L);
-        expected.setTraineeId(1L);
-        expected.setTrainerId(1L);
-        expected.setTrainingName("Morning Yoga");
-        expected.setTrainingType(TrainingType.YOGA);
-        expected.setTrainingDate(LocalDate.of(2024, 3, 1));
-        expected.setTrainingDuration(Duration.ofMinutes(60));
-
-        assertThat(trainings.get(0)).isEqualTo(expected);
+        assertThat(trainings).containsExactly(
+                training(1L, 1L, 1L, "Morning Yoga", TrainingType.YOGA,
+                        LocalDate.of(2024, 3, 1), Duration.ofMinutes(60)),
+                training(2L, 2L, 2L, "CrossFit Intro", TrainingType.CROSSFIT,
+                        LocalDate.of(2024, 3, 2), Duration.ofMinutes(90)),
+                training(3L, 1L, 3L, "Boxing Basics", TrainingType.BOXING,
+                        LocalDate.of(2024, 3, 3), Duration.ofMinutes(45))
+        );
     }
 
     @Test
@@ -78,5 +60,48 @@ class CsvDataReaderTest {
         assertThatThrownBy(() -> CsvDataReader.readTrainers("data/missing.csv"))
                 .isInstanceOf(NullPointerException.class)
                 .hasMessageContaining("data/missing.csv");
+    }
+
+    private static TrainerEntity trainer(Long id, String firstName, String lastName,
+                                         String username, String password,
+                                         boolean active, TrainingType specialization) {
+        TrainerEntity e = new TrainerEntity();
+        e.setUserId(id);
+        e.setFirstName(firstName);
+        e.setLastName(lastName);
+        e.setUsername(username);
+        e.setPassword(password);
+        e.setActive(active);
+        e.setSpecialization(specialization);
+        return e;
+    }
+
+    private static TraineeEntity trainee(Long id, String firstName, String lastName,
+                                          String username, String password, boolean active,
+                                          LocalDate dateOfBirth, String address) {
+        TraineeEntity e = new TraineeEntity();
+        e.setUserId(id);
+        e.setFirstName(firstName);
+        e.setLastName(lastName);
+        e.setUsername(username);
+        e.setPassword(password);
+        e.setActive(active);
+        e.setDateOfBirth(dateOfBirth);
+        e.setAddress(address);
+        return e;
+    }
+
+    private static TrainingEntity training(Long id, Long traineeId, Long trainerId,
+                                            String name, TrainingType type,
+                                            LocalDate date, Duration duration) {
+        TrainingEntity e = new TrainingEntity();
+        e.setTrainingId(id);
+        e.setTraineeId(traineeId);
+        e.setTrainerId(trainerId);
+        e.setTrainingName(name);
+        e.setTrainingType(type);
+        e.setTrainingDate(date);
+        e.setTrainingDuration(duration);
+        return e;
     }
 }
