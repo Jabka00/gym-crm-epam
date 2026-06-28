@@ -3,7 +3,8 @@ package com.epam.gymcrm.service;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -18,22 +19,30 @@ class CredentialGeneratorTest {
 
     @Test
     void shouldGenerateUsernameWithoutSuffixWhenUnique() {
-        String username = credentialGenerator.generateUsername("John", "Smith", Set.of());
+        var counters = new ConcurrentHashMap<String, AtomicInteger>();
+
+        String username = credentialGenerator.generateUsername("John", "Smith", counters);
 
         assertThat(username).isEqualTo("John.Smith");
     }
 
     @Test
-    void shouldGenerateUsernameWithSuffixWhenDuplicateExists() {
-        String username = credentialGenerator.generateUsername("John", "Smith", Set.of("John.Smith"));
+    void shouldGenerateUsernameWithSuffixWhenCalledTwice() {
+        var counters = new ConcurrentHashMap<String, AtomicInteger>();
+        credentialGenerator.generateUsername("John", "Smith", counters);
+
+        String username = credentialGenerator.generateUsername("John", "Smith", counters);
 
         assertThat(username).isEqualTo("John.Smith1");
     }
 
     @Test
-    void shouldGenerateUsernameWithIncrementedSuffixWhenMultipleDuplicatesExist() {
-        String username = credentialGenerator.generateUsername(
-                "John", "Smith", Set.of("John.Smith", "John.Smith1"));
+    void shouldGenerateUsernameWithIncrementedSuffixWhenCalledThreeTimes() {
+        var counters = new ConcurrentHashMap<String, AtomicInteger>();
+        credentialGenerator.generateUsername("John", "Smith", counters);
+        credentialGenerator.generateUsername("John", "Smith", counters);
+
+        String username = credentialGenerator.generateUsername("John", "Smith", counters);
 
         assertThat(username).isEqualTo("John.Smith2");
     }

@@ -1,8 +1,8 @@
 package com.epam.gymcrm.service;
 
+import com.epam.gymcrm.entity.TraineeEntity;
 import com.epam.gymcrm.exception.EntityNotFoundException;
 import com.epam.gymcrm.exception.InvalidOperationException;
-import com.epam.gymcrm.model.Trainee;
 import com.epam.gymcrm.repository.TraineeRepository;
 import com.epam.gymcrm.support.TestDataFactory;
 import org.junit.jupiter.api.Test;
@@ -11,9 +11,9 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.util.List;
 import java.util.Optional;
-import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -37,18 +37,16 @@ class TraineeServiceTest {
 
     @Test
     void shouldCreateTraineeWithGeneratedCredentials() {
-        Trainee trainee = TestDataFactory.createDefaultTrainee();
-        when(traineeRepository.findAll()).thenReturn(List.of());
-        when(credentialGenerator.generateUsername(eq("Alice"), eq("Walker"), eq(Set.of())))
+        TraineeEntity trainee = TestDataFactory.createDefaultTrainee();
+        when(traineeRepository.findAll()).thenAnswer(inv -> Stream.empty());
+        traineeService.initIdSequence();
+
+        when(credentialGenerator.generateUsername(eq("Alice"), eq("Walker"), any(ConcurrentHashMap.class)))
                 .thenReturn("Alice.Walker");
         when(credentialGenerator.generatePassword()).thenReturn("abcdefghij");
-        when(traineeRepository.save(any(Trainee.class))).thenAnswer(invocation -> {
-            Trainee saved = invocation.getArgument(0);
-            saved.setUserId(1L);
-            return saved;
-        });
+        when(traineeRepository.save(any(TraineeEntity.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        Trainee created = traineeService.create(trainee);
+        TraineeEntity created = traineeService.create(trainee);
 
         assertThat(created.getUserId()).isEqualTo(1L);
         assertThat(created.getUsername()).isEqualTo("Alice.Walker");
@@ -59,13 +57,13 @@ class TraineeServiceTest {
 
     @Test
     void shouldUpdateExistingTrainee() {
-        Trainee trainee = TestDataFactory.createTraineeWithCredentials();
+        TraineeEntity trainee = TestDataFactory.createTraineeWithCredentials();
         trainee.setUserId(1L);
         trainee.setAddress("Lviv");
         when(traineeRepository.findById(1L)).thenReturn(Optional.of(trainee));
         when(traineeRepository.update(trainee)).thenReturn(trainee);
 
-        Trainee updated = traineeService.update(trainee);
+        TraineeEntity updated = traineeService.update(trainee);
 
         assertThat(updated.getAddress()).isEqualTo("Lviv");
         verify(traineeRepository).update(trainee);
@@ -73,7 +71,7 @@ class TraineeServiceTest {
 
     @Test
     void shouldThrowWhenUpdatingMissingTrainee() {
-        Trainee trainee = TestDataFactory.createDefaultTrainee();
+        TraineeEntity trainee = TestDataFactory.createDefaultTrainee();
         trainee.setUserId(99L);
         when(traineeRepository.findById(99L)).thenReturn(Optional.empty());
 
@@ -86,7 +84,7 @@ class TraineeServiceTest {
 
     @Test
     void shouldDeleteExistingTrainee() {
-        Trainee trainee = TestDataFactory.createTraineeWithCredentials();
+        TraineeEntity trainee = TestDataFactory.createTraineeWithCredentials();
         trainee.setUserId(1L);
         when(traineeRepository.findById(1L)).thenReturn(Optional.of(trainee));
 
@@ -107,7 +105,7 @@ class TraineeServiceTest {
 
     @Test
     void shouldFindTraineeById() {
-        Trainee trainee = TestDataFactory.createTraineeWithCredentials();
+        TraineeEntity trainee = TestDataFactory.createTraineeWithCredentials();
         trainee.setUserId(1L);
         when(traineeRepository.findById(1L)).thenReturn(Optional.of(trainee));
 
@@ -116,8 +114,8 @@ class TraineeServiceTest {
 
     @Test
     void shouldFindAllTrainees() {
-        Trainee trainee = TestDataFactory.createTraineeWithCredentials();
-        when(traineeRepository.findAll()).thenReturn(List.of(trainee));
+        TraineeEntity trainee = TestDataFactory.createTraineeWithCredentials();
+        when(traineeRepository.findAll()).thenAnswer(inv -> Stream.of(trainee));
 
         assertThat(traineeService.findAll()).containsExactly(trainee);
     }
@@ -133,7 +131,7 @@ class TraineeServiceTest {
 
     @Test
     void shouldReturnActiveTrainee() {
-        Trainee trainee = TestDataFactory.createTraineeWithCredentials();
+        TraineeEntity trainee = TestDataFactory.createTraineeWithCredentials();
         trainee.setUserId(1L);
         trainee.setActive(true);
         when(traineeRepository.findById(1L)).thenReturn(Optional.of(trainee));
@@ -143,7 +141,7 @@ class TraineeServiceTest {
 
     @Test
     void shouldThrowWhenTraineeInactive() {
-        Trainee trainee = TestDataFactory.createTraineeWithCredentials();
+        TraineeEntity trainee = TestDataFactory.createTraineeWithCredentials();
         trainee.setUserId(1L);
         trainee.setActive(false);
         when(traineeRepository.findById(1L)).thenReturn(Optional.of(trainee));

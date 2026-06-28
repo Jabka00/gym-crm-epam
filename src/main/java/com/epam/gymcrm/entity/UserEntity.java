@@ -1,13 +1,13 @@
-package com.epam.gymcrm.model;
+package com.epam.gymcrm.entity;
 
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 @Getter
 @Setter
-@NoArgsConstructor
-public abstract class User {
+@EqualsAndHashCode
+public abstract class UserEntity {
     private Long userId;
     private String firstName;
     private String lastName;

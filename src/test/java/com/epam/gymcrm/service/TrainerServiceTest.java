@@ -1,9 +1,9 @@
 package com.epam.gymcrm.service;
 
+import com.epam.gymcrm.entity.TrainerEntity;
+import com.epam.gymcrm.entity.TrainingType;
 import com.epam.gymcrm.exception.EntityNotFoundException;
 import com.epam.gymcrm.exception.InvalidOperationException;
-import com.epam.gymcrm.model.Trainer;
-import com.epam.gymcrm.model.TrainingType;
 import com.epam.gymcrm.repository.TrainerRepository;
 import com.epam.gymcrm.support.TestDataFactory;
 import org.junit.jupiter.api.Test;
@@ -12,9 +12,9 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.util.List;
 import java.util.Optional;
-import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -37,18 +37,16 @@ class TrainerServiceTest {
 
     @Test
     void shouldCreateTrainerWithGeneratedCredentials() {
-        Trainer trainer = TestDataFactory.createDefaultTrainer();
-        when(trainerRepository.findAll()).thenReturn(List.of());
-        when(credentialGenerator.generateUsername(eq("John"), eq("Smith"), eq(Set.of())))
+        TrainerEntity trainer = TestDataFactory.createDefaultTrainer();
+        when(trainerRepository.findAll()).thenAnswer(inv -> Stream.empty());
+        trainerService.initIdSequence();
+
+        when(credentialGenerator.generateUsername(eq("John"), eq("Smith"), any(ConcurrentHashMap.class)))
                 .thenReturn("John.Smith");
         when(credentialGenerator.generatePassword()).thenReturn("abcdefghij");
-        when(trainerRepository.save(any(Trainer.class))).thenAnswer(invocation -> {
-            Trainer saved = invocation.getArgument(0);
-            saved.setUserId(1L);
-            return saved;
-        });
+        when(trainerRepository.save(any(TrainerEntity.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        Trainer created = trainerService.create(trainer);
+        TrainerEntity created = trainerService.create(trainer);
 
         assertThat(created.getUserId()).isEqualTo(1L);
         assertThat(created.getUsername()).isEqualTo("John.Smith");
@@ -59,11 +57,11 @@ class TrainerServiceTest {
 
     @Test
     void shouldUpdateTrainer() {
-        Trainer trainer = TestDataFactory.createTrainerWithCredentials();
+        TrainerEntity trainer = TestDataFactory.createTrainerWithCredentials();
         trainer.setUserId(1L);
         when(trainerRepository.update(trainer)).thenReturn(trainer);
 
-        Trainer updated = trainerService.update(trainer);
+        TrainerEntity updated = trainerService.update(trainer);
 
         assertThat(updated).isSameAs(trainer);
         verify(trainerRepository).update(trainer);
@@ -71,7 +69,7 @@ class TrainerServiceTest {
 
     @Test
     void shouldFindTrainerById() {
-        Trainer trainer = TestDataFactory.createTrainerWithCredentials();
+        TrainerEntity trainer = TestDataFactory.createTrainerWithCredentials();
         trainer.setUserId(1L);
         when(trainerRepository.findById(1L)).thenReturn(Optional.of(trainer));
 
@@ -80,8 +78,8 @@ class TrainerServiceTest {
 
     @Test
     void shouldFindAllTrainers() {
-        Trainer trainer = TestDataFactory.createTrainerWithCredentials();
-        when(trainerRepository.findAll()).thenReturn(List.of(trainer));
+        TrainerEntity trainer = TestDataFactory.createTrainerWithCredentials();
+        when(trainerRepository.findAll()).thenAnswer(inv -> Stream.of(trainer));
 
         assertThat(trainerService.findAll()).containsExactly(trainer);
     }
@@ -96,7 +94,7 @@ class TrainerServiceTest {
 
     @Test
     void shouldThrowWhenTrainerInactive() {
-        Trainer trainer = TestDataFactory.createTrainerWithCredentials();
+        TrainerEntity trainer = TestDataFactory.createTrainerWithCredentials();
         trainer.setUserId(2L);
         trainer.setActive(false);
         when(trainerRepository.findById(2L)).thenReturn(Optional.of(trainer));
@@ -108,39 +106,39 @@ class TrainerServiceTest {
 
     @Test
     void shouldThrowWhenSpecializationDoesNotMatch() {
-        Trainer trainer = TestDataFactory.createTrainerWithCredentials();
+        TrainerEntity trainer = TestDataFactory.createTrainerWithCredentials();
         trainer.setUserId(2L);
-        trainer.setSpecialization(new TrainingType("Boxing"));
+        trainer.setSpecialization(TrainingType.BOXING);
         when(trainerRepository.findById(2L)).thenReturn(Optional.of(trainer));
 
-        assertThatThrownBy(() -> trainerService.getActiveForSpecialization(2L, "Yoga"))
+        assertThatThrownBy(() -> trainerService.getActiveForSpecialization(2L, TrainingType.YOGA))
                 .isInstanceOf(InvalidOperationException.class)
                 .hasMessageContaining("specialization");
     }
 
     @Test
     void shouldReturnActiveTrainerMatchingSpecialization() {
-        Trainer trainer = TestDataFactory.createTrainerWithCredentials();
+        TrainerEntity trainer = TestDataFactory.createTrainerWithCredentials();
         trainer.setUserId(2L);
         when(trainerRepository.findById(2L)).thenReturn(Optional.of(trainer));
 
-        assertThat(trainerService.getActiveForSpecialization(2L, "Yoga")).isSameAs(trainer);
+        assertThat(trainerService.getActiveForSpecialization(2L, TrainingType.YOGA)).isSameAs(trainer);
     }
 
     @Test
     void shouldFindActiveTrainerBySpecialization() {
-        Trainer trainer = TestDataFactory.createTrainerWithCredentials();
+        TrainerEntity trainer = TestDataFactory.createTrainerWithCredentials();
         trainer.setUserId(5L);
-        when(trainerRepository.findAll()).thenReturn(List.of(trainer));
+        when(trainerRepository.findAll()).thenAnswer(inv -> Stream.of(trainer));
 
-        assertThat(trainerService.findActiveBySpecialization("Yoga")).isSameAs(trainer);
+        assertThat(trainerService.findActiveBySpecialization(TrainingType.YOGA)).isSameAs(trainer);
     }
 
     @Test
     void shouldThrowWhenNoActiveTrainerForSpecialization() {
-        when(trainerRepository.findAll()).thenReturn(List.of());
+        when(trainerRepository.findAll()).thenAnswer(inv -> Stream.empty());
 
-        assertThatThrownBy(() -> trainerService.findActiveBySpecialization("Swimming"))
+        assertThatThrownBy(() -> trainerService.findActiveBySpecialization(TrainingType.YOGA))
                 .isInstanceOf(EntityNotFoundException.class);
     }
 }

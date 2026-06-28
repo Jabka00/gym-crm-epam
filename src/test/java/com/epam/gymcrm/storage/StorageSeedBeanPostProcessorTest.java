@@ -1,5 +1,6 @@
 package com.epam.gymcrm.storage;
 
+import com.epam.gymcrm.config.StorageSeedBeanPostProcessor;
 import com.epam.gymcrm.repository.TraineeRepository;
 import com.epam.gymcrm.repository.TrainerRepository;
 import com.epam.gymcrm.repository.TrainingRepository;
@@ -35,7 +36,7 @@ class StorageSeedBeanPostProcessorTest {
         Object result = processor.postProcessAfterInitialization(repository, "trainerRepository");
 
         assertThat(result).isSameAs(repository);
-        assertThat(repository.findAll()).hasSize(3);
+        assertThat(repository.findAll().toList()).hasSize(3);
         assertThat(repository.findById(1L)).isPresent();
     }
 
@@ -47,7 +48,7 @@ class StorageSeedBeanPostProcessorTest {
         Object result = processor.postProcessAfterInitialization(repository, "traineeRepository");
 
         assertThat(result).isSameAs(repository);
-        assertThat(repository.findAll()).hasSize(3);
+        assertThat(repository.findAll().toList()).hasSize(3);
         assertThat(repository.findById(1L)).isPresent();
     }
 
@@ -59,7 +60,7 @@ class StorageSeedBeanPostProcessorTest {
         Object result = processor.postProcessAfterInitialization(repository, "trainingRepository");
 
         assertThat(result).isSameAs(repository);
-        assertThat(repository.findAll()).hasSize(3);
+        assertThat(repository.findAll().toList()).hasSize(3);
         assertThat(repository.findById(1L)).isPresent();
     }
 

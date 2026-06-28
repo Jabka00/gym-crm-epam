@@ -1,6 +1,6 @@
 package com.epam.gymcrm.repository;
 
-import com.epam.gymcrm.model.Trainer;
+import com.epam.gymcrm.entity.TrainerEntity;
 import com.epam.gymcrm.support.TestDataFactory;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -21,9 +21,10 @@ class TrainerRepositoryTest {
 
     @Test
     void shouldSaveAndFindTrainerById() {
-        Trainer trainer = TestDataFactory.createTrainerWithCredentials();
+        TrainerEntity trainer = TestDataFactory.createTrainerWithCredentials();
+        trainer.setUserId(1L);
 
-        Trainer saved = trainerRepository.save(trainer);
+        TrainerEntity saved = trainerRepository.save(trainer);
 
         assertThat(saved.getUserId()).isEqualTo(1L);
         assertThat(trainerRepository.findById(1L)).contains(saved);
@@ -32,25 +33,32 @@ class TrainerRepositoryTest {
 
     @Test
     void shouldUpdateTrainer() {
-        Trainer trainer = trainerRepository.save(TestDataFactory.createTrainerWithCredentials());
+        TrainerEntity trainer = TestDataFactory.createTrainerWithCredentials();
+        trainer.setUserId(1L);
+        trainerRepository.save(trainer);
         trainer.setFirstName("Jonathan");
 
-        Trainer updated = trainerRepository.update(trainer);
+        TrainerEntity updated = trainerRepository.update(trainer);
 
         assertThat(updated.getFirstName()).isEqualTo("Jonathan");
-        assertThat(trainerRepository.findById(trainer.getUserId()))
-                .map(Trainer::getFirstName)
+        assertThat(trainerRepository.findById(1L))
+                .map(TrainerEntity::getFirstName)
                 .contains("Jonathan");
     }
 
     @Test
-    void shouldAssignIncrementalIds() {
-        Trainer first = trainerRepository.save(TestDataFactory.createTrainerWithCredentials());
-        Trainer second = trainerRepository.save(TestDataFactory.createDefaultTrainer());
+    void shouldSaveMultipleTrainers() {
+        TrainerEntity first = TestDataFactory.createTrainerWithCredentials();
+        first.setUserId(1L);
+        TrainerEntity second = TestDataFactory.createDefaultTrainer();
+        second.setUserId(2L);
 
-        assertThat(first.getUserId()).isEqualTo(1L);
-        assertThat(second.getUserId()).isEqualTo(2L);
-        assertThat(trainerRepository.findAll()).hasSize(2);
+        trainerRepository.save(first);
+        trainerRepository.save(second);
+
+        assertThat(trainerRepository.findAll().toList()).hasSize(2);
+        assertThat(trainerRepository.findById(1L)).isPresent();
+        assertThat(trainerRepository.findById(2L)).isPresent();
     }
 
     @Test

@@ -1,15 +1,15 @@
-package com.epam.gymcrm.model;
+package com.epam.gymcrm.entity;
 
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.time.LocalDate;
 
 @Getter
 @Setter
-@NoArgsConstructor
-public class Trainee extends User {
+@EqualsAndHashCode(callSuper = true)
+public class TraineeEntity extends UserEntity {
     private LocalDate dateOfBirth;
     private String address;
 }

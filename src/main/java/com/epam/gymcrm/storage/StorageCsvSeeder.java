@@ -1,9 +1,9 @@
 package com.epam.gymcrm.storage;
 
-import com.epam.gymcrm.model.Trainee;
-import com.epam.gymcrm.model.Trainer;
-import com.epam.gymcrm.model.Training;
-import com.epam.gymcrm.model.TrainingType;
+import com.epam.gymcrm.entity.TraineeEntity;
+import com.epam.gymcrm.entity.TrainerEntity;
+import com.epam.gymcrm.entity.TrainingEntity;
+import com.epam.gymcrm.entity.TrainingType;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -14,20 +14,20 @@ import java.util.List;
 import java.util.Objects;
 import java.util.function.Function;
 
-final class StorageCsvSeeder {
+public final class StorageCsvSeeder {
 
     private StorageCsvSeeder() {
     }
 
-    static List<Trainer> readTrainers(String resourcePath) throws IOException {
+    public static List<TrainerEntity> readTrainers(String resourcePath) throws IOException {
         return readLines(resourcePath, StorageCsvSeeder::parseTrainer);
     }
 
-    static List<Trainee> readTrainees(String resourcePath) throws IOException {
+    public static List<TraineeEntity> readTrainees(String resourcePath) throws IOException {
         return readLines(resourcePath, StorageCsvSeeder::parseTrainee);
     }
 
-    static List<Training> readTrainings(String resourcePath) throws IOException {
+    public static List<TrainingEntity> readTrainings(String resourcePath) throws IOException {
         return readLines(resourcePath, StorageCsvSeeder::parseTraining);
     }
 
@@ -42,20 +42,20 @@ final class StorageCsvSeeder {
         }
     }
 
-    private static Trainer parseTrainer(String[] parts) {
-        Trainer trainer = new Trainer();
+    private static TrainerEntity parseTrainer(String[] parts) {
+        TrainerEntity trainer = new TrainerEntity();
         trainer.setUserId(Long.parseLong(parts[0].trim()));
         trainer.setFirstName(parts[1].trim());
         trainer.setLastName(parts[2].trim());
         trainer.setUsername(parts[3].trim());
         trainer.setPassword(parts[4].trim());
         trainer.setActive(Boolean.parseBoolean(parts[5].trim()));
-        trainer.setSpecialization(new TrainingType(parts[6].trim()));
+        trainer.setSpecialization(TrainingType.valueOf(parts[6].trim().toUpperCase()));
         return trainer;
     }
 
-    private static Trainee parseTrainee(String[] parts) {
-        Trainee trainee = new Trainee();
+    private static TraineeEntity parseTrainee(String[] parts) {
+        TraineeEntity trainee = new TraineeEntity();
         trainee.setUserId(Long.parseLong(parts[0].trim()));
         trainee.setFirstName(parts[1].trim());
         trainee.setLastName(parts[2].trim());
@@ -67,13 +67,13 @@ final class StorageCsvSeeder {
         return trainee;
     }
 
-    private static Training parseTraining(String[] parts) {
-        Training training = new Training();
+    private static TrainingEntity parseTraining(String[] parts) {
+        TrainingEntity training = new TrainingEntity();
         training.setTrainingId(Long.parseLong(parts[0].trim()));
         training.setTraineeId(Long.parseLong(parts[1].trim()));
         training.setTrainerId(Long.parseLong(parts[2].trim()));
         training.setTrainingName(parts[3].trim());
-        training.setTrainingType(new TrainingType(parts[4].trim()));
+        training.setTrainingType(TrainingType.valueOf(parts[4].trim().toUpperCase()));
         training.setTrainingDate(LocalDate.parse(parts[5].trim()));
         training.setTrainingDuration(Duration.ofMinutes(Long.parseLong(parts[6].trim())));
         return training;

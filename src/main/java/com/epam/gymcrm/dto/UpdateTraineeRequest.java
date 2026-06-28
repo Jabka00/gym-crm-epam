@@ -4,8 +4,7 @@ import java.time.LocalDate;
 
 public record UpdateTraineeRequest(
         Long userId,
-        String firstName,
-        String lastName,
+        UserInfo user,
         LocalDate dateOfBirth,
         String address,
         boolean active

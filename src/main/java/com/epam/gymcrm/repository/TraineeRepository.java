@@ -1,35 +1,33 @@
 package com.epam.gymcrm.repository;
 
-import com.epam.gymcrm.model.Trainee;
+import com.epam.gymcrm.entity.TraineeEntity;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Repository;
 
-import java.util.Collection;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Stream;
 
 @Slf4j
 @Repository
 public class TraineeRepository {
 
-    private Map<Long, Trainee> storage;
+    private Map<Long, TraineeEntity> storage;
 
-    public void setStorage(Map<Long, Trainee> storage) {
+    public void setStorage(Map<Long, TraineeEntity> storage) {
         if (this.storage != null) {
             throw new IllegalStateException("Trainee storage is already initialized");
         }
         this.storage = storage;
     }
 
-    public Trainee save(Trainee trainee) {
-        long id = storage.keySet().stream().mapToLong(Long::longValue).max().orElse(0L) + 1;
-        trainee.setUserId(id);
-        storage.put(id, trainee);
-        log.debug("Saved trainee id={} username={}", id, trainee.getUsername());
+    public TraineeEntity save(TraineeEntity trainee) {
+        storage.put(trainee.getUserId(), trainee);
+        log.debug("Saved trainee id={}", trainee.getUserId());
         return trainee;
     }
 
-    public Trainee update(Trainee trainee) {
+    public TraineeEntity update(TraineeEntity trainee) {
         storage.put(trainee.getUserId(), trainee);
         log.debug("Updated trainee id={}", trainee.getUserId());
         return trainee;
@@ -40,14 +38,14 @@ public class TraineeRepository {
         log.debug("Deleted trainee id={}", id);
     }
 
-    public Optional<Trainee> findById(Long id) {
+    public Optional<TraineeEntity> findById(Long id) {
         log.debug("findById trainee id={}", id);
         return Optional.ofNullable(storage.get(id));
     }
 
-    public Collection<Trainee> findAll() {
+    public Stream<TraineeEntity> findAll() {
         log.debug("findAll trainees, count={}", storage.size());
-        return storage.values();
+        return storage.values().stream();
     }
 
     public boolean existsById(Long id) {

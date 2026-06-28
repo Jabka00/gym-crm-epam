@@ -1,9 +1,8 @@
 package com.epam.gymcrm.dto;
 
-import com.epam.gymcrm.model.TrainingType;
+import com.epam.gymcrm.entity.TrainingType;
 
 public record CreateTrainerRequest(
-        String firstName,
-        String lastName,
+        UserInfo user,
         TrainingType specialization
 ) {}

@@ -3,8 +3,7 @@ package com.epam.gymcrm.dto;
 import java.time.LocalDate;
 
 public record CreateTraineeRequest(
-        String firstName,
-        String lastName,
+        UserInfo user,
         LocalDate dateOfBirth,
         String address
 ) {}

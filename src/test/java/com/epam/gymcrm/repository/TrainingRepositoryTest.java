@@ -1,6 +1,6 @@
 package com.epam.gymcrm.repository;
 
-import com.epam.gymcrm.model.Training;
+import com.epam.gymcrm.entity.TrainingEntity;
 import com.epam.gymcrm.support.TestDataFactory;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -21,9 +21,10 @@ class TrainingRepositoryTest {
 
     @Test
     void shouldSaveAndFindTrainingById() {
-        Training training = TestDataFactory.createDefaultTraining(1L, 2L);
+        TrainingEntity training = TestDataFactory.createDefaultTraining(1L, 2L);
+        training.setTrainingId(1L);
 
-        Training saved = trainingRepository.save(training);
+        TrainingEntity saved = trainingRepository.save(training);
 
         assertThat(saved.getTrainingId()).isEqualTo(1L);
         assertThat(trainingRepository.findById(1L)).contains(saved);
@@ -31,19 +32,29 @@ class TrainingRepositoryTest {
 
     @Test
     void shouldFindAllTrainings() {
-        trainingRepository.save(TestDataFactory.createDefaultTraining(1L, 2L));
-        trainingRepository.save(TestDataFactory.createDefaultTraining(3L, 4L));
+        TrainingEntity t1 = TestDataFactory.createDefaultTraining(1L, 2L);
+        t1.setTrainingId(1L);
+        TrainingEntity t2 = TestDataFactory.createDefaultTraining(3L, 4L);
+        t2.setTrainingId(2L);
 
-        assertThat(trainingRepository.findAll()).hasSize(2);
+        trainingRepository.save(t1);
+        trainingRepository.save(t2);
+
+        assertThat(trainingRepository.findAll().toList()).hasSize(2);
     }
 
     @Test
-    void shouldAssignIncrementalIds() {
-        Training first = trainingRepository.save(TestDataFactory.createDefaultTraining(1L, 2L));
-        Training second = trainingRepository.save(TestDataFactory.createDefaultTraining(3L, 4L));
+    void shouldSaveMultipleTrainings() {
+        TrainingEntity first = TestDataFactory.createDefaultTraining(1L, 2L);
+        first.setTrainingId(1L);
+        TrainingEntity second = TestDataFactory.createDefaultTraining(3L, 4L);
+        second.setTrainingId(2L);
 
-        assertThat(first.getTrainingId()).isEqualTo(1L);
-        assertThat(second.getTrainingId()).isEqualTo(2L);
+        trainingRepository.save(first);
+        trainingRepository.save(second);
+
+        assertThat(trainingRepository.findById(1L)).isPresent();
+        assertThat(trainingRepository.findById(2L)).isPresent();
     }
 
     @Test

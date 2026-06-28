@@ -1,7 +1,10 @@
 package com.epam.gymcrm.service;
 
+import com.epam.gymcrm.dto.AutoScheduleTrainingRequest;
+import com.epam.gymcrm.dto.ScheduleTrainingRequest;
+import com.epam.gymcrm.entity.TrainingEntity;
+import com.epam.gymcrm.entity.TrainingType;
 import com.epam.gymcrm.exception.EntityNotFoundException;
-import com.epam.gymcrm.model.Training;
 import com.epam.gymcrm.repository.TrainingRepository;
 import com.epam.gymcrm.support.TestDataFactory;
 import org.junit.jupiter.api.Test;
@@ -10,8 +13,10 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.util.List;
+import java.time.Duration;
+import java.time.LocalDate;
 import java.util.Optional;
+import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -31,22 +36,21 @@ class TrainingServiceTest {
 
     @Test
     void shouldCreateTraining() {
-        Training training = TestDataFactory.createDefaultTraining(1L, 2L);
-        when(trainingRepository.save(any(Training.class))).thenAnswer(invocation -> {
-            Training saved = invocation.getArgument(0);
-            saved.setTrainingId(10L);
-            return saved;
-        });
+        TrainingEntity training = TestDataFactory.createDefaultTraining(1L, 2L);
+        when(trainingRepository.findAll()).thenAnswer(inv -> Stream.empty());
+        trainingService.initIdSequence();
 
-        Training created = trainingService.create(training);
+        when(trainingRepository.save(any(TrainingEntity.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        assertThat(created.getTrainingId()).isEqualTo(10L);
+        TrainingEntity created = trainingService.create(training);
+
+        assertThat(created.getTrainingId()).isEqualTo(1L);
         verify(trainingRepository).save(training);
     }
 
     @Test
     void shouldFindTrainingById() {
-        Training training = TestDataFactory.createDefaultTraining(1L, 2L);
+        TrainingEntity training = TestDataFactory.createDefaultTraining(1L, 2L);
         training.setTrainingId(10L);
         when(trainingRepository.findById(10L)).thenReturn(Optional.of(training));
 
@@ -55,16 +59,16 @@ class TrainingServiceTest {
 
     @Test
     void shouldFindAllTrainings() {
-        Training training = TestDataFactory.createDefaultTraining(1L, 2L);
-        when(trainingRepository.findAll()).thenReturn(List.of(training));
+        TrainingEntity training = TestDataFactory.createDefaultTraining(1L, 2L);
+        when(trainingRepository.findAll()).thenAnswer(inv -> Stream.of(training));
 
         assertThat(trainingService.findAll()).containsExactly(training);
     }
 
     @Test
     void shouldDetectExistingTrainingsByTraineeId() {
-        Training training = TestDataFactory.createDefaultTraining(1L, 2L);
-        when(trainingRepository.findAll()).thenReturn(List.of(training));
+        TrainingEntity training = TestDataFactory.createDefaultTraining(1L, 2L);
+        when(trainingRepository.findAll()).thenAnswer(inv -> Stream.of(training));
 
         assertThat(trainingService.existsByTraineeId(1L)).isTrue();
         assertThat(trainingService.existsByTraineeId(99L)).isFalse();
@@ -72,12 +76,12 @@ class TrainingServiceTest {
 
     @Test
     void shouldUpdateExistingTraining() {
-        Training training = TestDataFactory.createDefaultTraining(1L, 2L);
+        TrainingEntity training = TestDataFactory.createDefaultTraining(1L, 2L);
         training.setTrainingId(10L);
         when(trainingRepository.findById(10L)).thenReturn(Optional.of(training));
         when(trainingRepository.update(training)).thenReturn(training);
 
-        Training updated = trainingService.update(training);
+        TrainingEntity updated = trainingService.update(training);
 
         assertThat(updated).isSameAs(training);
         verify(trainingRepository).update(training);
@@ -85,7 +89,7 @@ class TrainingServiceTest {
 
     @Test
     void shouldThrowWhenUpdatingMissingTraining() {
-        Training training = TestDataFactory.createDefaultTraining(1L, 2L);
+        TrainingEntity training = TestDataFactory.createDefaultTraining(1L, 2L);
         training.setTrainingId(99L);
         when(trainingRepository.findById(99L)).thenReturn(Optional.empty());
 
@@ -97,7 +101,7 @@ class TrainingServiceTest {
 
     @Test
     void shouldDeleteExistingTraining() {
-        Training training = TestDataFactory.createDefaultTraining(1L, 2L);
+        TrainingEntity training = TestDataFactory.createDefaultTraining(1L, 2L);
         training.setTrainingId(10L);
         when(trainingRepository.findById(10L)).thenReturn(Optional.of(training));
 
@@ -114,5 +118,41 @@ class TrainingServiceTest {
                 .isInstanceOf(EntityNotFoundException.class);
 
         verify(trainingRepository, never()).delete(10L);
+    }
+
+    @Test
+    void shouldScheduleTrainingFromRequest() {
+        when(trainingRepository.findAll()).thenAnswer(inv -> Stream.empty());
+        trainingService.initIdSequence();
+        when(trainingRepository.save(any(TrainingEntity.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        ScheduleTrainingRequest request = new ScheduleTrainingRequest(
+                1L, 2L, "Morning Yoga", TrainingType.YOGA,
+                LocalDate.of(2024, 3, 1), Duration.ofMinutes(60));
+
+        TrainingEntity result = trainingService.schedule(request);
+
+        assertThat(result.getTraineeId()).isEqualTo(1L);
+        assertThat(result.getTrainerId()).isEqualTo(2L);
+        assertThat(result.getTrainingName()).isEqualTo("Morning Yoga");
+        assertThat(result.getTrainingId()).isEqualTo(1L);
+    }
+
+    @Test
+    void shouldAutoScheduleTrainingFromRequest() {
+        when(trainingRepository.findAll()).thenAnswer(inv -> Stream.empty());
+        trainingService.initIdSequence();
+        when(trainingRepository.save(any(TrainingEntity.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        AutoScheduleTrainingRequest request = new AutoScheduleTrainingRequest(
+                1L, "Boxing Session", TrainingType.BOXING,
+                LocalDate.of(2024, 3, 1), Duration.ofMinutes(45));
+
+        TrainingEntity result = trainingService.autoSchedule(request, 5L);
+
+        assertThat(result.getTraineeId()).isEqualTo(1L);
+        assertThat(result.getTrainerId()).isEqualTo(5L);
+        assertThat(result.getTrainingName()).isEqualTo("Boxing Session");
+        assertThat(result.getTrainingType()).isEqualTo(TrainingType.BOXING);
     }
 }

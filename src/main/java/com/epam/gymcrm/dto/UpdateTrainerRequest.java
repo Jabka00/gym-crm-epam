@@ -1,11 +1,10 @@
 package com.epam.gymcrm.dto;
 
-import com.epam.gymcrm.model.TrainingType;
+import com.epam.gymcrm.entity.TrainingType;
 
 public record UpdateTrainerRequest(
         Long userId,
-        String firstName,
-        String lastName,
+        UserInfo user,
         TrainingType specialization,
         boolean active
 ) {}
