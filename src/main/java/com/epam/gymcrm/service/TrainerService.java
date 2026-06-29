@@ -82,10 +82,7 @@ public class TrainerService implements InitializingBean {
     }
 
     public TrainerResponse create(CreateTrainerRequest request) {
-        TrainerEntity trainer = new TrainerEntity();
-        trainer.setFirstName(request.user().firstName());
-        trainer.setLastName(request.user().lastName());
-        trainer.setSpecialization(request.specialization());
+        TrainerEntity trainer = trainerMapper.toEntity(request);
         trainer.setUserId(idSequence.incrementAndGet());
         trainer.setUsername(credentialGenerator.generateUsername(
                 trainer.getFirstName(), trainer.getLastName(), usernameCounters));
@@ -98,19 +95,14 @@ public class TrainerService implements InitializingBean {
 
     public TrainerResponse update(UpdateTrainerRequest request) {
         TrainerEntity trainer = getEntity(request.userId());
-        String newFirstName = request.user().firstName();
-        String newLastName = request.user().lastName();
-        boolean nameChanged = !Objects.equals(trainer.getFirstName(), newFirstName)
-                || !Objects.equals(trainer.getLastName(), newLastName);
+        boolean nameChanged = !Objects.equals(trainer.getFirstName(), request.user().firstName())
+                || !Objects.equals(trainer.getLastName(), request.user().lastName());
 
-        trainer.setFirstName(newFirstName);
-        trainer.setLastName(newLastName);
-        trainer.setSpecialization(request.specialization());
-        trainer.setActive(request.active());
+        trainerMapper.updateEntity(trainer, request);
 
         if (nameChanged) {
             trainer.setUsername(credentialGenerator.generateUsername(
-                    newFirstName, newLastName, usernameCounters));
+                    trainer.getFirstName(), trainer.getLastName(), usernameCounters));
             log.debug("Regenerated username for trainer id={}", trainer.getUserId());
         }
 

@@ -81,11 +81,7 @@ public class TraineeService implements InitializingBean {
     }
 
     public TraineeResponse create(CreateTraineeRequest request) {
-        TraineeEntity trainee = new TraineeEntity();
-        trainee.setFirstName(request.user().firstName());
-        trainee.setLastName(request.user().lastName());
-        trainee.setDateOfBirth(request.dateOfBirth());
-        trainee.setAddress(request.address());
+        TraineeEntity trainee = traineeMapper.toEntity(request);
         trainee.setUserId(idSequence.incrementAndGet());
         trainee.setUsername(credentialGenerator.generateUsername(
                 trainee.getFirstName(), trainee.getLastName(), usernameCounters));
@@ -98,20 +94,14 @@ public class TraineeService implements InitializingBean {
 
     public TraineeResponse update(UpdateTraineeRequest request) {
         TraineeEntity trainee = getEntity(request.userId());
-        String newFirstName = request.user().firstName();
-        String newLastName = request.user().lastName();
-        boolean nameChanged = !Objects.equals(trainee.getFirstName(), newFirstName)
-                || !Objects.equals(trainee.getLastName(), newLastName);
+        boolean nameChanged = !Objects.equals(trainee.getFirstName(), request.user().firstName())
+                || !Objects.equals(trainee.getLastName(), request.user().lastName());
 
-        trainee.setFirstName(newFirstName);
-        trainee.setLastName(newLastName);
-        trainee.setDateOfBirth(request.dateOfBirth());
-        trainee.setAddress(request.address());
-        trainee.setActive(request.active());
+        traineeMapper.updateEntity(trainee, request);
 
         if (nameChanged) {
             trainee.setUsername(credentialGenerator.generateUsername(
-                    newFirstName, newLastName, usernameCounters));
+                    trainee.getFirstName(), trainee.getLastName(), usernameCounters));
             log.debug("Regenerated username for trainee id={}", trainee.getUserId());
         }
 

@@ -61,25 +61,13 @@ public class TrainingService implements InitializingBean {
 
     public TrainingResponse schedule(ScheduleTrainingRequest request) {
         validateParticipants(request.traineeId(), request.trainerId());
-        TrainingEntity training = new TrainingEntity();
-        training.setTraineeId(request.traineeId());
-        training.setTrainerId(request.trainerId());
-        training.setTrainingName(request.name());
-        training.setTrainingType(request.type());
-        training.setTrainingDate(request.date());
-        training.setTrainingDuration(request.duration());
+        TrainingEntity training = trainingMapper.toEntity(request);
         return trainingMapper.toResponse(save(training));
     }
 
     public TrainingResponse autoSchedule(AutoScheduleTrainingRequest request, Long trainerId) {
         validateParticipants(request.traineeId(), trainerId);
-        TrainingEntity training = new TrainingEntity();
-        training.setTraineeId(request.traineeId());
-        training.setTrainerId(trainerId);
-        training.setTrainingName(request.name());
-        training.setTrainingType(request.type());
-        training.setTrainingDate(request.date());
-        training.setTrainingDuration(request.duration());
+        TrainingEntity training = trainingMapper.toEntity(request, trainerId);
         return trainingMapper.toResponse(save(training));
     }
 
