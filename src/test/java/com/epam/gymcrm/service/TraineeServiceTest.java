@@ -21,7 +21,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -53,7 +52,7 @@ class TraineeServiceTest {
         when(traineeRepository.findAll()).thenAnswer(inv -> Stream.empty());
         traineeService.initIdSequence();
 
-        when(credentialGenerator.generateUsername(eq("Alice"), eq("Walker"), any(ConcurrentHashMap.class)))
+        when(credentialGenerator.generateUsername(eq("Alice"), eq("Walker")))
                 .thenReturn("Alice.Walker");
         when(credentialGenerator.generatePassword()).thenReturn("abcdefghij");
         when(traineeRepository.save(any(TraineeEntity.class))).thenAnswer(inv -> inv.getArgument(0));
@@ -90,7 +89,7 @@ class TraineeServiceTest {
         TraineeResponse expected = new TraineeResponse(
                 1L, "Alice Walker", "Alice.Walker", LocalDate.of(1995, 4, 12), "Lviv");
         assertThat(updated).isEqualTo(expected);
-        verify(credentialGenerator, never()).generateUsername(any(), any(), any());
+        verify(credentialGenerator, never()).generateUsername(any(), any());
         verify(traineeRepository, times(1)).save(existing);
     }
 
@@ -100,7 +99,7 @@ class TraineeServiceTest {
         existing.setUserId(1L);
         when(traineeRepository.findById(1L)).thenReturn(Optional.of(existing));
         when(traineeRepository.save(any(TraineeEntity.class))).thenAnswer(inv -> inv.getArgument(0));
-        when(credentialGenerator.generateUsername(eq("Alice"), eq("Cooper"), any(ConcurrentHashMap.class)))
+        when(credentialGenerator.generateUsername(eq("Alice"), eq("Cooper")))
                 .thenReturn("Alice.Cooper");
 
         UpdateTraineeRequest request = new UpdateTraineeRequest(
@@ -112,7 +111,7 @@ class TraineeServiceTest {
                 1L, "Alice Cooper", "Alice.Cooper", LocalDate.of(1995, 4, 12), "Kyiv");
         assertThat(updated).isEqualTo(expected);
         verify(credentialGenerator, times(1))
-                .generateUsername(eq("Alice"), eq("Cooper"), any(ConcurrentHashMap.class));
+                .generateUsername(eq("Alice"), eq("Cooper"));
     }
 
     @Test

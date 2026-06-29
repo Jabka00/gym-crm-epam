@@ -16,11 +16,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Objects;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 @Slf4j
 @Service
@@ -30,10 +26,7 @@ public class TrainerService implements InitializingBean {
     private CredentialGenerator credentialGenerator;
     private TrainerMapper trainerMapper;
 
-    private static final Pattern SUFFIX_PATTERN = Pattern.compile("^(.*?)(\\d+)$");
-
     private final AtomicLong idSequence = new AtomicLong(0);
-    private final ConcurrentHashMap<String, AtomicInteger> usernameCounters = new ConcurrentHashMap<>();
 
     @Autowired
     public void setTrainerRepository(TrainerRepository trainerRepository) {
@@ -60,32 +53,14 @@ public class TrainerService implements InitializingBean {
         long maxId = all.stream().mapToLong(TrainerEntity::getUserId).max().orElse(0L);
         idSequence.set(maxId);
         log.debug("Trainer id sequence initialized to {}", maxId);
-        all.stream().map(TrainerEntity::getUsername).forEach(this::registerUsername);
-    }
-
-    private void registerUsername(String username) {
-        Matcher m = SUFFIX_PATTERN.matcher(username);
-        if (m.matches()) {
-            int needed = Integer.parseInt(m.group(2)) + 1;
-            usernameCounters.compute(m.group(1), (k, v) -> {
-                if (v == null) return new AtomicInteger(needed);
-                v.updateAndGet(cur -> Math.max(cur, needed));
-                return v;
-            });
-        } else {
-            usernameCounters.compute(username, (k, v) -> {
-                if (v == null) return new AtomicInteger(1);
-                v.updateAndGet(cur -> Math.max(cur, 1));
-                return v;
-            });
-        }
+        all.stream().map(TrainerEntity::getUsername).forEach(credentialGenerator::registerExistingUsername);
     }
 
     public TrainerResponse create(CreateTrainerRequest request) {
         TrainerEntity trainer = trainerMapper.toEntity(request);
         trainer.setUserId(idSequence.incrementAndGet());
         trainer.setUsername(credentialGenerator.generateUsername(
-                trainer.getFirstName(), trainer.getLastName(), usernameCounters));
+                trainer.getFirstName(), trainer.getLastName()));
         trainer.setPassword(credentialGenerator.generatePassword());
         trainer.setActive(true);
         TrainerEntity saved = trainerRepository.save(trainer);
@@ -102,7 +77,7 @@ public class TrainerService implements InitializingBean {
 
         if (nameChanged) {
             trainer.setUsername(credentialGenerator.generateUsername(
-                    trainer.getFirstName(), trainer.getLastName(), usernameCounters));
+                    trainer.getFirstName(), trainer.getLastName()));
             log.debug("Regenerated username for trainer id={}", trainer.getUserId());
         }
 

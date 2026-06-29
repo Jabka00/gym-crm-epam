@@ -21,7 +21,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.List;
 import java.util.Optional;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -53,7 +52,7 @@ class TrainerServiceTest {
         when(trainerRepository.findAll()).thenAnswer(inv -> Stream.empty());
         trainerService.initIdSequence();
 
-        when(credentialGenerator.generateUsername(eq("John"), eq("Smith"), any(ConcurrentHashMap.class)))
+        when(credentialGenerator.generateUsername(eq("John"), eq("Smith")))
                 .thenReturn("John.Smith");
         when(credentialGenerator.generatePassword()).thenReturn("abcdefghij");
         when(trainerRepository.save(any(TrainerEntity.class))).thenAnswer(inv -> inv.getArgument(0));
@@ -88,7 +87,7 @@ class TrainerServiceTest {
 
         TrainerResponse expected = new TrainerResponse(1L, "John Smith", "John.Smith", TrainingType.BOXING);
         assertThat(updated).isEqualTo(expected);
-        verify(credentialGenerator, never()).generateUsername(any(), any(), any());
+        verify(credentialGenerator, never()).generateUsername(any(), any());
         verify(trainerRepository, times(1)).save(existing);
     }
 
@@ -98,7 +97,7 @@ class TrainerServiceTest {
         existing.setUserId(1L);
         when(trainerRepository.findById(1L)).thenReturn(Optional.of(existing));
         when(trainerRepository.save(any(TrainerEntity.class))).thenAnswer(inv -> inv.getArgument(0));
-        when(credentialGenerator.generateUsername(eq("John"), eq("Doe"), any(ConcurrentHashMap.class)))
+        when(credentialGenerator.generateUsername(eq("John"), eq("Doe")))
                 .thenReturn("John.Doe");
 
         UpdateTrainerRequest request = new UpdateTrainerRequest(
@@ -109,7 +108,7 @@ class TrainerServiceTest {
         TrainerResponse expected = new TrainerResponse(1L, "John Doe", "John.Doe", TrainingType.YOGA);
         assertThat(updated).isEqualTo(expected);
         verify(credentialGenerator, times(1))
-                .generateUsername(eq("John"), eq("Doe"), any(ConcurrentHashMap.class));
+                .generateUsername(eq("John"), eq("Doe"));
     }
 
     @Test

@@ -15,11 +15,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Objects;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 @Slf4j
 @Service
@@ -29,10 +25,7 @@ public class TraineeService implements InitializingBean {
     private CredentialGenerator credentialGenerator;
     private TraineeMapper traineeMapper;
 
-    private static final Pattern SUFFIX_PATTERN = Pattern.compile("^(.*?)(\\d+)$");
-
     private final AtomicLong idSequence = new AtomicLong(0);
-    private final ConcurrentHashMap<String, AtomicInteger> usernameCounters = new ConcurrentHashMap<>();
 
     @Autowired
     public void setTraineeRepository(TraineeRepository traineeRepository) {
@@ -59,32 +52,14 @@ public class TraineeService implements InitializingBean {
         long maxId = all.stream().mapToLong(TraineeEntity::getUserId).max().orElse(0L);
         idSequence.set(maxId);
         log.debug("Trainee id sequence initialized to {}", maxId);
-        all.stream().map(TraineeEntity::getUsername).forEach(this::registerUsername);
-    }
-
-    private void registerUsername(String username) {
-        Matcher m = SUFFIX_PATTERN.matcher(username);
-        if (m.matches()) {
-            int needed = Integer.parseInt(m.group(2)) + 1;
-            usernameCounters.compute(m.group(1), (k, v) -> {
-                if (v == null) return new AtomicInteger(needed);
-                v.updateAndGet(cur -> Math.max(cur, needed));
-                return v;
-            });
-        } else {
-            usernameCounters.compute(username, (k, v) -> {
-                if (v == null) return new AtomicInteger(1);
-                v.updateAndGet(cur -> Math.max(cur, 1));
-                return v;
-            });
-        }
+        all.stream().map(TraineeEntity::getUsername).forEach(credentialGenerator::registerExistingUsername);
     }
 
     public TraineeResponse create(CreateTraineeRequest request) {
         TraineeEntity trainee = traineeMapper.toEntity(request);
         trainee.setUserId(idSequence.incrementAndGet());
         trainee.setUsername(credentialGenerator.generateUsername(
-                trainee.getFirstName(), trainee.getLastName(), usernameCounters));
+                trainee.getFirstName(), trainee.getLastName()));
         trainee.setPassword(credentialGenerator.generatePassword());
         trainee.setActive(true);
         TraineeEntity saved = traineeRepository.save(trainee);
@@ -101,7 +76,7 @@ public class TraineeService implements InitializingBean {
 
         if (nameChanged) {
             trainee.setUsername(credentialGenerator.generateUsername(
-                    trainee.getFirstName(), trainee.getLastName(), usernameCounters));
+                    trainee.getFirstName(), trainee.getLastName()));
             log.debug("Regenerated username for trainee id={}", trainee.getUserId());
         }
 
