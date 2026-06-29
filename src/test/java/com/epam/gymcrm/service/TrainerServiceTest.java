@@ -1,11 +1,11 @@
 package com.epam.gymcrm.service;
 
-import com.epam.gymcrm.dto.CreateTrainerRequest;
-import com.epam.gymcrm.dto.TrainerResponse;
-import com.epam.gymcrm.dto.UpdateTrainerRequest;
-import com.epam.gymcrm.dto.UserInfo;
+import com.epam.gymcrm.dto.request.CreateTrainerRequest;
+import com.epam.gymcrm.dto.request.UpdateTrainerRequest;
+import com.epam.gymcrm.dto.request.UserInfo;
+import com.epam.gymcrm.dto.response.Trainer;
 import com.epam.gymcrm.entity.TrainerEntity;
-import com.epam.gymcrm.entity.TrainingType;
+import com.epam.gymcrm.model.TrainingType;
 import com.epam.gymcrm.exception.EntityNotFoundException;
 import com.epam.gymcrm.exception.InvalidOperationException;
 import com.epam.gymcrm.mapper.TrainerMapper;
@@ -39,7 +39,10 @@ class TrainerServiceTest {
     private TrainerRepository trainerRepository;
 
     @Mock
-    private CredentialGenerator credentialGenerator;
+    private UsernameGenerator usernameGenerator;
+
+    @Mock
+    private PasswordGenerator passwordGenerator;
 
     @Spy
     private TrainerMapper trainerMapper = new TrainerMapper();
@@ -52,17 +55,17 @@ class TrainerServiceTest {
         when(trainerRepository.findAll()).thenAnswer(inv -> Stream.empty());
         trainerService.initIdSequence();
 
-        when(credentialGenerator.generateUsername(eq("John"), eq("Smith")))
+        when(usernameGenerator.generateUsername(eq("John"), eq("Smith")))
                 .thenReturn("John.Smith");
-        when(credentialGenerator.generatePassword()).thenReturn("abcdefghij");
+        when(passwordGenerator.generatePassword()).thenReturn("abcdefghij");
         when(trainerRepository.save(any(TrainerEntity.class))).thenAnswer(inv -> inv.getArgument(0));
 
         CreateTrainerRequest request = new CreateTrainerRequest(
                 new UserInfo("John", "Smith"), TrainingType.YOGA);
 
-        TrainerResponse created = trainerService.create(request);
+        Trainer created = trainerService.create(request);
 
-        TrainerResponse expected = new TrainerResponse(1L, "John Smith", "John.Smith", TrainingType.YOGA);
+        Trainer expected = new Trainer(1L, "John Smith", "John.Smith", TrainingType.YOGA);
         assertThat(created).isEqualTo(expected);
 
         ArgumentCaptor<TrainerEntity> captor = ArgumentCaptor.forClass(TrainerEntity.class);
@@ -70,7 +73,7 @@ class TrainerServiceTest {
         assertThat(captor.getValue().getUsername()).isEqualTo("John.Smith");
         assertThat(captor.getValue().getPassword()).isEqualTo("abcdefghij");
         assertThat(captor.getValue().isActive()).isTrue();
-        verify(credentialGenerator, times(1)).generatePassword();
+        verify(passwordGenerator, times(1)).generatePassword();
     }
 
     @Test
@@ -83,11 +86,11 @@ class TrainerServiceTest {
         UpdateTrainerRequest request = new UpdateTrainerRequest(
                 1L, new UserInfo("John", "Smith"), TrainingType.BOXING, true);
 
-        TrainerResponse updated = trainerService.update(request);
+        Trainer updated = trainerService.update(request);
 
-        TrainerResponse expected = new TrainerResponse(1L, "John Smith", "John.Smith", TrainingType.BOXING);
+        Trainer expected = new Trainer(1L, "John Smith", "John.Smith", TrainingType.BOXING);
         assertThat(updated).isEqualTo(expected);
-        verify(credentialGenerator, never()).generateUsername(any(), any());
+        verify(usernameGenerator, never()).generateUsername(any(), any());
         verify(trainerRepository, times(1)).save(existing);
     }
 
@@ -97,17 +100,17 @@ class TrainerServiceTest {
         existing.setUserId(1L);
         when(trainerRepository.findById(1L)).thenReturn(Optional.of(existing));
         when(trainerRepository.save(any(TrainerEntity.class))).thenAnswer(inv -> inv.getArgument(0));
-        when(credentialGenerator.generateUsername(eq("John"), eq("Doe")))
+        when(usernameGenerator.generateUsername(eq("John"), eq("Doe")))
                 .thenReturn("John.Doe");
 
         UpdateTrainerRequest request = new UpdateTrainerRequest(
                 1L, new UserInfo("John", "Doe"), TrainingType.YOGA, true);
 
-        TrainerResponse updated = trainerService.update(request);
+        Trainer updated = trainerService.update(request);
 
-        TrainerResponse expected = new TrainerResponse(1L, "John Doe", "John.Doe", TrainingType.YOGA);
+        Trainer expected = new Trainer(1L, "John Doe", "John.Doe", TrainingType.YOGA);
         assertThat(updated).isEqualTo(expected);
-        verify(credentialGenerator, times(1))
+        verify(usernameGenerator, times(1))
                 .generateUsername(eq("John"), eq("Doe"));
     }
 
@@ -131,9 +134,9 @@ class TrainerServiceTest {
         trainer.setUserId(1L);
         when(trainerRepository.findById(1L)).thenReturn(Optional.of(trainer));
 
-        TrainerResponse response = trainerService.getById(1L);
+        Trainer response = trainerService.getById(1L);
 
-        TrainerResponse expected = new TrainerResponse(1L, "John Smith", "John.Smith", TrainingType.YOGA);
+        Trainer expected = new Trainer(1L, "John Smith", "John.Smith", TrainingType.YOGA);
         assertThat(response).isEqualTo(expected);
     }
 
@@ -143,9 +146,9 @@ class TrainerServiceTest {
         trainer.setUserId(1L);
         when(trainerRepository.findAll()).thenAnswer(inv -> Stream.of(trainer));
 
-        List<TrainerResponse> all = trainerService.findAll();
+        List<Trainer> all = trainerService.findAll();
 
-        TrainerResponse expected = new TrainerResponse(1L, "John Smith", "John.Smith", TrainingType.YOGA);
+        Trainer expected = new Trainer(1L, "John Smith", "John.Smith", TrainingType.YOGA);
         assertThat(all).containsExactly(expected);
     }
 
@@ -187,9 +190,9 @@ class TrainerServiceTest {
         trainer.setUserId(2L);
         when(trainerRepository.findById(2L)).thenReturn(Optional.of(trainer));
 
-        TrainerResponse response = trainerService.getActiveForSpecialization(2L, TrainingType.YOGA);
+        Trainer response = trainerService.getActiveForSpecialization(2L, TrainingType.YOGA);
 
-        TrainerResponse expected = new TrainerResponse(2L, "John Smith", "John.Smith", TrainingType.YOGA);
+        Trainer expected = new Trainer(2L, "John Smith", "John.Smith", TrainingType.YOGA);
         assertThat(response).isEqualTo(expected);
     }
 
@@ -199,9 +202,9 @@ class TrainerServiceTest {
         trainer.setUserId(5L);
         when(trainerRepository.findAll()).thenAnswer(inv -> Stream.of(trainer));
 
-        TrainerResponse response = trainerService.findActiveBySpecialization(TrainingType.YOGA);
+        Trainer response = trainerService.findActiveBySpecialization(TrainingType.YOGA);
 
-        TrainerResponse expected = new TrainerResponse(5L, "John Smith", "John.Smith", TrainingType.YOGA);
+        Trainer expected = new Trainer(5L, "John Smith", "John.Smith", TrainingType.YOGA);
         assertThat(response).isEqualTo(expected);
     }
 

@@ -3,7 +3,7 @@ package com.epam.gymcrm.support;
 import com.epam.gymcrm.entity.TraineeEntity;
 import com.epam.gymcrm.entity.TrainerEntity;
 import com.epam.gymcrm.entity.TrainingEntity;
-import com.epam.gymcrm.entity.TrainingType;
+import com.epam.gymcrm.model.TrainingType;
 
 import java.time.Duration;
 import java.time.LocalDate;

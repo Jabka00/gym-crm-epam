@@ -1,10 +1,10 @@
 package com.epam.gymcrm.service;
 
-import com.epam.gymcrm.dto.AutoScheduleTrainingRequest;
-import com.epam.gymcrm.dto.ScheduleTrainingRequest;
-import com.epam.gymcrm.dto.TrainingResponse;
+import com.epam.gymcrm.dto.request.AutoScheduleTrainingRequest;
+import com.epam.gymcrm.dto.request.ScheduleTrainingRequest;
+import com.epam.gymcrm.dto.response.Training;
 import com.epam.gymcrm.entity.TrainingEntity;
-import com.epam.gymcrm.entity.TrainingType;
+import com.epam.gymcrm.model.TrainingType;
 import com.epam.gymcrm.exception.EntityNotFoundException;
 import com.epam.gymcrm.mapper.TrainingMapper;
 import com.epam.gymcrm.repository.TrainingRepository;
@@ -55,9 +55,9 @@ class TrainingServiceTest {
         training.setTrainingId(10L);
         when(trainingRepository.findById(10L)).thenReturn(Optional.of(training));
 
-        TrainingResponse response = trainingService.getById(10L);
+        Training response = trainingService.getById(10L);
 
-        TrainingResponse expected = new TrainingResponse(
+        Training expected = new Training(
                 10L, "Morning Yoga", TrainingType.YOGA,
                 LocalDate.of(2024, 3, 1), Duration.ofMinutes(60), 1L, 2L);
         assertThat(response).isEqualTo(expected);
@@ -77,9 +77,9 @@ class TrainingServiceTest {
         training.setTrainingId(7L);
         when(trainingRepository.findAll()).thenAnswer(inv -> Stream.of(training));
 
-        List<TrainingResponse> all = trainingService.findAll();
+        List<Training> all = trainingService.findAll();
 
-        TrainingResponse expected = new TrainingResponse(
+        Training expected = new Training(
                 7L, "Morning Yoga", TrainingType.YOGA,
                 LocalDate.of(2024, 3, 1), Duration.ofMinutes(60), 1L, 2L);
         assertThat(all).containsExactly(expected);
@@ -125,9 +125,9 @@ class TrainingServiceTest {
                 1L, 2L, "Morning Yoga", TrainingType.YOGA,
                 LocalDate.of(2024, 3, 1), Duration.ofMinutes(60));
 
-        TrainingResponse result = trainingService.schedule(request);
+        Training result = trainingService.schedule(request);
 
-        TrainingResponse expected = new TrainingResponse(
+        Training expected = new Training(
                 1L, "Morning Yoga", TrainingType.YOGA,
                 LocalDate.of(2024, 3, 1), Duration.ofMinutes(60), 1L, 2L);
         assertThat(result).isEqualTo(expected);
@@ -151,9 +151,9 @@ class TrainingServiceTest {
                 1L, "Boxing Session", TrainingType.BOXING,
                 LocalDate.of(2024, 3, 1), Duration.ofMinutes(45));
 
-        TrainingResponse result = trainingService.autoSchedule(request, 5L);
+        Training result = trainingService.autoSchedule(request, 5L);
 
-        TrainingResponse expected = new TrainingResponse(
+        Training expected = new Training(
                 1L, "Boxing Session", TrainingType.BOXING,
                 LocalDate.of(2024, 3, 1), Duration.ofMinutes(45), 1L, 5L);
         assertThat(result).isEqualTo(expected);

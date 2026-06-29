@@ -1,10 +1,10 @@
 package com.epam.gymcrm.service;
 
-import com.epam.gymcrm.dto.AutoScheduleTrainingRequest;
-import com.epam.gymcrm.dto.ScheduleTrainingRequest;
-import com.epam.gymcrm.dto.TrainerResponse;
-import com.epam.gymcrm.dto.TrainingResponse;
-import com.epam.gymcrm.entity.TrainingType;
+import com.epam.gymcrm.dto.request.AutoScheduleTrainingRequest;
+import com.epam.gymcrm.dto.request.ScheduleTrainingRequest;
+import com.epam.gymcrm.dto.response.Trainer;
+import com.epam.gymcrm.dto.response.Training;
+import com.epam.gymcrm.model.TrainingType;
 import com.epam.gymcrm.exception.InvalidOperationException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -43,12 +43,12 @@ class GymServiceTest {
         ScheduleTrainingRequest request = new ScheduleTrainingRequest(
                 1L, 2L, "Morning Yoga", TrainingType.YOGA,
                 LocalDate.of(2024, 3, 1), Duration.ofMinutes(60));
-        TrainingResponse scheduled = new TrainingResponse(
+        Training scheduled = new Training(
                 10L, "Morning Yoga", TrainingType.YOGA,
                 LocalDate.of(2024, 3, 1), Duration.ofMinutes(60), 1L, 2L);
         when(trainingService.schedule(request)).thenReturn(scheduled);
 
-        TrainingResponse response = gymService.scheduleTraining(request);
+        Training response = gymService.scheduleTraining(request);
 
         assertThat(response).isEqualTo(scheduled);
         verify(traineeService, times(1)).getActiveById(1L);
@@ -61,14 +61,14 @@ class GymServiceTest {
         AutoScheduleTrainingRequest request = new AutoScheduleTrainingRequest(
                 1L, "Morning Yoga", TrainingType.YOGA,
                 LocalDate.of(2024, 3, 1), Duration.ofMinutes(60));
-        TrainerResponse trainer = new TrainerResponse(5L, "John Smith", "John.Smith", TrainingType.YOGA);
-        TrainingResponse autoScheduled = new TrainingResponse(
+        Trainer trainer = new Trainer(5L, "John Smith", "John.Smith", TrainingType.YOGA);
+        Training autoScheduled = new Training(
                 100L, "Morning Yoga", TrainingType.YOGA,
                 LocalDate.of(2024, 3, 1), Duration.ofMinutes(60), 1L, 5L);
         when(trainerService.findActiveBySpecialization(TrainingType.YOGA)).thenReturn(trainer);
         when(trainingService.autoSchedule(request, 5L)).thenReturn(autoScheduled);
 
-        TrainingResponse response = gymService.autoScheduleTraining(request);
+        Training response = gymService.autoScheduleTraining(request);
 
         assertThat(response.trainerId()).isEqualTo(5L);
         assertThat(response.name()).isEqualTo("Morning Yoga");

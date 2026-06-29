@@ -1,8 +1,8 @@
 package com.epam.gymcrm.mapper;
 
-import com.epam.gymcrm.dto.CreateTraineeRequest;
-import com.epam.gymcrm.dto.TraineeResponse;
-import com.epam.gymcrm.dto.UpdateTraineeRequest;
+import com.epam.gymcrm.dto.request.CreateTraineeRequest;
+import com.epam.gymcrm.dto.request.UpdateTraineeRequest;
+import com.epam.gymcrm.dto.response.Trainee;
 import com.epam.gymcrm.entity.TraineeEntity;
 import org.springframework.stereotype.Component;
 
@@ -26,8 +26,8 @@ public class TraineeMapper {
         trainee.setActive(request.active());
     }
 
-    public TraineeResponse toResponse(TraineeEntity trainee) {
-        return new TraineeResponse(
+    public Trainee toResponse(TraineeEntity trainee) {
+        return new Trainee(
                 trainee.getUserId(),
                 trainee.getFirstName() + " " + trainee.getLastName(),
                 trainee.getUsername(),

@@ -1,8 +1,8 @@
 package com.epam.gymcrm.service;
 
-import com.epam.gymcrm.dto.AutoScheduleTrainingRequest;
-import com.epam.gymcrm.dto.ScheduleTrainingRequest;
-import com.epam.gymcrm.dto.TrainingResponse;
+import com.epam.gymcrm.dto.request.AutoScheduleTrainingRequest;
+import com.epam.gymcrm.dto.request.ScheduleTrainingRequest;
+import com.epam.gymcrm.dto.response.Training;
 import com.epam.gymcrm.entity.TrainingEntity;
 import com.epam.gymcrm.exception.EntityNotFoundException;
 import com.epam.gymcrm.mapper.TrainingMapper;
@@ -59,13 +59,13 @@ public class TrainingService implements InitializingBean {
         log.debug("Training id sequence initialized to {}", maxId);
     }
 
-    public TrainingResponse schedule(ScheduleTrainingRequest request) {
+    public Training schedule(ScheduleTrainingRequest request) {
         validateParticipants(request.traineeId(), request.trainerId());
         TrainingEntity training = trainingMapper.toEntity(request);
         return trainingMapper.toResponse(save(training));
     }
 
-    public TrainingResponse autoSchedule(AutoScheduleTrainingRequest request, Long trainerId) {
+    public Training autoSchedule(AutoScheduleTrainingRequest request, Long trainerId) {
         validateParticipants(request.traineeId(), trainerId);
         TrainingEntity training = trainingMapper.toEntity(request, trainerId);
         return trainingMapper.toResponse(save(training));
@@ -77,11 +77,11 @@ public class TrainingService implements InitializingBean {
         log.info("Deleted training id={}", id);
     }
 
-    public TrainingResponse getById(Long id) {
+    public Training getById(Long id) {
         return trainingMapper.toResponse(getEntity(id));
     }
 
-    public List<TrainingResponse> findAll() {
+    public List<Training> findAll() {
         return trainingRepository.findAll().map(trainingMapper::toResponse).toList();
     }
 

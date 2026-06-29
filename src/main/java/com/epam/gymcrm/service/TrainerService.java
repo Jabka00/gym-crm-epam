@@ -1,10 +1,10 @@
 package com.epam.gymcrm.service;
 
-import com.epam.gymcrm.dto.CreateTrainerRequest;
-import com.epam.gymcrm.dto.TrainerResponse;
-import com.epam.gymcrm.dto.UpdateTrainerRequest;
+import com.epam.gymcrm.dto.request.CreateTrainerRequest;
+import com.epam.gymcrm.dto.request.UpdateTrainerRequest;
+import com.epam.gymcrm.dto.response.Trainer;
 import com.epam.gymcrm.entity.TrainerEntity;
-import com.epam.gymcrm.entity.TrainingType;
+import com.epam.gymcrm.model.TrainingType;
 import com.epam.gymcrm.exception.EntityNotFoundException;
 import com.epam.gymcrm.exception.InvalidOperationException;
 import com.epam.gymcrm.mapper.TrainerMapper;
@@ -23,7 +23,8 @@ import java.util.concurrent.atomic.AtomicLong;
 public class TrainerService implements InitializingBean {
 
     private TrainerRepository trainerRepository;
-    private CredentialGenerator credentialGenerator;
+    private UsernameGenerator usernameGenerator;
+    private PasswordGenerator passwordGenerator;
     private TrainerMapper trainerMapper;
 
     private final AtomicLong idSequence = new AtomicLong(0);
@@ -34,8 +35,13 @@ public class TrainerService implements InitializingBean {
     }
 
     @Autowired
-    public void setCredentialGenerator(CredentialGenerator credentialGenerator) {
-        this.credentialGenerator = credentialGenerator;
+    public void setUsernameGenerator(UsernameGenerator usernameGenerator) {
+        this.usernameGenerator = usernameGenerator;
+    }
+
+    @Autowired
+    public void setPasswordGenerator(PasswordGenerator passwordGenerator) {
+        this.passwordGenerator = passwordGenerator;
     }
 
     @Autowired
@@ -53,22 +59,22 @@ public class TrainerService implements InitializingBean {
         long maxId = all.stream().mapToLong(TrainerEntity::getUserId).max().orElse(0L);
         idSequence.set(maxId);
         log.debug("Trainer id sequence initialized to {}", maxId);
-        all.stream().map(TrainerEntity::getUsername).forEach(credentialGenerator::registerExistingUsername);
+        all.stream().map(TrainerEntity::getUsername).forEach(usernameGenerator::registerExistingUsername);
     }
 
-    public TrainerResponse create(CreateTrainerRequest request) {
+    public Trainer create(CreateTrainerRequest request) {
         TrainerEntity trainer = trainerMapper.toEntity(request);
         trainer.setUserId(idSequence.incrementAndGet());
-        trainer.setUsername(credentialGenerator.generateUsername(
+        trainer.setUsername(usernameGenerator.generateUsername(
                 trainer.getFirstName(), trainer.getLastName()));
-        trainer.setPassword(credentialGenerator.generatePassword());
+        trainer.setPassword(passwordGenerator.generatePassword());
         trainer.setActive(true);
         TrainerEntity saved = trainerRepository.save(trainer);
         log.info("Created trainer id={}", saved.getUserId());
         return trainerMapper.toResponse(saved);
     }
 
-    public TrainerResponse update(UpdateTrainerRequest request) {
+    public Trainer update(UpdateTrainerRequest request) {
         TrainerEntity trainer = getEntity(request.userId());
         boolean nameChanged = !Objects.equals(trainer.getFirstName(), request.user().firstName())
                 || !Objects.equals(trainer.getLastName(), request.user().lastName());
@@ -76,7 +82,7 @@ public class TrainerService implements InitializingBean {
         trainerMapper.updateEntity(trainer, request);
 
         if (nameChanged) {
-            trainer.setUsername(credentialGenerator.generateUsername(
+            trainer.setUsername(usernameGenerator.generateUsername(
                     trainer.getFirstName(), trainer.getLastName()));
             log.debug("Regenerated username for trainer id={}", trainer.getUserId());
         }
@@ -86,15 +92,15 @@ public class TrainerService implements InitializingBean {
         return trainerMapper.toResponse(saved);
     }
 
-    public TrainerResponse getById(Long id) {
+    public Trainer getById(Long id) {
         return trainerMapper.toResponse(getEntity(id));
     }
 
-    public TrainerResponse getActiveById(Long id) {
+    public Trainer getActiveById(Long id) {
         return trainerMapper.toResponse(getActiveEntity(id));
     }
 
-    public TrainerResponse getActiveForSpecialization(Long id, TrainingType type) {
+    public Trainer getActiveForSpecialization(Long id, TrainingType type) {
         TrainerEntity trainer = getActiveEntity(id);
         if (!trainer.matchesSpecialization(type)) {
             throw new InvalidOperationException(
@@ -103,7 +109,7 @@ public class TrainerService implements InitializingBean {
         return trainerMapper.toResponse(trainer);
     }
 
-    public TrainerResponse findActiveBySpecialization(TrainingType type) {
+    public Trainer findActiveBySpecialization(TrainingType type) {
         TrainerEntity trainer = trainerRepository.findAll()
                 .filter(TrainerEntity::isActive)
                 .filter(t -> t.matchesSpecialization(type))
@@ -113,7 +119,7 @@ public class TrainerService implements InitializingBean {
         return trainerMapper.toResponse(trainer);
     }
 
-    public List<TrainerResponse> findAll() {
+    public List<Trainer> findAll() {
         return trainerRepository.findAll().map(trainerMapper::toResponse).toList();
     }
 

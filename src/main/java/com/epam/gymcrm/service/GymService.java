@@ -1,9 +1,9 @@
 package com.epam.gymcrm.service;
 
-import com.epam.gymcrm.dto.AutoScheduleTrainingRequest;
-import com.epam.gymcrm.dto.ScheduleTrainingRequest;
-import com.epam.gymcrm.dto.TrainerResponse;
-import com.epam.gymcrm.dto.TrainingResponse;
+import com.epam.gymcrm.dto.request.AutoScheduleTrainingRequest;
+import com.epam.gymcrm.dto.request.ScheduleTrainingRequest;
+import com.epam.gymcrm.dto.response.Trainer;
+import com.epam.gymcrm.dto.response.Training;
 import com.epam.gymcrm.exception.InvalidOperationException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -24,15 +24,15 @@ public class GymService {
         this.trainingService = trainingService;
     }
 
-    public TrainingResponse scheduleTraining(ScheduleTrainingRequest request) {
+    public Training scheduleTraining(ScheduleTrainingRequest request) {
         traineeService.getActiveById(request.traineeId());
         trainerService.getActiveForSpecialization(request.trainerId(), request.type());
         return trainingService.schedule(request);
     }
 
-    public TrainingResponse autoScheduleTraining(AutoScheduleTrainingRequest request) {
+    public Training autoScheduleTraining(AutoScheduleTrainingRequest request) {
         traineeService.getActiveById(request.traineeId());
-        TrainerResponse trainer = trainerService.findActiveBySpecialization(request.type());
+        Trainer trainer = trainerService.findActiveBySpecialization(request.type());
         log.info("Auto-assigned trainer id={} for training '{}'", trainer.userId(), request.name());
         return trainingService.autoSchedule(request, trainer.userId());
     }

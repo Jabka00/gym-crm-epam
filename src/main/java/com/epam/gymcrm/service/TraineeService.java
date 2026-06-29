@@ -1,8 +1,8 @@
 package com.epam.gymcrm.service;
 
-import com.epam.gymcrm.dto.CreateTraineeRequest;
-import com.epam.gymcrm.dto.TraineeResponse;
-import com.epam.gymcrm.dto.UpdateTraineeRequest;
+import com.epam.gymcrm.dto.request.CreateTraineeRequest;
+import com.epam.gymcrm.dto.request.UpdateTraineeRequest;
+import com.epam.gymcrm.dto.response.Trainee;
 import com.epam.gymcrm.entity.TraineeEntity;
 import com.epam.gymcrm.exception.EntityNotFoundException;
 import com.epam.gymcrm.exception.InvalidOperationException;
@@ -22,7 +22,8 @@ import java.util.concurrent.atomic.AtomicLong;
 public class TraineeService implements InitializingBean {
 
     private TraineeRepository traineeRepository;
-    private CredentialGenerator credentialGenerator;
+    private UsernameGenerator usernameGenerator;
+    private PasswordGenerator passwordGenerator;
     private TraineeMapper traineeMapper;
 
     private final AtomicLong idSequence = new AtomicLong(0);
@@ -33,8 +34,13 @@ public class TraineeService implements InitializingBean {
     }
 
     @Autowired
-    public void setCredentialGenerator(CredentialGenerator credentialGenerator) {
-        this.credentialGenerator = credentialGenerator;
+    public void setUsernameGenerator(UsernameGenerator usernameGenerator) {
+        this.usernameGenerator = usernameGenerator;
+    }
+
+    @Autowired
+    public void setPasswordGenerator(PasswordGenerator passwordGenerator) {
+        this.passwordGenerator = passwordGenerator;
     }
 
     @Autowired
@@ -52,22 +58,22 @@ public class TraineeService implements InitializingBean {
         long maxId = all.stream().mapToLong(TraineeEntity::getUserId).max().orElse(0L);
         idSequence.set(maxId);
         log.debug("Trainee id sequence initialized to {}", maxId);
-        all.stream().map(TraineeEntity::getUsername).forEach(credentialGenerator::registerExistingUsername);
+        all.stream().map(TraineeEntity::getUsername).forEach(usernameGenerator::registerExistingUsername);
     }
 
-    public TraineeResponse create(CreateTraineeRequest request) {
+    public Trainee create(CreateTraineeRequest request) {
         TraineeEntity trainee = traineeMapper.toEntity(request);
         trainee.setUserId(idSequence.incrementAndGet());
-        trainee.setUsername(credentialGenerator.generateUsername(
+        trainee.setUsername(usernameGenerator.generateUsername(
                 trainee.getFirstName(), trainee.getLastName()));
-        trainee.setPassword(credentialGenerator.generatePassword());
+        trainee.setPassword(passwordGenerator.generatePassword());
         trainee.setActive(true);
         TraineeEntity saved = traineeRepository.save(trainee);
         log.info("Created trainee id={}", saved.getUserId());
         return traineeMapper.toResponse(saved);
     }
 
-    public TraineeResponse update(UpdateTraineeRequest request) {
+    public Trainee update(UpdateTraineeRequest request) {
         TraineeEntity trainee = getEntity(request.userId());
         boolean nameChanged = !Objects.equals(trainee.getFirstName(), request.user().firstName())
                 || !Objects.equals(trainee.getLastName(), request.user().lastName());
@@ -75,7 +81,7 @@ public class TraineeService implements InitializingBean {
         traineeMapper.updateEntity(trainee, request);
 
         if (nameChanged) {
-            trainee.setUsername(credentialGenerator.generateUsername(
+            trainee.setUsername(usernameGenerator.generateUsername(
                     trainee.getFirstName(), trainee.getLastName()));
             log.debug("Regenerated username for trainee id={}", trainee.getUserId());
         }
@@ -91,11 +97,11 @@ public class TraineeService implements InitializingBean {
         log.info("Deleted trainee id={}", id);
     }
 
-    public TraineeResponse getById(Long id) {
+    public Trainee getById(Long id) {
         return traineeMapper.toResponse(getEntity(id));
     }
 
-    public TraineeResponse getActiveById(Long id) {
+    public Trainee getActiveById(Long id) {
         TraineeEntity trainee = getEntity(id);
         if (!trainee.isActive()) {
             throw new InvalidOperationException("Trainee is inactive: id=" + id);
@@ -103,7 +109,7 @@ public class TraineeService implements InitializingBean {
         return traineeMapper.toResponse(trainee);
     }
 
-    public List<TraineeResponse> findAll() {
+    public List<Trainee> findAll() {
         return traineeRepository.findAll().map(traineeMapper::toResponse).toList();
     }
 

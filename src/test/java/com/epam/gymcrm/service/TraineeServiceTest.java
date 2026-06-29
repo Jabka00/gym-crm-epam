@@ -1,9 +1,9 @@
 package com.epam.gymcrm.service;
 
-import com.epam.gymcrm.dto.CreateTraineeRequest;
-import com.epam.gymcrm.dto.TraineeResponse;
-import com.epam.gymcrm.dto.UpdateTraineeRequest;
-import com.epam.gymcrm.dto.UserInfo;
+import com.epam.gymcrm.dto.request.CreateTraineeRequest;
+import com.epam.gymcrm.dto.request.UpdateTraineeRequest;
+import com.epam.gymcrm.dto.request.UserInfo;
+import com.epam.gymcrm.dto.response.Trainee;
 import com.epam.gymcrm.entity.TraineeEntity;
 import com.epam.gymcrm.exception.EntityNotFoundException;
 import com.epam.gymcrm.exception.InvalidOperationException;
@@ -39,7 +39,10 @@ class TraineeServiceTest {
     private TraineeRepository traineeRepository;
 
     @Mock
-    private CredentialGenerator credentialGenerator;
+    private UsernameGenerator usernameGenerator;
+
+    @Mock
+    private PasswordGenerator passwordGenerator;
 
     @Spy
     private TraineeMapper traineeMapper = new TraineeMapper();
@@ -52,17 +55,17 @@ class TraineeServiceTest {
         when(traineeRepository.findAll()).thenAnswer(inv -> Stream.empty());
         traineeService.initIdSequence();
 
-        when(credentialGenerator.generateUsername(eq("Alice"), eq("Walker")))
+        when(usernameGenerator.generateUsername(eq("Alice"), eq("Walker")))
                 .thenReturn("Alice.Walker");
-        when(credentialGenerator.generatePassword()).thenReturn("abcdefghij");
+        when(passwordGenerator.generatePassword()).thenReturn("abcdefghij");
         when(traineeRepository.save(any(TraineeEntity.class))).thenAnswer(inv -> inv.getArgument(0));
 
         CreateTraineeRequest request = new CreateTraineeRequest(
                 new UserInfo("Alice", "Walker"), LocalDate.of(1995, 4, 12), "Kyiv");
 
-        TraineeResponse created = traineeService.create(request);
+        Trainee created = traineeService.create(request);
 
-        TraineeResponse expected = new TraineeResponse(
+        Trainee expected = new Trainee(
                 1L, "Alice Walker", "Alice.Walker", LocalDate.of(1995, 4, 12), "Kyiv");
         assertThat(created).isEqualTo(expected);
 
@@ -71,7 +74,7 @@ class TraineeServiceTest {
         assertThat(captor.getValue().getUsername()).isEqualTo("Alice.Walker");
         assertThat(captor.getValue().getPassword()).isEqualTo("abcdefghij");
         assertThat(captor.getValue().isActive()).isTrue();
-        verify(credentialGenerator, times(1)).generatePassword();
+        verify(passwordGenerator, times(1)).generatePassword();
     }
 
     @Test
@@ -84,12 +87,12 @@ class TraineeServiceTest {
         UpdateTraineeRequest request = new UpdateTraineeRequest(
                 1L, new UserInfo("Alice", "Walker"), LocalDate.of(1995, 4, 12), "Lviv", true);
 
-        TraineeResponse updated = traineeService.update(request);
+        Trainee updated = traineeService.update(request);
 
-        TraineeResponse expected = new TraineeResponse(
+        Trainee expected = new Trainee(
                 1L, "Alice Walker", "Alice.Walker", LocalDate.of(1995, 4, 12), "Lviv");
         assertThat(updated).isEqualTo(expected);
-        verify(credentialGenerator, never()).generateUsername(any(), any());
+        verify(usernameGenerator, never()).generateUsername(any(), any());
         verify(traineeRepository, times(1)).save(existing);
     }
 
@@ -99,18 +102,18 @@ class TraineeServiceTest {
         existing.setUserId(1L);
         when(traineeRepository.findById(1L)).thenReturn(Optional.of(existing));
         when(traineeRepository.save(any(TraineeEntity.class))).thenAnswer(inv -> inv.getArgument(0));
-        when(credentialGenerator.generateUsername(eq("Alice"), eq("Cooper")))
+        when(usernameGenerator.generateUsername(eq("Alice"), eq("Cooper")))
                 .thenReturn("Alice.Cooper");
 
         UpdateTraineeRequest request = new UpdateTraineeRequest(
                 1L, new UserInfo("Alice", "Cooper"), LocalDate.of(1995, 4, 12), "Kyiv", true);
 
-        TraineeResponse updated = traineeService.update(request);
+        Trainee updated = traineeService.update(request);
 
-        TraineeResponse expected = new TraineeResponse(
+        Trainee expected = new Trainee(
                 1L, "Alice Cooper", "Alice.Cooper", LocalDate.of(1995, 4, 12), "Kyiv");
         assertThat(updated).isEqualTo(expected);
-        verify(credentialGenerator, times(1))
+        verify(usernameGenerator, times(1))
                 .generateUsername(eq("Alice"), eq("Cooper"));
     }
 
@@ -155,9 +158,9 @@ class TraineeServiceTest {
         trainee.setUserId(1L);
         when(traineeRepository.findById(1L)).thenReturn(Optional.of(trainee));
 
-        TraineeResponse response = traineeService.getById(1L);
+        Trainee response = traineeService.getById(1L);
 
-        TraineeResponse expected = new TraineeResponse(
+        Trainee expected = new Trainee(
                 1L, "Alice Walker", "Alice.Walker", LocalDate.of(1995, 4, 12), "Kyiv");
         assertThat(response).isEqualTo(expected);
     }
@@ -168,9 +171,9 @@ class TraineeServiceTest {
         trainee.setUserId(1L);
         when(traineeRepository.findAll()).thenAnswer(inv -> Stream.of(trainee));
 
-        List<TraineeResponse> all = traineeService.findAll();
+        List<Trainee> all = traineeService.findAll();
 
-        TraineeResponse expected = new TraineeResponse(
+        Trainee expected = new Trainee(
                 1L, "Alice Walker", "Alice.Walker", LocalDate.of(1995, 4, 12), "Kyiv");
         assertThat(all).containsExactly(expected);
     }
@@ -191,9 +194,9 @@ class TraineeServiceTest {
         trainee.setActive(true);
         when(traineeRepository.findById(1L)).thenReturn(Optional.of(trainee));
 
-        TraineeResponse response = traineeService.getActiveById(1L);
+        Trainee response = traineeService.getActiveById(1L);
 
-        TraineeResponse expected = new TraineeResponse(
+        Trainee expected = new Trainee(
                 1L, "Alice Walker", "Alice.Walker", LocalDate.of(1995, 4, 12), "Kyiv");
         assertThat(response).isEqualTo(expected);
     }

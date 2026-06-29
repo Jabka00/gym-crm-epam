@@ -1,8 +1,8 @@
 package com.epam.gymcrm.mapper;
 
-import com.epam.gymcrm.dto.AutoScheduleTrainingRequest;
-import com.epam.gymcrm.dto.ScheduleTrainingRequest;
-import com.epam.gymcrm.dto.TrainingResponse;
+import com.epam.gymcrm.dto.request.AutoScheduleTrainingRequest;
+import com.epam.gymcrm.dto.request.ScheduleTrainingRequest;
+import com.epam.gymcrm.dto.response.Training;
 import com.epam.gymcrm.entity.TrainingEntity;
 import org.springframework.stereotype.Component;
 
@@ -31,8 +31,8 @@ public class TrainingMapper {
         return training;
     }
 
-    public TrainingResponse toResponse(TrainingEntity training) {
-        return new TrainingResponse(
+    public Training toResponse(TrainingEntity training) {
+        return new Training(
                 training.getTrainingId(),
                 training.getTrainingName(),
                 training.getTrainingType(),

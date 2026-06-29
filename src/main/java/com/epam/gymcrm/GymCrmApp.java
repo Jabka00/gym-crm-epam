@@ -1,15 +1,15 @@
 package com.epam.gymcrm;
 
 import com.epam.gymcrm.config.AppConfig;
-import com.epam.gymcrm.dto.AutoScheduleTrainingRequest;
-import com.epam.gymcrm.dto.CreateTraineeRequest;
-import com.epam.gymcrm.dto.CreateTrainerRequest;
-import com.epam.gymcrm.dto.ScheduleTrainingRequest;
-import com.epam.gymcrm.dto.TraineeResponse;
-import com.epam.gymcrm.dto.TrainerResponse;
-import com.epam.gymcrm.dto.TrainingResponse;
-import com.epam.gymcrm.dto.UserInfo;
-import com.epam.gymcrm.entity.TrainingType;
+import com.epam.gymcrm.dto.request.AutoScheduleTrainingRequest;
+import com.epam.gymcrm.dto.request.CreateTraineeRequest;
+import com.epam.gymcrm.dto.request.CreateTrainerRequest;
+import com.epam.gymcrm.dto.request.ScheduleTrainingRequest;
+import com.epam.gymcrm.dto.request.UserInfo;
+import com.epam.gymcrm.dto.response.Trainee;
+import com.epam.gymcrm.dto.response.Trainer;
+import com.epam.gymcrm.dto.response.Training;
+import com.epam.gymcrm.model.TrainingType;
 import com.epam.gymcrm.service.GymService;
 import com.epam.gymcrm.service.TraineeService;
 import com.epam.gymcrm.service.TrainerService;
@@ -36,18 +36,18 @@ public class GymCrmApp {
             trainingService.findAll().forEach(training ->
                     log.info("Training: {} {}", training.id(), training.name()));
 
-            TrainerResponse newTrainer = trainerService.create(new CreateTrainerRequest(
+            Trainer newTrainer = trainerService.create(new CreateTrainerRequest(
                     new UserInfo("John", "Smith"),
                     TrainingType.PILATES));
             log.info("Created trainer id={}", newTrainer.userId());
 
-            TraineeResponse newTrainee = traineeService.create(new CreateTraineeRequest(
+            Trainee newTrainee = traineeService.create(new CreateTraineeRequest(
                     new UserInfo("Jane", "Doe"),
                     LocalDate.of(1998, 5, 20),
                     "Kyiv"));
             log.info("Created trainee id={}", newTrainee.userId());
 
-            TrainingResponse scheduled = facade.scheduleTraining(new ScheduleTrainingRequest(
+            Training scheduled = facade.scheduleTraining(new ScheduleTrainingRequest(
                     newTrainee.userId(),
                     newTrainer.userId(),
                     "Evening Pilates",
@@ -56,7 +56,7 @@ public class GymCrmApp {
                     Duration.ofMinutes(60)));
             log.info("Scheduled training: id={}, name={}", scheduled.id(), scheduled.name());
 
-            TrainingResponse autoScheduled = facade.autoScheduleTraining(new AutoScheduleTrainingRequest(
+            Training autoScheduled = facade.autoScheduleTraining(new AutoScheduleTrainingRequest(
                     newTrainee.userId(),
                     "Morning Yoga",
                     TrainingType.YOGA,

@@ -1,8 +1,8 @@
-package com.epam.gymcrm.dto;
+package com.epam.gymcrm.dto.response;
 
 import java.time.LocalDate;
 
-public record TraineeResponse(
+public record Trainee(
         Long userId,
         String fullName,
         String username,

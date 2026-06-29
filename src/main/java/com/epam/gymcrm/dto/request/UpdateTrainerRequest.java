@@ -1,6 +1,6 @@
-package com.epam.gymcrm.dto;
+package com.epam.gymcrm.dto.request;
 
-import com.epam.gymcrm.entity.TrainingType;
+import com.epam.gymcrm.model.TrainingType;
 
 public record UpdateTrainerRequest(
         Long userId,

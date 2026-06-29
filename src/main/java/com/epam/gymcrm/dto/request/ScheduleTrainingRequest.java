@@ -1,12 +1,13 @@
-package com.epam.gymcrm.dto;
+package com.epam.gymcrm.dto.request;
 
-import com.epam.gymcrm.entity.TrainingType;
+import com.epam.gymcrm.model.TrainingType;
 
 import java.time.Duration;
 import java.time.LocalDate;
 
-public record AutoScheduleTrainingRequest(
+public record ScheduleTrainingRequest(
         Long traineeId,
+        Long trainerId,
         String name,
         TrainingType type,
         LocalDate date,
