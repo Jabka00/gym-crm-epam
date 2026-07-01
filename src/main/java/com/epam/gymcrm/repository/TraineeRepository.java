@@ -22,8 +22,8 @@ public class TraineeRepository {
     }
 
     public TraineeEntity save(TraineeEntity trainee) {
-        storage.put(trainee.getUserId(), trainee);
-        log.debug("Saved trainee id={}", trainee.getUserId());
+        storage.put(trainee.getId(), trainee);
+        log.debug("Saved trainee id={}", trainee.getId());
         return trainee;
     }
 

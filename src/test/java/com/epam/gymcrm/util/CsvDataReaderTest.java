@@ -3,6 +3,7 @@ package com.epam.gymcrm.util;
 import com.epam.gymcrm.entity.TraineeEntity;
 import com.epam.gymcrm.entity.TrainerEntity;
 import com.epam.gymcrm.entity.TrainingEntity;
+import com.epam.gymcrm.entity.TrainingTypeEntity;
 import com.epam.gymcrm.model.TrainingType;
 import org.junit.jupiter.api.Test;
 
@@ -66,13 +67,13 @@ class CsvDataReaderTest {
                                          String username, String password,
                                          boolean active, TrainingType specialization) {
         TrainerEntity e = new TrainerEntity();
-        e.setUserId(id);
+        e.setId(id);
         e.setFirstName(firstName);
         e.setLastName(lastName);
         e.setUsername(username);
         e.setPassword(password);
         e.setActive(active);
-        e.setSpecialization(specialization);
+        e.setSpecialization(TrainingTypeEntity.of(specialization));
         return e;
     }
 
@@ -80,7 +81,7 @@ class CsvDataReaderTest {
                                           String username, String password, boolean active,
                                           LocalDate dateOfBirth, String address) {
         TraineeEntity e = new TraineeEntity();
-        e.setUserId(id);
+        e.setId(id);
         e.setFirstName(firstName);
         e.setLastName(lastName);
         e.setUsername(username);
@@ -95,13 +96,20 @@ class CsvDataReaderTest {
                                             String name, TrainingType type,
                                             LocalDate date, Duration duration) {
         TrainingEntity e = new TrainingEntity();
-        e.setTrainingId(id);
-        e.setTraineeId(traineeId);
-        e.setTrainerId(trainerId);
+        e.setId(id);
+
+        TraineeEntity trainee = new TraineeEntity();
+        trainee.setId(traineeId);
+        e.setTrainee(trainee);
+
+        TrainerEntity trainer = new TrainerEntity();
+        trainer.setId(trainerId);
+        e.setTrainer(trainer);
+
         e.setTrainingName(name);
-        e.setTrainingType(type);
+        e.setTrainingType(TrainingTypeEntity.of(type));
         e.setTrainingDate(date);
-        e.setTrainingDuration(duration);
+        e.setTrainingDuration((int) duration.toMinutes());
         return e;
     }
 }

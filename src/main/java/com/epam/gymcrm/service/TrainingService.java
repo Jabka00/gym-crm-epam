@@ -53,7 +53,7 @@ public class TrainingService implements InitializingBean {
 
     void initIdSequence() {
         long maxId = trainingRepository.findAll()
-                .mapToLong(TrainingEntity::getTrainingId)
+                .mapToLong(TrainingEntity::getId)
                 .max().orElse(0L);
         idSequence.set(maxId);
         log.debug("Training id sequence initialized to {}", maxId);
@@ -87,7 +87,7 @@ public class TrainingService implements InitializingBean {
 
     public boolean existsByTraineeId(Long traineeId) {
         return trainingRepository.findAll()
-                .anyMatch(training -> traineeId.equals(training.getTraineeId()));
+                .anyMatch(training -> traineeId.equals(training.getTrainee().getId()));
     }
 
     private void validateParticipants(Long traineeId, Long trainerId) {
@@ -96,10 +96,10 @@ public class TrainingService implements InitializingBean {
     }
 
     private TrainingEntity save(TrainingEntity training) {
-        training.setTrainingId(idSequence.incrementAndGet());
+        training.setId(idSequence.incrementAndGet());
         TrainingEntity saved = trainingRepository.save(training);
         log.info("Created training: {} (traineeId={}, trainerId={})",
-                saved.getTrainingName(), saved.getTraineeId(), saved.getTrainerId());
+                saved.getTrainingName(), saved.getTrainee().getId(), saved.getTrainer().getId());
         return saved;
     }
 

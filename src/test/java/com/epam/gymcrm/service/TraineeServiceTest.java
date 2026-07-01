@@ -80,7 +80,7 @@ class TraineeServiceTest {
     @Test
     void shouldUpdateExistingTraineeWithoutRegeneratingUsernameWhenNameUnchanged() {
         TraineeEntity existing = TestDataFactory.createTraineeWithCredentials();
-        existing.setUserId(1L);
+        existing.setId(1L);
         when(traineeRepository.findById(1L)).thenReturn(Optional.of(existing));
         when(traineeRepository.save(any(TraineeEntity.class))).thenAnswer(inv -> inv.getArgument(0));
 
@@ -99,7 +99,7 @@ class TraineeServiceTest {
     @Test
     void shouldRegenerateUsernameWhenNameChangesOnUpdate() {
         TraineeEntity existing = TestDataFactory.createTraineeWithCredentials();
-        existing.setUserId(1L);
+        existing.setId(1L);
         when(traineeRepository.findById(1L)).thenReturn(Optional.of(existing));
         when(traineeRepository.save(any(TraineeEntity.class))).thenAnswer(inv -> inv.getArgument(0));
         when(usernameGenerator.generateUsername(eq("Alice"), eq("Cooper")))
@@ -134,7 +134,7 @@ class TraineeServiceTest {
     @Test
     void shouldDeleteExistingTrainee() {
         TraineeEntity trainee = TestDataFactory.createTraineeWithCredentials();
-        trainee.setUserId(1L);
+        trainee.setId(1L);
         when(traineeRepository.findById(1L)).thenReturn(Optional.of(trainee));
 
         traineeService.delete(1L);
@@ -155,7 +155,7 @@ class TraineeServiceTest {
     @Test
     void shouldGetTraineeById() {
         TraineeEntity trainee = TestDataFactory.createTraineeWithCredentials();
-        trainee.setUserId(1L);
+        trainee.setId(1L);
         when(traineeRepository.findById(1L)).thenReturn(Optional.of(trainee));
 
         Trainee response = traineeService.getById(1L);
@@ -168,7 +168,7 @@ class TraineeServiceTest {
     @Test
     void shouldFindAllTrainees() {
         TraineeEntity trainee = TestDataFactory.createTraineeWithCredentials();
-        trainee.setUserId(1L);
+        trainee.setId(1L);
         when(traineeRepository.findAll()).thenAnswer(inv -> Stream.of(trainee));
 
         List<Trainee> all = traineeService.findAll();
@@ -190,7 +190,7 @@ class TraineeServiceTest {
     @Test
     void shouldReturnActiveTrainee() {
         TraineeEntity trainee = TestDataFactory.createTraineeWithCredentials();
-        trainee.setUserId(1L);
+        trainee.setId(1L);
         trainee.setActive(true);
         when(traineeRepository.findById(1L)).thenReturn(Optional.of(trainee));
 
@@ -204,7 +204,7 @@ class TraineeServiceTest {
     @Test
     void shouldThrowWhenTraineeInactive() {
         TraineeEntity trainee = TestDataFactory.createTraineeWithCredentials();
-        trainee.setUserId(1L);
+        trainee.setId(1L);
         trainee.setActive(false);
         when(traineeRepository.findById(1L)).thenReturn(Optional.of(trainee));
 

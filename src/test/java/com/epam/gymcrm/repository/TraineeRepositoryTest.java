@@ -22,7 +22,7 @@ class TraineeRepositoryTest {
     @Test
     void shouldSaveAndFindTraineeById() {
         TraineeEntity trainee = TestDataFactory.createTraineeWithCredentials();
-        trainee.setUserId(1L);
+        trainee.setId(1L);
 
         TraineeEntity saved = traineeRepository.save(trainee);
 
@@ -34,7 +34,7 @@ class TraineeRepositoryTest {
     @Test
     void shouldOverwriteExistingTraineeOnSave() {
         TraineeEntity trainee = TestDataFactory.createTraineeWithCredentials();
-        trainee.setUserId(1L);
+        trainee.setId(1L);
         traineeRepository.save(trainee);
         trainee.setAddress("Odesa");
 
@@ -47,7 +47,7 @@ class TraineeRepositoryTest {
     @Test
     void shouldDeleteTrainee() {
         TraineeEntity trainee = TestDataFactory.createTraineeWithCredentials();
-        trainee.setUserId(1L);
+        trainee.setId(1L);
         traineeRepository.save(trainee);
 
         traineeRepository.delete(1L);
@@ -59,9 +59,9 @@ class TraineeRepositoryTest {
     @Test
     void shouldSaveMultipleTrainees() {
         TraineeEntity first = TestDataFactory.createTraineeWithCredentials();
-        first.setUserId(1L);
+        first.setId(1L);
         TraineeEntity second = TestDataFactory.createDefaultTrainee();
-        second.setUserId(2L);
+        second.setId(2L);
 
         traineeRepository.save(first);
         traineeRepository.save(second);

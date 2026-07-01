@@ -56,7 +56,7 @@ public class TrainerService implements InitializingBean {
 
     void initIdSequence() {
         var all = trainerRepository.findAll().toList();
-        long maxId = all.stream().mapToLong(TrainerEntity::getUserId).max().orElse(0L);
+        long maxId = all.stream().mapToLong(TrainerEntity::getId).max().orElse(0L);
         idSequence.set(maxId);
         log.debug("Trainer id sequence initialized to {}", maxId);
         all.stream().map(TrainerEntity::getUsername).forEach(usernameGenerator::registerExistingUsername);
@@ -64,13 +64,13 @@ public class TrainerService implements InitializingBean {
 
     public Trainer create(CreateTrainerRequest request) {
         TrainerEntity trainer = trainerMapper.toEntity(request);
-        trainer.setUserId(idSequence.incrementAndGet());
+        trainer.setId(idSequence.incrementAndGet());
         trainer.setUsername(usernameGenerator.generateUsername(
                 trainer.getFirstName(), trainer.getLastName()));
         trainer.setPassword(passwordGenerator.generatePassword());
         trainer.setActive(true);
         TrainerEntity saved = trainerRepository.save(trainer);
-        log.info("Created trainer id={}", saved.getUserId());
+        log.info("Created trainer id={}", saved.getId());
         return trainerMapper.toResponse(saved);
     }
 
@@ -84,11 +84,11 @@ public class TrainerService implements InitializingBean {
         if (nameChanged) {
             trainer.setUsername(usernameGenerator.generateUsername(
                     trainer.getFirstName(), trainer.getLastName()));
-            log.debug("Regenerated username for trainer id={}", trainer.getUserId());
+            log.debug("Regenerated username for trainer id={}", trainer.getId());
         }
 
         TrainerEntity saved = trainerRepository.save(trainer);
-        log.info("Updated trainer id={}", saved.getUserId());
+        log.info("Updated trainer id={}", saved.getId());
         return trainerMapper.toResponse(saved);
     }
 

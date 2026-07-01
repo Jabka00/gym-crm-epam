@@ -22,7 +22,7 @@ class TrainingRepositoryTest {
     @Test
     void shouldSaveAndFindTrainingById() {
         TrainingEntity training = TestDataFactory.createDefaultTraining(1L, 2L);
-        training.setTrainingId(1L);
+        training.setId(1L);
 
         TrainingEntity saved = trainingRepository.save(training);
 
@@ -33,9 +33,9 @@ class TrainingRepositoryTest {
     @Test
     void shouldFindAllTrainings() {
         TrainingEntity t1 = TestDataFactory.createDefaultTraining(1L, 2L);
-        t1.setTrainingId(1L);
+        t1.setId(1L);
         TrainingEntity t2 = TestDataFactory.createDefaultTraining(3L, 4L);
-        t2.setTrainingId(2L);
+        t2.setId(2L);
 
         trainingRepository.save(t1);
         trainingRepository.save(t2);

@@ -3,6 +3,7 @@ package com.epam.gymcrm.util;
 import com.epam.gymcrm.entity.TraineeEntity;
 import com.epam.gymcrm.entity.TrainerEntity;
 import com.epam.gymcrm.entity.TrainingEntity;
+import com.epam.gymcrm.entity.TrainingTypeEntity;
 import com.epam.gymcrm.model.TrainingType;
 import com.fasterxml.jackson.databind.MappingIterator;
 import com.fasterxml.jackson.dataformat.csv.CsvMapper;
@@ -11,7 +12,6 @@ import com.fasterxml.jackson.dataformat.csv.CsvSchema;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.time.Duration;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
@@ -58,19 +58,20 @@ public final class CsvDataReader {
 
     private static TrainerEntity toTrainer(Map<String, String> row) {
         TrainerEntity trainer = new TrainerEntity();
-        trainer.setUserId(Long.parseLong(row.get("id")));
+        trainer.setId(Long.parseLong(row.get("id")));
         trainer.setFirstName(row.get("firstName"));
         trainer.setLastName(row.get("lastName"));
         trainer.setUsername(row.get("username"));
         trainer.setPassword(row.get("password"));
         trainer.setActive(Boolean.parseBoolean(row.get("active")));
-        trainer.setSpecialization(TrainingType.valueOf(row.get("specialization").toUpperCase()));
+        trainer.setSpecialization(TrainingTypeEntity.of(
+                TrainingType.valueOf(row.get("specialization").toUpperCase())));
         return trainer;
     }
 
     private static TraineeEntity toTrainee(Map<String, String> row) {
         TraineeEntity trainee = new TraineeEntity();
-        trainee.setUserId(Long.parseLong(row.get("id")));
+        trainee.setId(Long.parseLong(row.get("id")));
         trainee.setFirstName(row.get("firstName"));
         trainee.setLastName(row.get("lastName"));
         trainee.setUsername(row.get("username"));
@@ -83,13 +84,21 @@ public final class CsvDataReader {
 
     private static TrainingEntity toTraining(Map<String, String> row) {
         TrainingEntity training = new TrainingEntity();
-        training.setTrainingId(Long.parseLong(row.get("id")));
-        training.setTraineeId(Long.parseLong(row.get("traineeId")));
-        training.setTrainerId(Long.parseLong(row.get("trainerId")));
+        training.setId(Long.parseLong(row.get("id")));
+
+        TraineeEntity trainee = new TraineeEntity();
+        trainee.setId(Long.parseLong(row.get("traineeId")));
+        training.setTrainee(trainee);
+
+        TrainerEntity trainer = new TrainerEntity();
+        trainer.setId(Long.parseLong(row.get("trainerId")));
+        training.setTrainer(trainer);
+
         training.setTrainingName(row.get("trainingName"));
-        training.setTrainingType(TrainingType.valueOf(row.get("trainingType").toUpperCase()));
+        training.setTrainingType(TrainingTypeEntity.of(
+                TrainingType.valueOf(row.get("trainingType").toUpperCase())));
         training.setTrainingDate(LocalDate.parse(row.get("trainingDate")));
-        training.setTrainingDuration(Duration.ofMinutes(Long.parseLong(row.get("durationMinutes"))));
+        training.setTrainingDuration(Integer.parseInt(row.get("durationMinutes")));
         return training;
     }
 

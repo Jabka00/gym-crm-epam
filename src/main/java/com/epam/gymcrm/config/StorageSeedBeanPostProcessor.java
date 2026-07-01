@@ -47,7 +47,7 @@ public class StorageSeedBeanPostProcessor implements BeanPostProcessor {
                 case TrainerRepository repository -> {
                     Map<Long, TrainerEntity> storage = new HashMap<>();
                     for (TrainerEntity trainer : CsvDataReader.readTrainers(trainersResource)) {
-                        storage.put(trainer.getUserId(), trainer);
+                        storage.put(trainer.getId(), trainer);
                     }
                     repository.setStorage(storage);
                     log.info("Initialized trainer storage with {} entries", storage.size());
@@ -55,7 +55,7 @@ public class StorageSeedBeanPostProcessor implements BeanPostProcessor {
                 case TraineeRepository repository -> {
                     Map<Long, TraineeEntity> storage = new HashMap<>();
                     for (TraineeEntity trainee : CsvDataReader.readTrainees(traineesResource)) {
-                        storage.put(trainee.getUserId(), trainee);
+                        storage.put(trainee.getId(), trainee);
                     }
                     repository.setStorage(storage);
                     log.info("Initialized trainee storage with {} entries", storage.size());
@@ -63,7 +63,7 @@ public class StorageSeedBeanPostProcessor implements BeanPostProcessor {
                 case TrainingRepository repository -> {
                     Map<Long, TrainingEntity> storage = new HashMap<>();
                     for (TrainingEntity training : CsvDataReader.readTrainings(trainingsResource)) {
-                        storage.put(training.getTrainingId(), training);
+                        storage.put(training.getId(), training);
                     }
                     repository.setStorage(storage);
                     log.info("Initialized training storage with {} entries", storage.size());

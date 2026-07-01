@@ -55,7 +55,7 @@ public class TraineeService implements InitializingBean {
 
     void initIdSequence() {
         var all = traineeRepository.findAll().toList();
-        long maxId = all.stream().mapToLong(TraineeEntity::getUserId).max().orElse(0L);
+        long maxId = all.stream().mapToLong(TraineeEntity::getId).max().orElse(0L);
         idSequence.set(maxId);
         log.debug("Trainee id sequence initialized to {}", maxId);
         all.stream().map(TraineeEntity::getUsername).forEach(usernameGenerator::registerExistingUsername);
@@ -63,13 +63,13 @@ public class TraineeService implements InitializingBean {
 
     public Trainee create(CreateTraineeRequest request) {
         TraineeEntity trainee = traineeMapper.toEntity(request);
-        trainee.setUserId(idSequence.incrementAndGet());
+        trainee.setId(idSequence.incrementAndGet());
         trainee.setUsername(usernameGenerator.generateUsername(
                 trainee.getFirstName(), trainee.getLastName()));
         trainee.setPassword(passwordGenerator.generatePassword());
         trainee.setActive(true);
         TraineeEntity saved = traineeRepository.save(trainee);
-        log.info("Created trainee id={}", saved.getUserId());
+        log.info("Created trainee id={}", saved.getId());
         return traineeMapper.toResponse(saved);
     }
 
@@ -83,11 +83,11 @@ public class TraineeService implements InitializingBean {
         if (nameChanged) {
             trainee.setUsername(usernameGenerator.generateUsername(
                     trainee.getFirstName(), trainee.getLastName()));
-            log.debug("Regenerated username for trainee id={}", trainee.getUserId());
+            log.debug("Regenerated username for trainee id={}", trainee.getId());
         }
 
         TraineeEntity saved = traineeRepository.save(trainee);
-        log.info("Updated trainee id={}", saved.getUserId());
+        log.info("Updated trainee id={}", saved.getId());
         return traineeMapper.toResponse(saved);
     }
 

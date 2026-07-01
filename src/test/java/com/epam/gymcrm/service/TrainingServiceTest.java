@@ -52,7 +52,7 @@ class TrainingServiceTest {
     @Test
     void shouldGetTrainingById() {
         TrainingEntity training = TestDataFactory.createDefaultTraining(1L, 2L);
-        training.setTrainingId(10L);
+        training.setId(10L);
         when(trainingRepository.findById(10L)).thenReturn(Optional.of(training));
 
         Training response = trainingService.getById(10L);
@@ -74,7 +74,7 @@ class TrainingServiceTest {
     @Test
     void shouldFindAllTrainings() {
         TrainingEntity training = TestDataFactory.createDefaultTraining(1L, 2L);
-        training.setTrainingId(7L);
+        training.setId(7L);
         when(trainingRepository.findAll()).thenAnswer(inv -> Stream.of(training));
 
         List<Training> all = trainingService.findAll();
@@ -97,7 +97,7 @@ class TrainingServiceTest {
     @Test
     void shouldDeleteExistingTraining() {
         TrainingEntity training = TestDataFactory.createDefaultTraining(1L, 2L);
-        training.setTrainingId(10L);
+        training.setId(10L);
         when(trainingRepository.findById(10L)).thenReturn(Optional.of(training));
 
         trainingService.delete(10L);
@@ -135,8 +135,8 @@ class TrainingServiceTest {
         ArgumentCaptor<TrainingEntity> captor = ArgumentCaptor.forClass(TrainingEntity.class);
         verify(trainingRepository, times(1)).save(captor.capture());
         assertThat(captor.getValue().getTrainingName()).isEqualTo("Morning Yoga");
-        assertThat(captor.getValue().getTraineeId()).isEqualTo(1L);
-        assertThat(captor.getValue().getTrainerId()).isEqualTo(2L);
+        assertThat(captor.getValue().getTrainee().getId()).isEqualTo(1L);
+        assertThat(captor.getValue().getTrainer().getId()).isEqualTo(2L);
         verify(traineeService, times(1)).getById(1L);
         verify(trainerService, times(1)).getById(2L);
     }
@@ -160,8 +160,8 @@ class TrainingServiceTest {
 
         ArgumentCaptor<TrainingEntity> captor = ArgumentCaptor.forClass(TrainingEntity.class);
         verify(trainingRepository, times(1)).save(captor.capture());
-        assertThat(captor.getValue().getTrainerId()).isEqualTo(5L);
-        assertThat(captor.getValue().getTraineeId()).isEqualTo(1L);
+        assertThat(captor.getValue().getTrainer().getId()).isEqualTo(5L);
+        assertThat(captor.getValue().getTrainee().getId()).isEqualTo(1L);
         verify(traineeService, times(1)).getById(1L);
         verify(trainerService, times(1)).getById(5L);
     }

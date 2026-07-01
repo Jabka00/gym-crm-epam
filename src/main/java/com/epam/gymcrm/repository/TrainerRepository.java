@@ -22,8 +22,8 @@ public class TrainerRepository {
     }
 
     public TrainerEntity save(TrainerEntity trainer) {
-        storage.put(trainer.getUserId(), trainer);
-        log.debug("Saved trainer id={}", trainer.getUserId());
+        storage.put(trainer.getId(), trainer);
+        log.debug("Saved trainer id={}", trainer.getId());
         return trainer;
     }
 

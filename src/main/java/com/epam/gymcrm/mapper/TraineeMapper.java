@@ -28,7 +28,7 @@ public class TraineeMapper {
 
     public Trainee toResponse(TraineeEntity trainee) {
         return new Trainee(
-                trainee.getUserId(),
+                trainee.getId(),
                 trainee.getFirstName() + " " + trainee.getLastName(),
                 trainee.getUsername(),
                 trainee.getDateOfBirth(),

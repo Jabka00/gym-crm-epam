@@ -22,7 +22,7 @@ class TrainerRepositoryTest {
     @Test
     void shouldSaveAndFindTrainerById() {
         TrainerEntity trainer = TestDataFactory.createTrainerWithCredentials();
-        trainer.setUserId(1L);
+        trainer.setId(1L);
 
         TrainerEntity saved = trainerRepository.save(trainer);
 
@@ -34,7 +34,7 @@ class TrainerRepositoryTest {
     @Test
     void shouldOverwriteExistingTrainerOnSave() {
         TrainerEntity trainer = TestDataFactory.createTrainerWithCredentials();
-        trainer.setUserId(1L);
+        trainer.setId(1L);
         trainerRepository.save(trainer);
         trainer.setFirstName("Jonathan");
 
@@ -47,9 +47,9 @@ class TrainerRepositoryTest {
     @Test
     void shouldSaveMultipleTrainers() {
         TrainerEntity first = TestDataFactory.createTrainerWithCredentials();
-        first.setUserId(1L);
+        first.setId(1L);
         TrainerEntity second = TestDataFactory.createDefaultTrainer();
-        second.setUserId(2L);
+        second.setId(2L);
 
         trainerRepository.save(first);
         trainerRepository.save(second);

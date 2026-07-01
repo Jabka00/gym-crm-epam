@@ -5,6 +5,7 @@ import com.epam.gymcrm.dto.request.UpdateTrainerRequest;
 import com.epam.gymcrm.dto.request.UserInfo;
 import com.epam.gymcrm.dto.response.Trainer;
 import com.epam.gymcrm.entity.TrainerEntity;
+import com.epam.gymcrm.entity.TrainingTypeEntity;
 import com.epam.gymcrm.model.TrainingType;
 import com.epam.gymcrm.exception.EntityNotFoundException;
 import com.epam.gymcrm.exception.InvalidOperationException;
@@ -79,7 +80,7 @@ class TrainerServiceTest {
     @Test
     void shouldUpdateTrainerWithoutRegeneratingUsernameWhenNameUnchanged() {
         TrainerEntity existing = TestDataFactory.createTrainerWithCredentials();
-        existing.setUserId(1L);
+        existing.setId(1L);
         when(trainerRepository.findById(1L)).thenReturn(Optional.of(existing));
         when(trainerRepository.save(any(TrainerEntity.class))).thenAnswer(inv -> inv.getArgument(0));
 
@@ -97,7 +98,7 @@ class TrainerServiceTest {
     @Test
     void shouldRegenerateUsernameWhenNameChangesOnUpdate() {
         TrainerEntity existing = TestDataFactory.createTrainerWithCredentials();
-        existing.setUserId(1L);
+        existing.setId(1L);
         when(trainerRepository.findById(1L)).thenReturn(Optional.of(existing));
         when(trainerRepository.save(any(TrainerEntity.class))).thenAnswer(inv -> inv.getArgument(0));
         when(usernameGenerator.generateUsername(eq("John"), eq("Doe")))
@@ -131,7 +132,7 @@ class TrainerServiceTest {
     @Test
     void shouldGetTrainerById() {
         TrainerEntity trainer = TestDataFactory.createTrainerWithCredentials();
-        trainer.setUserId(1L);
+        trainer.setId(1L);
         when(trainerRepository.findById(1L)).thenReturn(Optional.of(trainer));
 
         Trainer response = trainerService.getById(1L);
@@ -143,7 +144,7 @@ class TrainerServiceTest {
     @Test
     void shouldFindAllTrainers() {
         TrainerEntity trainer = TestDataFactory.createTrainerWithCredentials();
-        trainer.setUserId(1L);
+        trainer.setId(1L);
         when(trainerRepository.findAll()).thenAnswer(inv -> Stream.of(trainer));
 
         List<Trainer> all = trainerService.findAll();
@@ -163,7 +164,7 @@ class TrainerServiceTest {
     @Test
     void shouldThrowWhenTrainerInactive() {
         TrainerEntity trainer = TestDataFactory.createTrainerWithCredentials();
-        trainer.setUserId(2L);
+        trainer.setId(2L);
         trainer.setActive(false);
         when(trainerRepository.findById(2L)).thenReturn(Optional.of(trainer));
 
@@ -175,8 +176,8 @@ class TrainerServiceTest {
     @Test
     void shouldThrowWhenSpecializationDoesNotMatch() {
         TrainerEntity trainer = TestDataFactory.createTrainerWithCredentials();
-        trainer.setUserId(2L);
-        trainer.setSpecialization(TrainingType.BOXING);
+        trainer.setId(2L);
+        trainer.setSpecialization(TrainingTypeEntity.of(TrainingType.BOXING));
         when(trainerRepository.findById(2L)).thenReturn(Optional.of(trainer));
 
         assertThatThrownBy(() -> trainerService.getActiveForSpecialization(2L, TrainingType.YOGA))
@@ -187,7 +188,7 @@ class TrainerServiceTest {
     @Test
     void shouldReturnActiveTrainerMatchingSpecialization() {
         TrainerEntity trainer = TestDataFactory.createTrainerWithCredentials();
-        trainer.setUserId(2L);
+        trainer.setId(2L);
         when(trainerRepository.findById(2L)).thenReturn(Optional.of(trainer));
 
         Trainer response = trainerService.getActiveForSpecialization(2L, TrainingType.YOGA);
@@ -199,7 +200,7 @@ class TrainerServiceTest {
     @Test
     void shouldFindActiveTrainerBySpecialization() {
         TrainerEntity trainer = TestDataFactory.createTrainerWithCredentials();
-        trainer.setUserId(5L);
+        trainer.setId(5L);
         when(trainerRepository.findAll()).thenAnswer(inv -> Stream.of(trainer));
 
         Trainer response = trainerService.findActiveBySpecialization(TrainingType.YOGA);
