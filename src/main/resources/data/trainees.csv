@@ -1,0 +1,4 @@
+id,firstName,lastName,username,password,active,dateOfBirth,address
+1,Alice,Walker,Alice.Walker,qW3eRt5yUi,true,1995-04-12,123 Main St
+2,Bob,Taylor,Bob.Taylor,Lm6oPs8dFg,true,1990-07-30,456 Oak Ave
+3,Carol,White,Carol.White,Hn2jKx9cVb,false,2000-01-15,789 Pine Rd
