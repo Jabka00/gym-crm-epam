@@ -5,6 +5,8 @@ import com.epam.gymcrm.dto.TraineeDto;
 import com.epam.gymcrm.dto.TrainerDto;
 import com.epam.gymcrm.dto.TrainingDto;
 import com.epam.gymcrm.dto.TrainingTypeDto;
+import com.epam.gymcrm.exception.InvalidOperationException;
+import com.epam.gymcrm.service.AuthenticationService;
 import com.epam.gymcrm.service.GymService;
 import com.epam.gymcrm.service.TraineeService;
 import com.epam.gymcrm.service.TrainerService;
@@ -15,6 +17,8 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 
 import java.time.LocalDate;
+import java.util.List;
+import java.util.Set;
 
 @Slf4j
 public class GymCrmApp {
@@ -30,67 +34,118 @@ public class GymCrmApp {
             TrainerService trainerService = applicationContext.getBean(TrainerService.class);
             TrainingService trainingService = applicationContext.getBean(TrainingService.class);
             TrainingTypeService trainingTypeService = applicationContext.getBean(TrainingTypeService.class);
+            AuthenticationService authenticationService = applicationContext.getBean(AuthenticationService.class);
 
             log.info("Loaded trainers: {}", trainerService.getAllTrainers().size());
             log.info("Loaded trainees: {}", traineeService.getAllTrainees().size());
             log.info("Loaded trainings: {}", trainingService.getAllTrainings().size());
 
-            TraineeDto traineeDto = TraineeDto.builder()
+            TraineeDto disposableTrainee = traineeService.createTrainee(TraineeDto.builder()
                     .firstName("Jane")
                     .lastName("Doe")
                     .dateOfBirth(LocalDate.of(1998, 5, 20))
                     .address("Kyiv")
-                    .build();
+                    .build());
+            log.info("Created trainee id={}, username={}", disposableTrainee.getId(), disposableTrainee.getUsername());
 
-            TraineeDto createdTrainee = traineeService.createTrainee(traineeDto);
-            log.info("Created trainee id={}, username={}", createdTrainee.getId(), createdTrainee.getUsername());
-
-            gymService.removeTraineeProfile(createdTrainee.getId());
-            log.info("Removed trainee id={} (no trainings)", createdTrainee.getId());
+            gymService.removeTraineeProfile(disposableTrainee.getId());
+            log.info("Removed trainee id={} (no trainings)", disposableTrainee.getId());
 
             TrainingTypeDto pilatesType = trainingTypeService.getTrainingTypeByName("PILATES");
+            TrainingTypeDto yogaType = trainingTypeService.getTrainingTypeByName("YOGA");
 
-            TrainerDto trainerDto = TrainerDto.builder()
-                    .firstName("John")
-                    .lastName("Smith")
+            TrainerDto pilatesTrainer = trainerService.createTrainer(TrainerDto.builder()
+                    .firstName("Emma")
+                    .lastName("Pilates")
                     .specialization(pilatesType)
-                    .build();
+                    .build());
+            log.info("Created trainer id={}, username={}", pilatesTrainer.getId(), pilatesTrainer.getUsername());
+            logAuthentication(authenticationService, pilatesTrainer.getUsername(), pilatesTrainer.getPassword());
 
-            TrainerDto createdTrainer = trainerService.createTrainer(trainerDto);
-            log.info("Created trainer id={}, username={}", createdTrainer.getId(), createdTrainer.getUsername());
-
-            TraineeDto traineeForTraining = traineeService.createTrainee(TraineeDto.builder()
+            TraineeDto kate = traineeService.createTrainee(TraineeDto.builder()
                     .firstName("Kate")
                     .lastName("Doe")
                     .dateOfBirth(LocalDate.of(1999, 3, 10))
                     .address("Lviv")
                     .build());
-            log.info("Created trainee for training id={}, username={}",
-                    traineeForTraining.getId(), traineeForTraining.getUsername());
+            log.info("Created trainee id={}, username={}", kate.getId(), kate.getUsername());
+            String katePassword = kate.getPassword();
+            logAuthentication(authenticationService, kate.getUsername(), katePassword);
 
-            TrainingDto newTraining = TrainingDto.builder()
-                    .trainee(traineeForTraining)
-                    .trainer(createdTrainer)
+            TrainingDto scheduledTraining = gymService.scheduleTraining(TrainingDto.builder()
+                    .trainee(TraineeDto.builder().id(kate.getId()).build())
+                    .trainer(TrainerDto.builder().id(pilatesTrainer.getId()).build())
                     .trainingName("Evening Pilates")
                     .trainingType(pilatesType)
                     .trainingDate(LocalDate.now())
                     .trainingDuration(60)
-                    .build();
+                    .build());
+            log.info("Scheduled training id={}, name={}", scheduledTraining.getId(), scheduledTraining.getTrainingName());
 
-            TrainingDto createdTraining = trainingService.createTraining(newTraining);
-            log.info("Created training id={}, name={}", createdTraining.getId(), createdTraining.getTrainingName());
+            TrainingDto autoScheduledTraining = gymService.autoScheduleTraining(TrainingDto.builder()
+                    .trainee(TraineeDto.builder().id(kate.getId()).build())
+                    .trainingName("Morning Yoga")
+                    .trainingType(yogaType)
+                    .trainingDate(LocalDate.now().plusDays(1))
+                    .trainingDuration(45)
+                    .build());
+            log.info("Auto-scheduled training id={}, trainer={}",
+                    autoScheduledTraining.getId(), autoScheduledTraining.getTrainer().getUsername());
 
-            TraineeDto fetchedTrainee = traineeService.getTraineeByUsername(traineeForTraining.getUsername());
-            TrainerDto fetchedTrainer = trainerService.getTrainerByUsername(createdTrainer.getUsername());
-            TrainingDto fetchedTraining = trainingService.getTraining(createdTraining.getId());
+            List<TrainerDto> unassignedTrainers = traineeService.getNotAssignedTrainers(kate.getUsername());
+            log.info("Unassigned active trainers for {}: {}", kate.getUsername(), unassignedTrainers.size());
 
-            log.info("Fetched trainee: {}", fetchedTrainee.getUsername());
+            traineeService.updateTrainersList(kate.getUsername(), Set.of("John.Smith", "Anna.Jones"));
+            log.info("Assigned seed trainers to {}", kate.getUsername());
+
+            List<TrainerDto> unassignedAfterUpdate = traineeService.getNotAssignedTrainers(kate.getUsername());
+            log.info("Unassigned trainers after update: {}", unassignedAfterUpdate.size());
+
+            List<TrainingDto> aliceTrainings = trainingService.getTraineeTrainings(
+                    "Alice.Walker",
+                    LocalDate.of(2024, 3, 1),
+                    LocalDate.of(2024, 3, 31),
+                    null,
+                    null);
+            log.info("Alice.Walker trainings in March 2024: {}", aliceTrainings.size());
+
+            List<TrainingDto> johnTrainings = trainingService.getTrainerTrainings(
+                    "John.Smith",
+                    LocalDate.of(2024, 1, 1),
+                    LocalDate.of(2024, 12, 31),
+                    null);
+            log.info("John.Smith trainings in 2024: {}", johnTrainings.size());
+
+            String newPassword = "SecurePass1";
+            traineeService.changePassword(kate.getUsername(), katePassword, newPassword);
+            log.info("Password changed for {}", kate.getUsername());
+            logAuthentication(authenticationService, kate.getUsername(), newPassword);
+
+            traineeService.toggleActivation(kate.getUsername());
+            log.info("Deactivated trainee {}", kate.getUsername());
+
+            try {
+                traineeService.getTraineeByUsername(kate.getUsername());
+                log.error("Expected inactive trainee lookup to fail");
+            } catch (InvalidOperationException e) {
+                log.info("Inactive trainee correctly hidden: {}", e.getMessage());
+            }
+
+            logAuthentication(authenticationService, kate.getUsername(), newPassword);
+
+            TrainingDto fetchedScheduled = trainingService.getTraining(scheduledTraining.getId());
+            TrainerDto fetchedTrainer = trainerService.getTrainerByUsername(pilatesTrainer.getUsername());
+            log.info("Fetched training: {}", fetchedScheduled.getTrainingName());
             log.info("Fetched trainer: {}", fetchedTrainer.getUsername());
-            log.info("Fetched training: {}", fetchedTraining.getTrainingName());
 
             log.info("Demo completed successfully");
         } catch (Exception e) {
             log.error("Error running application", e);
         }
+    }
+
+    private static void logAuthentication(AuthenticationService authenticationService, String username, String password) {
+        boolean authenticated = authenticationService.authenticate(username, password);
+        log.info("Authentication for {}: {}", username, authenticated ? "success" : "failed");
     }
 }
