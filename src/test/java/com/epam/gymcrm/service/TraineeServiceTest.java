@@ -12,6 +12,7 @@ import com.epam.gymcrm.repository.TraineeRepository;
 import com.epam.gymcrm.support.TestDataFactory;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mapstruct.factory.Mappers;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
@@ -45,7 +46,7 @@ class TraineeServiceTest {
     private PasswordGenerator passwordGenerator;
 
     @Spy
-    private TraineeMapper traineeMapper = new TraineeMapper();
+    private TraineeMapper traineeMapper = Mappers.getMapper(TraineeMapper.class);
 
     @InjectMocks
     private TraineeService traineeService;

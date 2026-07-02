@@ -1,36 +1,16 @@
 package com.epam.gymcrm.mapper;
 
-import com.epam.gymcrm.dto.request.CreateTrainerRequest;
-import com.epam.gymcrm.dto.request.UpdateTrainerRequest;
-import com.epam.gymcrm.dto.response.Trainer;
+import com.epam.gymcrm.dto.TrainerDto;
 import com.epam.gymcrm.entity.TrainerEntity;
-import com.epam.gymcrm.entity.TrainingTypeEntity;
-import org.springframework.stereotype.Component;
+import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
 
-@Component
-public class TrainerMapper {
+@Mapper(componentModel = "spring", uses = {TrainingTypeMapper.class})
+public interface TrainerMapper {
 
-    public TrainerEntity toEntity(CreateTrainerRequest request) {
-        TrainerEntity trainer = new TrainerEntity();
-        trainer.setFirstName(request.user().firstName());
-        trainer.setLastName(request.user().lastName());
-        trainer.setSpecialization(TrainingTypeEntity.of(request.specialization()));
-        return trainer;
-    }
+    TrainerDto toDto(TrainerEntity trainer);
 
-    public void updateEntity(TrainerEntity trainer, UpdateTrainerRequest request) {
-        trainer.setFirstName(request.user().firstName());
-        trainer.setLastName(request.user().lastName());
-        trainer.setSpecialization(TrainingTypeEntity.of(request.specialization()));
-        trainer.setActive(request.active());
-    }
-
-    public Trainer toResponse(TrainerEntity trainer) {
-        return new Trainer(
-                trainer.getId(),
-                trainer.getFirstName() + " " + trainer.getLastName(),
-                trainer.getUsername(),
-                trainer.getSpecialization().toEnum()
-        );
-    }
+    @Mapping(target = "trainees", ignore = true)
+    @Mapping(target = "trainings", ignore = true)
+    TrainerEntity toEntity(TrainerDto dto);
 }

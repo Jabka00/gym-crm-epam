@@ -1,68 +1,85 @@
 package com.epam.gymcrm;
 
 import com.epam.gymcrm.config.AppConfig;
-import com.epam.gymcrm.dto.request.AutoScheduleTrainingRequest;
-import com.epam.gymcrm.dto.request.CreateTraineeRequest;
-import com.epam.gymcrm.dto.request.CreateTrainerRequest;
-import com.epam.gymcrm.dto.request.ScheduleTrainingRequest;
-import com.epam.gymcrm.dto.request.UserInfo;
-import com.epam.gymcrm.dto.response.Trainee;
-import com.epam.gymcrm.dto.response.Trainer;
-import com.epam.gymcrm.dto.response.Training;
-import com.epam.gymcrm.model.TrainingType;
+import com.epam.gymcrm.dto.TraineeDto;
+import com.epam.gymcrm.dto.TrainerDto;
+import com.epam.gymcrm.dto.TrainingDto;
+import com.epam.gymcrm.dto.TrainingTypeDto;
 import com.epam.gymcrm.service.GymService;
 import com.epam.gymcrm.service.TraineeService;
 import com.epam.gymcrm.service.TrainerService;
 import com.epam.gymcrm.service.TrainingService;
+import com.epam.gymcrm.service.TrainingTypeService;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 
-import java.time.Duration;
 import java.time.LocalDate;
 
 @Slf4j
 public class GymCrmApp {
 
     public static void main(String[] args) {
-        try (var context = new AnnotationConfigApplicationContext(AppConfig.class)) {
-            var facade = context.getBean(GymService.class);
-            var trainerService = context.getBean(TrainerService.class);
-            var traineeService = context.getBean(TraineeService.class);
-            var trainingService = context.getBean(TrainingService.class);
+        log.info("Starting Gym CRM Application...");
 
-            log.info("Loaded data");
-            trainerService.findAll().forEach(trainer -> log.info("Trainer: {}", trainer.userId()));
-            traineeService.findAll().forEach(trainee -> log.info("Trainee: {}", trainee.userId()));
-            trainingService.findAll().forEach(training ->
-                    log.info("Training: {} {}", training.id(), training.name()));
+        try (AnnotationConfigApplicationContext context = new AnnotationConfigApplicationContext(AppConfig.class)) {
+            ApplicationContext applicationContext = context;
 
-            Trainer newTrainer = trainerService.create(new CreateTrainerRequest(
-                    new UserInfo("John", "Smith"),
-                    TrainingType.PILATES));
-            log.info("Created trainer id={}", newTrainer.userId());
+            GymService gymService = applicationContext.getBean(GymService.class);
+            TraineeService traineeService = applicationContext.getBean(TraineeService.class);
+            TrainerService trainerService = applicationContext.getBean(TrainerService.class);
+            TrainingService trainingService = applicationContext.getBean(TrainingService.class);
+            TrainingTypeService trainingTypeService = applicationContext.getBean(TrainingTypeService.class);
 
-            Trainee newTrainee = traineeService.create(new CreateTraineeRequest(
-                    new UserInfo("Jane", "Doe"),
-                    LocalDate.of(1998, 5, 20),
-                    "Kyiv"));
-            log.info("Created trainee id={}", newTrainee.userId());
+            log.info("Loaded trainers: {}", trainerService.getAllTrainers().size());
+            log.info("Loaded trainees: {}", traineeService.getAllTrainees().size());
+            log.info("Loaded trainings: {}", trainingService.getAllTrainings().size());
 
-            Training scheduled = facade.scheduleTraining(new ScheduleTrainingRequest(
-                    newTrainee.userId(),
-                    newTrainer.userId(),
-                    "Evening Pilates",
-                    TrainingType.PILATES,
-                    LocalDate.now(),
-                    Duration.ofMinutes(60)));
-            log.info("Scheduled training: id={}, name={}", scheduled.id(), scheduled.name());
+            TraineeDto traineeDto = TraineeDto.builder()
+                    .firstName("Jane")
+                    .lastName("Doe")
+                    .dateOfBirth(LocalDate.of(1998, 5, 20))
+                    .address("Kyiv")
+                    .build();
 
-            Training autoScheduled = facade.autoScheduleTraining(new AutoScheduleTrainingRequest(
-                    newTrainee.userId(),
-                    "Morning Yoga",
-                    TrainingType.YOGA,
-                    LocalDate.now().plusDays(1),
-                    Duration.ofMinutes(45)));
-            log.info("Auto-scheduled training: id={}, trainerId={}", autoScheduled.id(), autoScheduled.trainerId());
+            TraineeDto createdTrainee = traineeService.createTrainee(traineeDto);
+            log.info("Created trainee id={}, username={}", createdTrainee.getId(), createdTrainee.getUsername());
+
+            TrainingTypeDto pilatesType = trainingTypeService.getTrainingTypeByName("PILATES");
+
+            TrainerDto trainerDto = TrainerDto.builder()
+                    .firstName("John")
+                    .lastName("Smith")
+                    .specialization(pilatesType)
+                    .build();
+
+            TrainerDto createdTrainer = trainerService.createTrainer(trainerDto);
+            log.info("Created trainer id={}, username={}", createdTrainer.getId(), createdTrainer.getUsername());
+
+            TrainingDto newTraining = TrainingDto.builder()
+                    .trainee(createdTrainee)
+                    .trainer(createdTrainer)
+                    .trainingName("Evening Pilates")
+                    .trainingType(pilatesType)
+                    .trainingDate(LocalDate.now())
+                    .trainingDuration(60)
+                    .build();
+
+            TrainingDto createdTraining = trainingService.createTraining(newTraining);
+            log.info("Created training id={}, name={}", createdTraining.getId(), createdTraining.getTrainingName());
+
+            TraineeDto fetchedTrainee = traineeService.getTraineeByUsername(createdTrainee.getUsername());
+            TrainerDto fetchedTrainer = trainerService.getTrainerByUsername(createdTrainer.getUsername());
+            TrainingDto fetchedTraining = trainingService.getTraining(createdTraining.getId());
+
+            log.info("Fetched trainee: {}", fetchedTrainee.getUsername());
+            log.info("Fetched trainer: {}", fetchedTrainer.getUsername());
+            log.info("Fetched training: {}", fetchedTraining.getTrainingName());
+
+            gymService.removeTraineeProfile(createdTrainee.getId());
+            log.info("Demo completed successfully");
+        } catch (Exception e) {
+            log.error("Error running application", e);
         }
     }
 }

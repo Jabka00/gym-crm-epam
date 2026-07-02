@@ -1,38 +1,16 @@
 package com.epam.gymcrm.mapper;
 
-import com.epam.gymcrm.dto.request.CreateTraineeRequest;
-import com.epam.gymcrm.dto.request.UpdateTraineeRequest;
-import com.epam.gymcrm.dto.response.Trainee;
+import com.epam.gymcrm.dto.TraineeDto;
 import com.epam.gymcrm.entity.TraineeEntity;
-import org.springframework.stereotype.Component;
+import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
 
-@Component
-public class TraineeMapper {
+@Mapper(componentModel = "spring")
+public interface TraineeMapper {
 
-    public TraineeEntity toEntity(CreateTraineeRequest request) {
-        TraineeEntity trainee = new TraineeEntity();
-        trainee.setFirstName(request.user().firstName());
-        trainee.setLastName(request.user().lastName());
-        trainee.setDateOfBirth(request.dateOfBirth());
-        trainee.setAddress(request.address());
-        return trainee;
-    }
+    TraineeDto toDto(TraineeEntity trainee);
 
-    public void updateEntity(TraineeEntity trainee, UpdateTraineeRequest request) {
-        trainee.setFirstName(request.user().firstName());
-        trainee.setLastName(request.user().lastName());
-        trainee.setDateOfBirth(request.dateOfBirth());
-        trainee.setAddress(request.address());
-        trainee.setActive(request.active());
-    }
-
-    public Trainee toResponse(TraineeEntity trainee) {
-        return new Trainee(
-                trainee.getId(),
-                trainee.getFirstName() + " " + trainee.getLastName(),
-                trainee.getUsername(),
-                trainee.getDateOfBirth(),
-                trainee.getAddress()
-        );
-    }
+    @Mapping(target = "trainers", ignore = true)
+    @Mapping(target = "trainings", ignore = true)
+    TraineeEntity toEntity(TraineeDto dto);
 }

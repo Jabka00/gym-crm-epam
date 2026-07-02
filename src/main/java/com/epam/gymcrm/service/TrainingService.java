@@ -1,110 +1,151 @@
 package com.epam.gymcrm.service;
 
-import com.epam.gymcrm.dto.request.AutoScheduleTrainingRequest;
-import com.epam.gymcrm.dto.request.ScheduleTrainingRequest;
-import com.epam.gymcrm.dto.response.Training;
+import com.epam.gymcrm.dto.TrainingDto;
 import com.epam.gymcrm.entity.TrainingEntity;
+import com.epam.gymcrm.entity.TrainingTypeEntity;
 import com.epam.gymcrm.exception.EntityNotFoundException;
 import com.epam.gymcrm.mapper.TrainingMapper;
+import com.epam.gymcrm.repository.TraineeRepository;
+import com.epam.gymcrm.repository.TrainerRepository;
 import com.epam.gymcrm.repository.TrainingRepository;
+import com.epam.gymcrm.repository.TrainingTypeRepository;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.InitializingBean;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicLong;
 
 @Slf4j
 @Service
-public class TrainingService implements InitializingBean {
+@RequiredArgsConstructor
+@Transactional
+public class TrainingService {
 
-    private TrainingRepository trainingRepository;
-    private TrainingMapper trainingMapper;
-    private TraineeService traineeService;
-    private TrainerService trainerService;
+    private final TrainingRepository trainingRepository;
+    private final TrainingTypeRepository trainingTypeRepository;
+    private final TraineeRepository traineeRepository;
+    private final TrainerRepository trainerRepository;
+    private final TrainingMapper trainingMapper;
 
-    private final AtomicLong idSequence = new AtomicLong(0);
+    public TrainingDto createTraining(TrainingDto trainingDto) {
+        validateTrainingDto(trainingDto);
 
-    @Autowired
-    public void setTrainingRepository(TrainingRepository trainingRepository) {
-        this.trainingRepository = trainingRepository;
+        TrainingEntity training = trainingMapper.toEntity(trainingDto);
+        training.setTrainee(traineeRepository.findById(trainingDto.getTrainee().getId())
+                .orElseThrow(() -> new EntityNotFoundException(
+                        "Trainee not found with id: " + trainingDto.getTrainee().getId())));
+        training.setTrainer(trainerRepository.findById(trainingDto.getTrainer().getId())
+                .orElseThrow(() -> new EntityNotFoundException(
+                        "Trainer not found with id: " + trainingDto.getTrainer().getId())));
+        training.setTrainingType(resolveTrainingType(trainingDto));
+
+        TrainingEntity created = trainingRepository.save(training);
+        log.info("Created training with ID: {}", created.getId());
+        return trainingMapper.toDto(created);
     }
 
-    @Autowired
-    public void setTrainingMapper(TrainingMapper trainingMapper) {
-        this.trainingMapper = trainingMapper;
+    @Transactional(readOnly = true)
+    public TrainingDto getTraining(Long id) {
+        TrainingEntity training = trainingRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Training not found with id: " + id));
+        return trainingMapper.toDto(training);
     }
 
-    @Autowired
-    public void setTraineeService(TraineeService traineeService) {
-        this.traineeService = traineeService;
+    @Transactional(readOnly = true)
+    public List<TrainingDto> getAllTrainings() {
+        return trainingRepository.findAll()
+                .map(trainingMapper::toDto)
+                .toList();
     }
 
-    @Autowired
-    public void setTrainerService(TrainerService trainerService) {
-        this.trainerService = trainerService;
-    }
-
-    @Override
-    public void afterPropertiesSet() {
-        initIdSequence();
-    }
-
-    void initIdSequence() {
-        long maxId = trainingRepository.findAll()
-                .mapToLong(TrainingEntity::getId)
-                .max().orElse(0L);
-        idSequence.set(maxId);
-        log.debug("Training id sequence initialized to {}", maxId);
-    }
-
-    public Training schedule(ScheduleTrainingRequest request) {
-        validateParticipants(request.traineeId(), request.trainerId());
-        TrainingEntity training = trainingMapper.toEntity(request);
-        return trainingMapper.toResponse(save(training));
-    }
-
-    public Training autoSchedule(AutoScheduleTrainingRequest request, Long trainerId) {
-        validateParticipants(request.traineeId(), trainerId);
-        TrainingEntity training = trainingMapper.toEntity(request, trainerId);
-        return trainingMapper.toResponse(save(training));
-    }
-
-    public void delete(Long id) {
-        getEntity(id);
+    public void deleteTraining(Long id) {
+        trainingRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Training not found with id: " + id));
         trainingRepository.delete(id);
         log.info("Deleted training id={}", id);
     }
 
-    public Training getById(Long id) {
-        return trainingMapper.toResponse(getEntity(id));
-    }
-
-    public List<Training> findAll() {
-        return trainingRepository.findAll().map(trainingMapper::toResponse).toList();
-    }
-
+    @Transactional(readOnly = true)
     public boolean existsByTraineeId(Long traineeId) {
         return trainingRepository.findAll()
                 .anyMatch(training -> traineeId.equals(training.getTrainee().getId()));
     }
 
-    private void validateParticipants(Long traineeId, Long trainerId) {
-        traineeService.getById(traineeId);
-        trainerService.getById(trainerId);
+    @Transactional(readOnly = true)
+    public List<TrainingDto> getTraineeTrainings(
+            String traineeUsername,
+            LocalDate fromDate,
+            LocalDate toDate,
+            String trainerUsername,
+            Long trainingTypeId) {
+
+        if (traineeUsername == null || traineeUsername.isBlank()) {
+            throw new IllegalArgumentException("Trainee username is required");
+        }
+
+        log.info("Fetching trainings for trainee: {}, fromDate: {}, toDate: {}, trainer: {}, typeId: {}",
+                traineeUsername, fromDate, toDate, trainerUsername, trainingTypeId);
+
+        List<TrainingDto> trainings = trainingRepository
+                .findByTraineeUsernameAndCriteria(
+                        traineeUsername, fromDate, toDate, trainerUsername, trainingTypeId)
+                .stream()
+                .map(trainingMapper::toDto)
+                .toList();
+
+        log.info("Found {} trainings for trainee: {}", trainings.size(), traineeUsername);
+        return trainings;
     }
 
-    private TrainingEntity save(TrainingEntity training) {
-        training.setId(idSequence.incrementAndGet());
-        TrainingEntity saved = trainingRepository.save(training);
-        log.info("Created training: {} (traineeId={}, trainerId={})",
-                saved.getTrainingName(), saved.getTrainee().getId(), saved.getTrainer().getId());
-        return saved;
+    @Transactional(readOnly = true)
+    public List<TrainingDto> getTrainerTrainings(
+            String trainerUsername,
+            LocalDate fromDate,
+            LocalDate toDate,
+            String traineeUsername) {
+
+        if (trainerUsername == null || trainerUsername.isBlank()) {
+            throw new IllegalArgumentException("Trainer username is required");
+        }
+
+        log.info("Fetching trainings for trainer: {}, fromDate: {}, toDate: {}, trainee: {}",
+                trainerUsername, fromDate, toDate, traineeUsername);
+
+        List<TrainingDto> trainings = trainingRepository
+                .findByTrainerUsernameAndCriteria(trainerUsername, fromDate, toDate, traineeUsername)
+                .stream()
+                .map(trainingMapper::toDto)
+                .toList();
+
+        log.info("Found {} trainings for trainer: {}", trainings.size(), trainerUsername);
+        return trainings;
     }
 
-    private TrainingEntity getEntity(Long id) {
-        return trainingRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Training not found: id=" + id));
+    private void validateTrainingDto(TrainingDto trainingDto) {
+        if (trainingDto == null) {
+            throw new IllegalArgumentException("Training cannot be null");
+        }
+        if (trainingDto.getTrainee() == null) {
+            throw new IllegalArgumentException("Trainee cannot be null");
+        }
+        if (trainingDto.getTrainer() == null) {
+            throw new IllegalArgumentException("Trainer cannot be null");
+        }
+        if (trainingDto.getTrainingType() == null) {
+            throw new IllegalArgumentException("Training type cannot be null");
+        }
+    }
+
+    private TrainingTypeEntity resolveTrainingType(TrainingDto trainingDto) {
+        if (trainingDto.getTrainingType().getId() != null) {
+            return trainingTypeRepository.findById(trainingDto.getTrainingType().getId())
+                    .orElseThrow(() -> new EntityNotFoundException(
+                            "Training type not found with id: " + trainingDto.getTrainingType().getId()));
+        }
+        return trainingTypeRepository.findByTypeName(trainingDto.getTrainingType().getTypeName())
+                .orElseThrow(() -> new EntityNotFoundException(
+                        "Training type not found with name: " + trainingDto.getTrainingType().getTypeName()));
     }
 }

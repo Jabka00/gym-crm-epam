@@ -1,120 +1,157 @@
 package com.epam.gymcrm.service;
 
-import com.epam.gymcrm.dto.request.CreateTraineeRequest;
-import com.epam.gymcrm.dto.request.UpdateTraineeRequest;
-import com.epam.gymcrm.dto.response.Trainee;
+import com.epam.gymcrm.dto.TraineeDto;
+import com.epam.gymcrm.dto.TrainerDto;
 import com.epam.gymcrm.entity.TraineeEntity;
+import com.epam.gymcrm.entity.TrainerEntity;
 import com.epam.gymcrm.exception.EntityNotFoundException;
 import com.epam.gymcrm.exception.InvalidOperationException;
 import com.epam.gymcrm.mapper.TraineeMapper;
+import com.epam.gymcrm.mapper.TrainerMapper;
 import com.epam.gymcrm.repository.TraineeRepository;
+import com.epam.gymcrm.repository.TrainerRepository;
+import com.epam.gymcrm.util.UserInitializationUtil;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.InitializingBean;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.util.HashSet;
 import java.util.List;
-import java.util.Objects;
-import java.util.concurrent.atomic.AtomicLong;
+import java.util.Set;
 
 @Slf4j
 @Service
-public class TraineeService implements InitializingBean {
+@RequiredArgsConstructor
+@Transactional
+public class TraineeService {
 
-    private TraineeRepository traineeRepository;
-    private UsernameGenerator usernameGenerator;
-    private PasswordGenerator passwordGenerator;
-    private TraineeMapper traineeMapper;
+    private final TraineeRepository traineeRepository;
+    private final TrainerRepository trainerRepository;
+    private final UserInitializationUtil userInitializationUtil;
+    private final TraineeMapper traineeMapper;
+    private final TrainerMapper trainerMapper;
+    private final UserService userService;
 
-    private final AtomicLong idSequence = new AtomicLong(0);
-
-    @Autowired
-    public void setTraineeRepository(TraineeRepository traineeRepository) {
-        this.traineeRepository = traineeRepository;
-    }
-
-    @Autowired
-    public void setUsernameGenerator(UsernameGenerator usernameGenerator) {
-        this.usernameGenerator = usernameGenerator;
-    }
-
-    @Autowired
-    public void setPasswordGenerator(PasswordGenerator passwordGenerator) {
-        this.passwordGenerator = passwordGenerator;
-    }
-
-    @Autowired
-    public void setTraineeMapper(TraineeMapper traineeMapper) {
-        this.traineeMapper = traineeMapper;
-    }
-
-    @Override
-    public void afterPropertiesSet() {
-        initIdSequence();
-    }
-
-    void initIdSequence() {
-        var all = traineeRepository.findAll().toList();
-        long maxId = all.stream().mapToLong(TraineeEntity::getId).max().orElse(0L);
-        idSequence.set(maxId);
-        log.debug("Trainee id sequence initialized to {}", maxId);
-        all.stream().map(TraineeEntity::getUsername).forEach(usernameGenerator::registerExistingUsername);
-    }
-
-    public Trainee create(CreateTraineeRequest request) {
-        TraineeEntity trainee = traineeMapper.toEntity(request);
-        trainee.setId(idSequence.incrementAndGet());
-        trainee.setUsername(usernameGenerator.generateUsername(
-                trainee.getFirstName(), trainee.getLastName()));
-        trainee.setPassword(passwordGenerator.generatePassword());
-        trainee.setActive(true);
-        TraineeEntity saved = traineeRepository.save(trainee);
-        log.info("Created trainee id={}", saved.getId());
-        return traineeMapper.toResponse(saved);
-    }
-
-    public Trainee update(UpdateTraineeRequest request) {
-        TraineeEntity trainee = getEntity(request.userId());
-        boolean nameChanged = !Objects.equals(trainee.getFirstName(), request.user().firstName())
-                || !Objects.equals(trainee.getLastName(), request.user().lastName());
-
-        traineeMapper.updateEntity(trainee, request);
-
-        if (nameChanged) {
-            trainee.setUsername(usernameGenerator.generateUsername(
-                    trainee.getFirstName(), trainee.getLastName()));
-            log.debug("Regenerated username for trainee id={}", trainee.getId());
+    public TraineeDto createTrainee(TraineeDto traineeDto) {
+        if (traineeDto == null) {
+            throw new IllegalArgumentException("Trainee cannot be null");
         }
 
-        TraineeEntity saved = traineeRepository.save(trainee);
-        log.info("Updated trainee id={}", saved.getId());
-        return traineeMapper.toResponse(saved);
+        TraineeEntity trainee = traineeMapper.toEntity(traineeDto);
+        TraineeEntity created = userInitializationUtil.createUser(trainee, traineeRepository::save, "Trainee");
+        return traineeMapper.toDto(created);
     }
 
-    public void delete(Long id) {
-        getEntity(id);
+    public TraineeDto updateTrainee(TraineeDto traineeDto) {
+        if (traineeDto == null) {
+            throw new IllegalArgumentException("Trainee cannot be null");
+        }
+        if (traineeDto.getId() == null) {
+            throw new IllegalArgumentException("Trainee ID cannot be null");
+        }
+
+        traineeRepository.findById(traineeDto.getId())
+                .orElseThrow(() -> new EntityNotFoundException("Trainee not found with id: " + traineeDto.getId()));
+
+        TraineeEntity trainee = traineeMapper.toEntity(traineeDto);
+        TraineeEntity updated = traineeRepository.save(trainee);
+        return traineeMapper.toDto(updated);
+    }
+
+    public void deleteTrainee(Long id) {
+        if (id == null) {
+            throw new IllegalArgumentException("Trainee ID cannot be null");
+        }
+
+        traineeRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Trainee not found with id: " + id));
         traineeRepository.delete(id);
         log.info("Deleted trainee id={}", id);
     }
 
-    public Trainee getById(Long id) {
-        return traineeMapper.toResponse(getEntity(id));
+    @Transactional(readOnly = true)
+    public TraineeDto getTrainee(Long id) {
+        TraineeEntity trainee = traineeRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Trainee not found with id: " + id));
+        return traineeMapper.toDto(trainee);
     }
 
-    public Trainee getActiveById(Long id) {
-        TraineeEntity trainee = getEntity(id);
+    @Transactional(readOnly = true)
+    public TraineeDto getActiveTrainee(Long id) {
+        TraineeEntity trainee = traineeRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Trainee not found with id: " + id));
         if (!trainee.isActive()) {
             throw new InvalidOperationException("Trainee is inactive: id=" + id);
         }
-        return traineeMapper.toResponse(trainee);
+        return traineeMapper.toDto(trainee);
     }
 
-    public List<Trainee> findAll() {
-        return traineeRepository.findAll().map(traineeMapper::toResponse).toList();
+    @Transactional(readOnly = true)
+    public List<TraineeDto> getAllTrainees() {
+        return traineeRepository.findAll()
+                .map(traineeMapper::toDto)
+                .toList();
     }
 
-    private TraineeEntity getEntity(Long id) {
-        return traineeRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Trainee not found: id=" + id));
+    @Transactional(readOnly = true)
+    public TraineeDto getTraineeByUsername(String username) {
+        TraineeEntity trainee = traineeRepository.findByUsername(username)
+                .orElseThrow(() -> new EntityNotFoundException("Trainee not found with username: " + username));
+        return traineeMapper.toDto(trainee);
+    }
+
+    public void changePassword(String username, String oldPassword, String newPassword) {
+        userService.changePassword(username, oldPassword, newPassword);
+    }
+
+    public void toggleActivation(String username) {
+        userService.toggleActivation(username);
+    }
+
+    public void deleteTraineeByUsername(String username) {
+        userService.deleteByUsername(username);
+        log.info("Deleted trainee profile by username={}", username);
+    }
+
+    public void updateTrainersList(String traineeUsername, Set<String> trainerUsernames) {
+        if (traineeUsername == null || traineeUsername.isBlank()) {
+            throw new IllegalArgumentException("Trainee username cannot be null or empty");
+        }
+        if (trainerUsernames == null) {
+            throw new IllegalArgumentException("Trainer usernames set cannot be null");
+        }
+
+        TraineeEntity trainee = traineeRepository.findByUsername(traineeUsername)
+                .orElseThrow(() -> new EntityNotFoundException("Trainee not found with username: " + traineeUsername));
+
+        Set<TrainerEntity> currentTrainers = new HashSet<>(trainee.getTrainers());
+        for (TrainerEntity trainer : currentTrainers) {
+            trainee.getTrainers().remove(trainer);
+            trainer.getTrainees().remove(trainee);
+        }
+
+        for (String trainerUsername : trainerUsernames) {
+            TrainerEntity trainer = trainerRepository.findByUsername(trainerUsername)
+                    .orElseThrow(() -> new EntityNotFoundException(
+                            "Trainer not found with username: " + trainerUsername));
+
+            trainee.getTrainers().add(trainer);
+            trainer.getTrainees().add(trainee);
+        }
+
+        traineeRepository.save(trainee);
+        log.info("Updated trainers list for trainee username={}", traineeUsername);
+    }
+
+    @Transactional(readOnly = true)
+    public List<TrainerDto> getNotAssignedTrainers(String traineeUsername) {
+        if (traineeUsername == null || traineeUsername.isBlank()) {
+            throw new IllegalArgumentException("Trainee username cannot be null or empty");
+        }
+
+        return trainerRepository.findNotAssignedToTrainee(traineeUsername).stream()
+                .map(trainerMapper::toDto)
+                .toList();
     }
 }

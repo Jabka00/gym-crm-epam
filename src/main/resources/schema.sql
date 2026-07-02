@@ -13,17 +13,25 @@ CREATE TABLE IF NOT EXISTS training_types (
 );
 
 CREATE TABLE IF NOT EXISTS trainees (
-    user_id         BIGINT NOT NULL PRIMARY KEY,
+    id              BIGINT NOT NULL PRIMARY KEY,
     date_of_birth   DATE,
     address         VARCHAR(255),
-    CONSTRAINT fk_trainees_user FOREIGN KEY (user_id) REFERENCES users (id)
+    CONSTRAINT fk_trainees_user FOREIGN KEY (id) REFERENCES users (id)
 );
 
 CREATE TABLE IF NOT EXISTS trainers (
-    user_id             BIGINT NOT NULL PRIMARY KEY,
-    training_type_id    BIGINT NOT NULL,
-    CONSTRAINT fk_trainers_user FOREIGN KEY (user_id) REFERENCES users (id),
-    CONSTRAINT fk_trainers_training_type FOREIGN KEY (training_type_id) REFERENCES training_types (id)
+    id                  BIGINT NOT NULL PRIMARY KEY,
+    specialization_id   BIGINT NOT NULL,
+    CONSTRAINT fk_trainers_user FOREIGN KEY (id) REFERENCES users (id),
+    CONSTRAINT fk_trainers_specialization FOREIGN KEY (specialization_id) REFERENCES training_types (id)
+);
+
+CREATE TABLE IF NOT EXISTS trainee_trainer (
+    trainee_id  BIGINT NOT NULL,
+    trainer_id  BIGINT NOT NULL,
+    PRIMARY KEY (trainee_id, trainer_id),
+    CONSTRAINT fk_tt_trainee FOREIGN KEY (trainee_id) REFERENCES trainees (id),
+    CONSTRAINT fk_tt_trainer FOREIGN KEY (trainer_id) REFERENCES trainers (id)
 );
 
 CREATE TABLE IF NOT EXISTS trainings (
@@ -34,7 +42,7 @@ CREATE TABLE IF NOT EXISTS trainings (
     training_type_id    BIGINT       NOT NULL,
     training_date       DATE         NOT NULL,
     training_duration   INTEGER      NOT NULL,
-    CONSTRAINT fk_trainings_trainee FOREIGN KEY (trainee_id) REFERENCES trainees (user_id),
-    CONSTRAINT fk_trainings_trainer FOREIGN KEY (trainer_id) REFERENCES trainers (user_id),
+    CONSTRAINT fk_trainings_trainee FOREIGN KEY (trainee_id) REFERENCES trainees (id),
+    CONSTRAINT fk_trainings_trainer FOREIGN KEY (trainer_id) REFERENCES trainers (id),
     CONSTRAINT fk_trainings_training_type FOREIGN KEY (training_type_id) REFERENCES training_types (id)
 );

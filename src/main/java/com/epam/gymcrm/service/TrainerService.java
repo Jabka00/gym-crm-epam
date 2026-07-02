@@ -1,138 +1,117 @@
 package com.epam.gymcrm.service;
 
-import com.epam.gymcrm.dto.request.CreateTrainerRequest;
-import com.epam.gymcrm.dto.request.UpdateTrainerRequest;
-import com.epam.gymcrm.dto.response.Trainer;
+import com.epam.gymcrm.dto.TrainerDto;
 import com.epam.gymcrm.entity.TrainerEntity;
-import com.epam.gymcrm.model.TrainingType;
 import com.epam.gymcrm.exception.EntityNotFoundException;
 import com.epam.gymcrm.exception.InvalidOperationException;
 import com.epam.gymcrm.mapper.TrainerMapper;
+import com.epam.gymcrm.model.TrainingType;
 import com.epam.gymcrm.repository.TrainerRepository;
+import com.epam.gymcrm.util.UserInitializationUtil;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.InitializingBean;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.Objects;
-import java.util.concurrent.atomic.AtomicLong;
 
 @Slf4j
 @Service
-public class TrainerService implements InitializingBean {
+@RequiredArgsConstructor
+@Transactional
+public class TrainerService {
 
-    private TrainerRepository trainerRepository;
-    private UsernameGenerator usernameGenerator;
-    private PasswordGenerator passwordGenerator;
-    private TrainerMapper trainerMapper;
+    private final TrainerRepository trainerRepository;
+    private final UserInitializationUtil userInitializationUtil;
+    private final TrainerMapper trainerMapper;
+    private final UserService userService;
 
-    private final AtomicLong idSequence = new AtomicLong(0);
-
-    @Autowired
-    public void setTrainerRepository(TrainerRepository trainerRepository) {
-        this.trainerRepository = trainerRepository;
-    }
-
-    @Autowired
-    public void setUsernameGenerator(UsernameGenerator usernameGenerator) {
-        this.usernameGenerator = usernameGenerator;
-    }
-
-    @Autowired
-    public void setPasswordGenerator(PasswordGenerator passwordGenerator) {
-        this.passwordGenerator = passwordGenerator;
-    }
-
-    @Autowired
-    public void setTrainerMapper(TrainerMapper trainerMapper) {
-        this.trainerMapper = trainerMapper;
-    }
-
-    @Override
-    public void afterPropertiesSet() {
-        initIdSequence();
-    }
-
-    void initIdSequence() {
-        var all = trainerRepository.findAll().toList();
-        long maxId = all.stream().mapToLong(TrainerEntity::getId).max().orElse(0L);
-        idSequence.set(maxId);
-        log.debug("Trainer id sequence initialized to {}", maxId);
-        all.stream().map(TrainerEntity::getUsername).forEach(usernameGenerator::registerExistingUsername);
-    }
-
-    public Trainer create(CreateTrainerRequest request) {
-        TrainerEntity trainer = trainerMapper.toEntity(request);
-        trainer.setId(idSequence.incrementAndGet());
-        trainer.setUsername(usernameGenerator.generateUsername(
-                trainer.getFirstName(), trainer.getLastName()));
-        trainer.setPassword(passwordGenerator.generatePassword());
-        trainer.setActive(true);
-        TrainerEntity saved = trainerRepository.save(trainer);
-        log.info("Created trainer id={}", saved.getId());
-        return trainerMapper.toResponse(saved);
-    }
-
-    public Trainer update(UpdateTrainerRequest request) {
-        TrainerEntity trainer = getEntity(request.userId());
-        boolean nameChanged = !Objects.equals(trainer.getFirstName(), request.user().firstName())
-                || !Objects.equals(trainer.getLastName(), request.user().lastName());
-
-        trainerMapper.updateEntity(trainer, request);
-
-        if (nameChanged) {
-            trainer.setUsername(usernameGenerator.generateUsername(
-                    trainer.getFirstName(), trainer.getLastName()));
-            log.debug("Regenerated username for trainer id={}", trainer.getId());
+    public TrainerDto createTrainer(TrainerDto trainerDto) {
+        if (trainerDto == null) {
+            throw new IllegalArgumentException("Trainer cannot be null");
         }
 
-        TrainerEntity saved = trainerRepository.save(trainer);
-        log.info("Updated trainer id={}", saved.getId());
-        return trainerMapper.toResponse(saved);
+        TrainerEntity trainer = trainerMapper.toEntity(trainerDto);
+        TrainerEntity created = userInitializationUtil.createUser(trainer, trainerRepository::save, "Trainer");
+        return trainerMapper.toDto(created);
     }
 
-    public Trainer getById(Long id) {
-        return trainerMapper.toResponse(getEntity(id));
+    public TrainerDto updateTrainer(TrainerDto trainerDto) {
+        if (trainerDto == null || trainerDto.getId() == null) {
+            throw new IllegalArgumentException("Trainer or id cannot be null");
+        }
+
+        trainerRepository.findById(trainerDto.getId())
+                .orElseThrow(() -> new EntityNotFoundException("Trainer not found with id: " + trainerDto.getId()));
+
+        TrainerEntity trainer = trainerMapper.toEntity(trainerDto);
+        TrainerEntity updated = trainerRepository.save(trainer);
+        log.info("Trainer profile updated successfully: {}", trainerDto.getId());
+        return trainerMapper.toDto(updated);
     }
 
-    public Trainer getActiveById(Long id) {
-        return trainerMapper.toResponse(getActiveEntity(id));
+    @Transactional(readOnly = true)
+    public TrainerDto getTrainer(Long id) {
+        TrainerEntity trainer = trainerRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Trainer not found with id: " + id));
+        return trainerMapper.toDto(trainer);
     }
 
-    public Trainer getActiveForSpecialization(Long id, TrainingType type) {
+    @Transactional(readOnly = true)
+    public List<TrainerDto> getAllTrainers() {
+        return trainerRepository.findAll()
+                .map(trainerMapper::toDto)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public TrainerDto getTrainerByUsername(String username) {
+        TrainerEntity trainer = trainerRepository.findByUsername(username)
+                .orElseThrow(() -> new EntityNotFoundException("Trainer not found with username: " + username));
+        return trainerMapper.toDto(trainer);
+    }
+
+    public void changePassword(String username, String oldPassword, String newPassword) {
+        userService.changePassword(username, oldPassword, newPassword);
+    }
+
+    public void toggleActivation(String username) {
+        userService.toggleActivation(username);
+    }
+
+    @Transactional(readOnly = true)
+    public TrainerDto getActiveTrainer(Long id) {
+        TrainerEntity trainer = getActiveEntity(id);
+        return trainerMapper.toDto(trainer);
+    }
+
+    @Transactional(readOnly = true)
+    public TrainerDto getActiveTrainerForSpecialization(Long id, TrainingType type) {
         TrainerEntity trainer = getActiveEntity(id);
         if (!trainer.matchesSpecialization(type)) {
             throw new InvalidOperationException(
                     "Trainer specialization does not match training type: " + type);
         }
-        return trainerMapper.toResponse(trainer);
+        return trainerMapper.toDto(trainer);
     }
 
-    public Trainer findActiveBySpecialization(TrainingType type) {
+    @Transactional(readOnly = true)
+    public TrainerDto findActiveBySpecialization(TrainingType type) {
         TrainerEntity trainer = trainerRepository.findAll()
                 .filter(TrainerEntity::isActive)
                 .filter(t -> t.matchesSpecialization(type))
                 .findFirst()
                 .orElseThrow(() -> new EntityNotFoundException(
                         "No active trainer found for type: " + type));
-        return trainerMapper.toResponse(trainer);
-    }
-
-    public List<Trainer> findAll() {
-        return trainerRepository.findAll().map(trainerMapper::toResponse).toList();
+        return trainerMapper.toDto(trainer);
     }
 
     private TrainerEntity getActiveEntity(Long id) {
-        TrainerEntity trainer = getEntity(id);
+        TrainerEntity trainer = trainerRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Trainer not found with id: " + id));
         if (!trainer.isActive()) {
             throw new InvalidOperationException("Trainer is inactive: id=" + id);
         }
         return trainer;
-    }
-
-    private TrainerEntity getEntity(Long id) {
-        return trainerRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Trainer not found: id=" + id));
     }
 }
