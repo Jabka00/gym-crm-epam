@@ -31,58 +31,51 @@ class TraineeRepositoryTest {
 
     @Test
     void shouldSaveAndFindTraineeById() {
-        TraineeEntity trainee = TestDataFactory.createTraineeWithCredentials();
-        trainee.setId(100L);
+        TraineeEntity input = TestDataFactory.trainee("First.User");
 
-        TraineeEntity saved = traineeRepository.save(trainee);
+        TraineeEntity saved = traineeRepository.save(input);
+        TraineeEntity expected = TestDataFactory.trainee("First.User");
+        expected.setId(saved.getId());
 
-        assertThat(saved.getId()).isEqualTo(100L);
-        assertThat(traineeRepository.findById(100L)).isPresent();
-        assertThat(traineeRepository.existsById(100L)).isTrue();
+        assertThat(saved).usingRecursiveComparison()
+                .ignoringFields("trainers", "trainings")
+                .isEqualTo(expected);
+        assertThat(traineeRepository.findById(saved.getId()))
+                .get()
+                .usingRecursiveComparison()
+                .ignoringFields("trainers", "trainings")
+                .isEqualTo(expected);
+        assertThat(traineeRepository.existsById(saved.getId())).isTrue();
     }
 
     @Test
     void shouldOverwriteExistingTraineeOnSave() {
-        TraineeEntity trainee = TestDataFactory.createTraineeWithCredentials();
-        trainee.setId(101L);
-        traineeRepository.save(trainee);
-        trainee.setAddress("Odesa");
+        TraineeEntity saved = traineeRepository.save(TestDataFactory.trainee("Second.User"));
+        saved.setAddress("Odesa");
 
-        TraineeEntity updated = traineeRepository.save(trainee);
+        TraineeEntity updated = traineeRepository.save(saved);
+        TraineeEntity expected = TestDataFactory.trainee("Second.User");
+        expected.setId(saved.getId());
+        expected.setAddress("Odesa");
 
-        assertThat(updated.getAddress()).isEqualTo("Odesa");
-        assertThat(traineeRepository.findById(101L))
+        assertThat(updated).usingRecursiveComparison()
+                .ignoringFields("trainers", "trainings")
+                .isEqualTo(expected);
+        assertThat(traineeRepository.findById(saved.getId()))
                 .get()
-                .extracting(TraineeEntity::getAddress)
-                .isEqualTo("Odesa");
+                .usingRecursiveComparison()
+                .ignoringFields("trainers", "trainings")
+                .isEqualTo(expected);
     }
 
     @Test
     void shouldDeleteTrainee() {
-        TraineeEntity trainee = TestDataFactory.createTraineeWithCredentials();
-        trainee.setId(102L);
-        traineeRepository.save(trainee);
+        TraineeEntity saved = traineeRepository.save(TestDataFactory.trainee("Third.User"));
 
-        traineeRepository.delete(102L);
+        traineeRepository.delete(saved.getId());
 
-        assertThat(traineeRepository.findById(102L)).isEmpty();
-        assertThat(traineeRepository.existsById(102L)).isFalse();
-    }
-
-    @Test
-    void shouldSaveMultipleTrainees() {
-        TraineeEntity first = TestDataFactory.createTraineeWithCredentials();
-        first.setId(103L);
-        first.setUsername("First.User");
-        TraineeEntity second = TestDataFactory.createDefaultTrainee();
-        second.setId(104L);
-        second.setUsername("Second.User");
-
-        traineeRepository.save(first);
-        traineeRepository.save(second);
-
-        assertThat(traineeRepository.findAll().map(TraineeEntity::getId).toList())
-                .contains(103L, 104L);
+        assertThat(traineeRepository.findById(saved.getId())).isEmpty();
+        assertThat(traineeRepository.existsById(saved.getId())).isFalse();
     }
 
     @Test

@@ -31,47 +31,35 @@ class TrainingRepositoryTest {
 
     @Test
     void shouldSaveAndFindTrainingById() {
-        TrainingEntity training = trainingWithId(100L);
+        TrainingEntity input = TestDataFactory.createDefaultTraining(4L, 1L);
 
-        TrainingEntity saved = trainingRepository.save(training);
+        TrainingEntity saved = trainingRepository.save(input);
+        TrainingEntity expected = TestDataFactory.createDefaultTraining(4L, 1L);
+        expected.setId(saved.getId());
 
-        assertThat(saved.getId()).isEqualTo(100L);
-        assertThat(trainingRepository.findById(100L)).isPresent();
-    }
-
-    @Test
-    void shouldFindAllTrainings() {
-        TrainingEntity t1 = trainingWithId(101L);
-        TrainingEntity t2 = trainingWithId(102L);
-        t2.setTrainingName("Evening CrossFit");
-        t2.getTrainee().setId(5L);
-
-        trainingRepository.save(t1);
-        trainingRepository.save(t2);
-
-        assertThat(trainingRepository.findAll().map(TrainingEntity::getId).toList())
-                .contains(101L, 102L);
+        assertThat(saved).usingRecursiveComparison()
+                .ignoringFields("trainee", "trainer", "trainingType")
+                .isEqualTo(expected);
+        assertThat(trainingRepository.findById(saved.getId()))
+                .get()
+                .usingRecursiveComparison()
+                .ignoringFields("trainee", "trainer", "trainingType")
+                .isEqualTo(saved);
+        assertThat(trainingRepository.findById(saved.getId()).get().getTrainee().getId()).isEqualTo(4L);
+        assertThat(trainingRepository.findById(saved.getId()).get().getTrainer().getId()).isEqualTo(1L);
     }
 
     @Test
     void shouldDeleteTraining() {
-        TrainingEntity training = trainingWithId(103L);
-        trainingRepository.save(training);
+        TrainingEntity saved = trainingRepository.save(TestDataFactory.createDefaultTraining(4L, 1L));
 
-        trainingRepository.delete(103L);
+        trainingRepository.delete(saved.getId());
 
-        assertThat(trainingRepository.findById(103L)).isEmpty();
+        assertThat(trainingRepository.findById(saved.getId())).isEmpty();
     }
 
     @Test
     void shouldReturnEmptyWhenTrainingNotFound() {
         assertThat(trainingRepository.findById(404L)).isEmpty();
-    }
-
-    private static TrainingEntity trainingWithId(long id) {
-        TrainingEntity training = TestDataFactory.createDefaultTraining(4L, 1L);
-        training.setId(id);
-        training.getTrainingType().setId(1L);
-        return training;
     }
 }

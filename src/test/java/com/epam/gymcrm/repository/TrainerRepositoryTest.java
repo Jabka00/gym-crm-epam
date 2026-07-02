@@ -31,52 +31,45 @@ class TrainerRepositoryTest {
 
     @Test
     void shouldSaveAndFindTrainerById() {
-        TrainerEntity trainer = trainerWithId(100L, "One");
+        TrainerEntity input = TestDataFactory.trainer("Trainer.One");
 
-        TrainerEntity saved = trainerRepository.save(trainer);
+        TrainerEntity saved = trainerRepository.save(input);
+        TrainerEntity expected = TestDataFactory.trainer("Trainer.One");
+        expected.setId(saved.getId());
 
-        assertThat(saved.getId()).isEqualTo(100L);
-        assertThat(trainerRepository.findById(100L)).isPresent();
-        assertThat(trainerRepository.existsById(100L)).isTrue();
+        assertThat(saved).usingRecursiveComparison()
+                .ignoringFields("trainees", "trainings")
+                .isEqualTo(expected);
+        assertThat(trainerRepository.findById(saved.getId()))
+                .get()
+                .usingRecursiveComparison()
+                .ignoringFields("trainees", "trainings")
+                .isEqualTo(expected);
+        assertThat(trainerRepository.existsById(saved.getId())).isTrue();
     }
 
     @Test
     void shouldOverwriteExistingTrainerOnSave() {
-        TrainerEntity trainer = trainerWithId(101L, "Two");
-        trainerRepository.save(trainer);
-        trainer.setFirstName("Jonathan");
+        TrainerEntity saved = trainerRepository.save(TestDataFactory.trainer("Trainer.Two"));
+        saved.setFirstName("Jonathan");
 
-        TrainerEntity updated = trainerRepository.save(trainer);
+        TrainerEntity updated = trainerRepository.save(saved);
+        TrainerEntity expected = TestDataFactory.trainer("Trainer.Two");
+        expected.setId(saved.getId());
+        expected.setFirstName("Jonathan");
 
-        assertThat(updated.getFirstName()).isEqualTo("Jonathan");
-        assertThat(trainerRepository.findById(101L))
+        assertThat(updated).usingRecursiveComparison()
+                .ignoringFields("trainees", "trainings")
+                .isEqualTo(expected);
+        assertThat(trainerRepository.findById(saved.getId()))
                 .get()
-                .extracting(TrainerEntity::getFirstName)
-                .isEqualTo("Jonathan");
-    }
-
-    @Test
-    void shouldSaveMultipleTrainers() {
-        TrainerEntity first = trainerWithId(102L, "Three");
-        TrainerEntity second = trainerWithId(103L, "Four");
-
-        trainerRepository.save(first);
-        trainerRepository.save(second);
-
-        assertThat(trainerRepository.findAll().map(TrainerEntity::getId).toList())
-                .contains(102L, 103L);
+                .usingRecursiveComparison()
+                .ignoringFields("trainees", "trainings")
+                .isEqualTo(expected);
     }
 
     @Test
     void shouldReturnEmptyWhenTrainerNotFound() {
         assertThat(trainerRepository.findById(404L)).isEmpty();
-    }
-
-    private static TrainerEntity trainerWithId(long id, String usernameSuffix) {
-        TrainerEntity trainer = TestDataFactory.createTrainerWithCredentials();
-        trainer.setId(id);
-        trainer.setUsername("Trainer." + usernameSuffix);
-        trainer.getSpecialization().setId(1L);
-        return trainer;
     }
 }

@@ -1,32 +1,31 @@
 package com.epam.gymcrm.service;
 
-import com.epam.gymcrm.dto.request.AutoScheduleTrainingRequest;
-import com.epam.gymcrm.dto.request.ScheduleTrainingRequest;
-import com.epam.gymcrm.dto.response.Training;
+import com.epam.gymcrm.dto.TrainingDto;
+import com.epam.gymcrm.entity.TraineeEntity;
+import com.epam.gymcrm.entity.TrainerEntity;
 import com.epam.gymcrm.entity.TrainingEntity;
+import com.epam.gymcrm.entity.TrainingTypeEntity;
 import com.epam.gymcrm.exception.EntityNotFoundException;
 import com.epam.gymcrm.mapper.TrainingMapper;
+import com.epam.gymcrm.repository.TraineeRepository;
+import com.epam.gymcrm.repository.TrainerRepository;
 import com.epam.gymcrm.repository.TrainingRepository;
+import com.epam.gymcrm.repository.TrainingTypeRepository;
 import com.epam.gymcrm.support.TestDataFactory;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mapstruct.factory.Mappers;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.time.Duration;
-import java.time.LocalDate;
-import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.same;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -38,163 +37,132 @@ class TrainingServiceTest {
     private TrainingRepository trainingRepository;
 
     @Mock
-    private TraineeService traineeService;
+    private TrainingTypeRepository trainingTypeRepository;
 
     @Mock
-    private TrainerService trainerService;
+    private TraineeRepository traineeRepository;
 
-    @Spy
-    private TrainingMapper trainingMapper = Mappers.getMapper(TrainingMapper.class);
+    @Mock
+    private TrainerRepository trainerRepository;
+
+    @Mock
+    private TrainingMapper trainingMapper;
 
     @InjectMocks
     private TrainingService trainingService;
 
     @Test
+    void shouldCreateTraining() {
+        TrainingDto request = TestDataFactory.trainingDto(1L, 2L);
+        TraineeEntity trainee = TestDataFactory.traineeWithId(1L, "Alice.Walker");
+        TrainerEntity trainer = TestDataFactory.trainerWithId(2L, "John.Smith");
+        TrainingTypeEntity trainingType = TestDataFactory.yogaTypeEntity();
+        TrainingEntity toSave = TestDataFactory.createDefaultTraining(1L, 2L);
+        TrainingEntity saved = TestDataFactory.trainingWithId(10L, 1L, 2L);
+        saved.setTrainee(trainee);
+        saved.setTrainer(trainer);
+        saved.setTrainingType(trainingType);
+        TrainingDto expected = TestDataFactory.trainingDto(1L, 2L);
+        expected.setId(10L);
+        expected.setTrainee(TestDataFactory.traineeDtoWithCredentials(1L, "Alice.Walker"));
+        expected.setTrainer(TestDataFactory.trainerDtoWithCredentials(2L, "John.Smith"));
+
+        when(trainingMapper.toEntity(request)).thenReturn(toSave);
+        when(traineeRepository.findById(1L)).thenReturn(Optional.of(trainee));
+        when(trainerRepository.findById(2L)).thenReturn(Optional.of(trainer));
+        when(trainingTypeRepository.findById(1L)).thenReturn(Optional.of(trainingType));
+        when(trainingRepository.save(same(toSave))).thenReturn(saved);
+        when(trainingMapper.toDto(saved)).thenReturn(expected);
+
+        TrainingDto actual = trainingService.createTraining(request);
+
+        assertThat(actual).usingRecursiveComparison().isEqualTo(expected);
+        verify(trainingMapper, times(1)).toEntity(request);
+        verify(traineeRepository, times(1)).findById(1L);
+        verify(trainerRepository, times(1)).findById(2L);
+        verify(trainingTypeRepository, times(1)).findById(1L);
+
+        ArgumentCaptor<TrainingEntity> trainingCaptor = ArgumentCaptor.forClass(TrainingEntity.class);
+        verify(trainingRepository, times(1)).save(trainingCaptor.capture());
+        TrainingEntity expectedToSave = TestDataFactory.createDefaultTraining(1L, 2L);
+        expectedToSave.setTrainee(trainee);
+        expectedToSave.setTrainer(trainer);
+        expectedToSave.setTrainingType(trainingType);
+        assertThat(trainingCaptor.getValue()).usingRecursiveComparison()
+                .ignoringFields("id", "trainee.trainers", "trainee.trainings", "trainer.trainees", "trainer.trainings")
+                .isEqualTo(expectedToSave);
+        verify(trainingMapper, times(1)).toDto(saved);
+    }
+
+    @Test
     void shouldGetTrainingById() {
-        TrainingEntity training = TestDataFactory.createDefaultTraining(1L, 2L);
-        training.setId(10L);
+        TrainingEntity training = TestDataFactory.trainingWithId(10L, 1L, 2L);
+        TrainingDto expected = TestDataFactory.trainingDto(1L, 2L);
+        expected.setId(10L);
         when(trainingRepository.findById(10L)).thenReturn(Optional.of(training));
+        when(trainingMapper.toDto(training)).thenReturn(expected);
 
-        Training response = trainingService.getById(10L);
+        TrainingDto actual = trainingService.getTraining(10L);
 
-        Training expected = new Training(
-                10L, "Morning Yoga", "YOGA",
-                LocalDate.of(2024, 3, 1), Duration.ofMinutes(60), 1L, 2L);
-        assertThat(response).isEqualTo(expected);
-    }
-
-    @Test
-    void shouldThrowWhenGettingMissingTraining() {
-        when(trainingRepository.findById(10L)).thenReturn(Optional.empty());
-
-        assertThatThrownBy(() -> trainingService.getById(10L))
-                .isInstanceOf(EntityNotFoundException.class);
-    }
-
-    @Test
-    void shouldFindAllTrainings() {
-        TrainingEntity training = TestDataFactory.createDefaultTraining(1L, 2L);
-        training.setId(7L);
-        when(trainingRepository.findAll()).thenAnswer(inv -> Stream.of(training));
-
-        List<Training> all = trainingService.findAll();
-
-        Training expected = new Training(
-                7L, "Morning Yoga", "YOGA",
-                LocalDate.of(2024, 3, 1), Duration.ofMinutes(60), 1L, 2L);
-        assertThat(all).containsExactly(expected);
+        assertThat(actual).usingRecursiveComparison().isEqualTo(expected);
+        verify(trainingRepository, times(1)).findById(10L);
+        verify(trainingMapper, times(1)).toDto(training);
     }
 
     @Test
     void shouldDetectExistingTrainingsByTraineeId() {
-        TrainingEntity training = TestDataFactory.createDefaultTraining(1L, 2L);
-        when(trainingRepository.findAll()).thenAnswer(inv -> Stream.of(training));
+        TrainingEntity training = TestDataFactory.trainingWithId(7L, 1L, 2L);
+        when(trainingRepository.findAll())
+                .thenReturn(Stream.of(training))
+                .thenReturn(Stream.of(training));
 
         assertThat(trainingService.existsByTraineeId(1L)).isTrue();
         assertThat(trainingService.existsByTraineeId(99L)).isFalse();
     }
 
     @Test
-    void shouldDeleteExistingTraining() {
-        TrainingEntity training = TestDataFactory.createDefaultTraining(1L, 2L);
-        training.setId(10L);
+    void shouldDeleteTraining() {
+        TrainingEntity training = TestDataFactory.trainingWithId(10L, 1L, 2L);
         when(trainingRepository.findById(10L)).thenReturn(Optional.of(training));
 
-        trainingService.delete(10L);
+        trainingService.deleteTraining(10L);
 
+        verify(trainingRepository, times(1)).findById(10L);
         verify(trainingRepository, times(1)).delete(10L);
     }
 
     @Test
-    void shouldThrowWhenDeletingMissingTraining() {
-        when(trainingRepository.findById(10L)).thenReturn(Optional.empty());
+    void shouldThrowWhenCreatingTrainingForMissingTrainee() {
+        TrainingDto request = TestDataFactory.trainingDto(1L, 2L);
+        when(trainingMapper.toEntity(request)).thenReturn(new TrainingEntity());
+        when(traineeRepository.findById(1L)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> trainingService.delete(10L))
-                .isInstanceOf(EntityNotFoundException.class);
-
-        verify(trainingRepository, never()).delete(10L);
-    }
-
-    @Test
-    void shouldScheduleTrainingFromRequest() {
-        when(trainingRepository.findAll()).thenAnswer(inv -> Stream.empty());
-        trainingService.initIdSequence();
-        when(trainingRepository.save(any(TrainingEntity.class))).thenAnswer(inv -> inv.getArgument(0));
-
-        ScheduleTrainingRequest request = new ScheduleTrainingRequest(
-                1L, 2L, "Morning Yoga", "YOGA",
-                LocalDate.of(2024, 3, 1), Duration.ofMinutes(60));
-
-        Training result = trainingService.schedule(request);
-
-        Training expected = new Training(
-                1L, "Morning Yoga", "YOGA",
-                LocalDate.of(2024, 3, 1), Duration.ofMinutes(60), 1L, 2L);
-        assertThat(result).isEqualTo(expected);
-
-        ArgumentCaptor<TrainingEntity> captor = ArgumentCaptor.forClass(TrainingEntity.class);
-        verify(trainingRepository, times(1)).save(captor.capture());
-        assertThat(captor.getValue().getTrainingName()).isEqualTo("Morning Yoga");
-        assertThat(captor.getValue().getTrainee().getId()).isEqualTo(1L);
-        assertThat(captor.getValue().getTrainer().getId()).isEqualTo(2L);
-        verify(traineeService, times(1)).getById(1L);
-        verify(trainerService, times(1)).getById(2L);
-    }
-
-    @Test
-    void shouldAutoScheduleTrainingFromRequest() {
-        when(trainingRepository.findAll()).thenAnswer(inv -> Stream.empty());
-        trainingService.initIdSequence();
-        when(trainingRepository.save(any(TrainingEntity.class))).thenAnswer(inv -> inv.getArgument(0));
-
-        AutoScheduleTrainingRequest request = new AutoScheduleTrainingRequest(
-                1L, "Boxing Session", "BOXING",
-                LocalDate.of(2024, 3, 1), Duration.ofMinutes(45));
-
-        Training result = trainingService.autoSchedule(request, 5L);
-
-        Training expected = new Training(
-                1L, "Boxing Session", "BOXING",
-                LocalDate.of(2024, 3, 1), Duration.ofMinutes(45), 1L, 5L);
-        assertThat(result).isEqualTo(expected);
-
-        ArgumentCaptor<TrainingEntity> captor = ArgumentCaptor.forClass(TrainingEntity.class);
-        verify(trainingRepository, times(1)).save(captor.capture());
-        assertThat(captor.getValue().getTrainer().getId()).isEqualTo(5L);
-        assertThat(captor.getValue().getTrainee().getId()).isEqualTo(1L);
-        verify(traineeService, times(1)).getById(1L);
-        verify(trainerService, times(1)).getById(5L);
-    }
-
-    @Test
-    void shouldThrowWhenSchedulingWithUnknownTrainee() {
-        when(traineeService.getById(1L))
-                .thenThrow(new EntityNotFoundException("Trainee not found: id=1"));
-
-        ScheduleTrainingRequest request = new ScheduleTrainingRequest(
-                1L, 2L, "Morning Yoga", "YOGA",
-                LocalDate.of(2024, 3, 1), Duration.ofMinutes(60));
-
-        assertThatThrownBy(() -> trainingService.schedule(request))
+        assertThatThrownBy(() -> trainingService.createTraining(request))
                 .isInstanceOf(EntityNotFoundException.class)
                 .hasMessageContaining("Trainee");
 
-        verify(trainingRepository, never()).save(any(TrainingEntity.class));
+        verify(trainingMapper, times(1)).toEntity(request);
+        verify(traineeRepository, times(1)).findById(1L);
+        verify(trainerRepository, never()).findById(2L);
+        verify(trainingTypeRepository, never()).findById(1L);
+        verify(trainingRepository, never()).save(org.mockito.ArgumentMatchers.any(TrainingEntity.class));
     }
 
     @Test
-    void shouldThrowWhenSchedulingWithUnknownTrainer() {
-        when(trainerService.getById(2L))
-                .thenThrow(new EntityNotFoundException("Trainer not found: id=2"));
+    void shouldThrowWhenCreatingTrainingForMissingTrainer() {
+        TrainingDto request = TestDataFactory.trainingDto(1L, 2L);
+        when(trainingMapper.toEntity(request)).thenReturn(new TrainingEntity());
+        when(traineeRepository.findById(1L)).thenReturn(Optional.of(TestDataFactory.traineeWithId(1L, "Alice.Walker")));
+        when(trainerRepository.findById(2L)).thenReturn(Optional.empty());
 
-        ScheduleTrainingRequest request = new ScheduleTrainingRequest(
-                1L, 2L, "Morning Yoga", "YOGA",
-                LocalDate.of(2024, 3, 1), Duration.ofMinutes(60));
-
-        assertThatThrownBy(() -> trainingService.schedule(request))
+        assertThatThrownBy(() -> trainingService.createTraining(request))
                 .isInstanceOf(EntityNotFoundException.class)
                 .hasMessageContaining("Trainer");
 
-        verify(trainingRepository, never()).save(any(TrainingEntity.class));
+        verify(trainingMapper, times(1)).toEntity(request);
+        verify(traineeRepository, times(1)).findById(1L);
+        verify(trainerRepository, times(1)).findById(2L);
+        verify(trainingTypeRepository, never()).findById(1L);
+        verify(trainingRepository, never()).save(org.mockito.ArgumentMatchers.any(TrainingEntity.class));
     }
 }

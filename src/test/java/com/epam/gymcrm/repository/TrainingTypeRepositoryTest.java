@@ -2,6 +2,7 @@ package com.epam.gymcrm.repository;
 
 import com.epam.gymcrm.config.AppConfig;
 import com.epam.gymcrm.entity.TrainingTypeEntity;
+import com.epam.gymcrm.support.TestDataFactory;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -30,20 +31,24 @@ class TrainingTypeRepositoryTest {
 
     @Test
     void shouldFindById() {
+        TrainingTypeEntity expected = TestDataFactory.yogaTypeEntity();
+
         assertThat(trainingTypeRepository.findById(1L))
-                .isPresent()
                 .get()
-                .extracting(TrainingTypeEntity::getTypeName)
-                .isEqualTo("YOGA");
+                .usingRecursiveComparison()
+                .isEqualTo(expected);
     }
 
     @Test
     void shouldFindByTypeName() {
+        TrainingTypeEntity expected = TestDataFactory.yogaTypeEntity();
+        expected.setTypeName("CROSSFIT");
+        expected.setId(2L);
+
         assertThat(trainingTypeRepository.findByTypeName("CROSSFIT"))
-                .isPresent()
                 .get()
-                .extracting(type -> type.getId())
-                .isEqualTo(2L);
+                .usingRecursiveComparison()
+                .isEqualTo(expected);
     }
 
     @Test

@@ -1,5 +1,9 @@
 package com.epam.gymcrm.support;
 
+import com.epam.gymcrm.dto.TraineeDto;
+import com.epam.gymcrm.dto.TrainerDto;
+import com.epam.gymcrm.dto.TrainingDto;
+import com.epam.gymcrm.dto.TrainingTypeDto;
 import com.epam.gymcrm.entity.TraineeEntity;
 import com.epam.gymcrm.entity.TrainerEntity;
 import com.epam.gymcrm.entity.TrainingEntity;
@@ -12,9 +16,23 @@ public final class TestDataFactory {
     private TestDataFactory() {
     }
 
+    public static TrainingTypeDto yogaTypeDto() {
+        return TrainingTypeDto.builder().id(1L).typeName("YOGA").build();
+    }
+
+    public static TrainingTypeDto boxingTypeDto() {
+        return TrainingTypeDto.builder().id(3L).typeName("BOXING").build();
+    }
+
     public static TrainingTypeEntity trainingType(String typeName) {
         TrainingTypeEntity entity = new TrainingTypeEntity();
         entity.setTypeName(typeName);
+        return entity;
+    }
+
+    public static TrainingTypeEntity yogaTypeEntity() {
+        TrainingTypeEntity entity = trainingType("YOGA");
+        entity.setId(1L);
         return entity;
     }
 
@@ -22,7 +40,7 @@ public final class TestDataFactory {
         TrainerEntity trainer = new TrainerEntity();
         trainer.setFirstName("John");
         trainer.setLastName("Smith");
-        trainer.setSpecialization(trainingType("YOGA"));
+        trainer.setSpecialization(yogaTypeEntity());
         return trainer;
     }
 
@@ -31,6 +49,19 @@ public final class TestDataFactory {
         trainer.setUsername("John.Smith");
         trainer.setPassword("secret1234");
         trainer.setActive(true);
+        return trainer;
+    }
+
+    public static TrainerEntity trainerWithId(long id, String username) {
+        TrainerEntity trainer = createTrainerWithCredentials();
+        trainer.setId(id);
+        trainer.setUsername(username);
+        return trainer;
+    }
+
+    public static TrainerEntity trainer(String username) {
+        TrainerEntity trainer = createTrainerWithCredentials();
+        trainer.setUsername(username);
         return trainer;
     }
 
@@ -51,6 +82,72 @@ public final class TestDataFactory {
         return trainee;
     }
 
+    public static TraineeEntity traineeWithId(long id, String username) {
+        TraineeEntity trainee = createTraineeWithCredentials();
+        trainee.setId(id);
+        trainee.setUsername(username);
+        return trainee;
+    }
+
+    public static TraineeEntity trainee(String username) {
+        TraineeEntity trainee = createTraineeWithCredentials();
+        trainee.setUsername(username);
+        return trainee;
+    }
+
+    public static TraineeDto traineeDto() {
+        return TraineeDto.builder()
+                .firstName("Jane")
+                .lastName("Doe")
+                .dateOfBirth(LocalDate.of(1998, 5, 20))
+                .address("Kyiv")
+                .build();
+    }
+
+    public static TraineeDto traineeDtoWithCredentials(long id, String username) {
+        return TraineeDto.builder()
+                .id(id)
+                .firstName("Alice")
+                .lastName("Walker")
+                .username(username)
+                .password("secret1234")
+                .active(true)
+                .dateOfBirth(LocalDate.of(1995, 4, 12))
+                .address("Kyiv")
+                .build();
+    }
+
+    public static TrainerDto trainerDto() {
+        return TrainerDto.builder()
+                .firstName("John")
+                .lastName("Smith")
+                .specialization(yogaTypeDto())
+                .build();
+    }
+
+    public static TrainerDto trainerDtoWithCredentials(long id, String username) {
+        return TrainerDto.builder()
+                .id(id)
+                .firstName("John")
+                .lastName("Smith")
+                .username(username)
+                .password("secret1234")
+                .active(true)
+                .specialization(yogaTypeDto())
+                .build();
+    }
+
+    public static TrainingDto trainingDto(long traineeId, long trainerId) {
+        return TrainingDto.builder()
+                .trainee(TraineeDto.builder().id(traineeId).build())
+                .trainer(TrainerDto.builder().id(trainerId).build())
+                .trainingName("Morning Yoga")
+                .trainingType(yogaTypeDto())
+                .trainingDate(LocalDate.of(2024, 3, 1))
+                .trainingDuration(60)
+                .build();
+    }
+
     public static TrainingEntity createDefaultTraining(Long traineeId, Long trainerId) {
         TrainingEntity training = new TrainingEntity();
 
@@ -63,9 +160,15 @@ public final class TestDataFactory {
         training.setTrainer(trainer);
 
         training.setTrainingName("Morning Yoga");
-        training.setTrainingType(trainingType("YOGA"));
+        training.setTrainingType(yogaTypeEntity());
         training.setTrainingDate(LocalDate.of(2024, 3, 1));
         training.setTrainingDuration(60);
+        return training;
+    }
+
+    public static TrainingEntity trainingWithId(long id, long traineeId, long trainerId) {
+        TrainingEntity training = createDefaultTraining(traineeId, trainerId);
+        training.setId(id);
         return training;
     }
 }

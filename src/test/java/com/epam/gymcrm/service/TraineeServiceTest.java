@@ -1,15 +1,15 @@
 package com.epam.gymcrm.service;
 
-import com.epam.gymcrm.dto.request.CreateTraineeRequest;
-import com.epam.gymcrm.dto.request.UpdateTraineeRequest;
-import com.epam.gymcrm.dto.request.UserInfo;
-import com.epam.gymcrm.dto.response.Trainee;
+import com.epam.gymcrm.dto.TraineeDto;
 import com.epam.gymcrm.entity.TraineeEntity;
 import com.epam.gymcrm.exception.EntityNotFoundException;
 import com.epam.gymcrm.exception.InvalidOperationException;
 import com.epam.gymcrm.mapper.TraineeMapper;
+import com.epam.gymcrm.mapper.TrainerMapper;
 import com.epam.gymcrm.repository.TraineeRepository;
+import com.epam.gymcrm.repository.TrainerRepository;
 import com.epam.gymcrm.support.TestDataFactory;
+import com.epam.gymcrm.util.UserInitializationUtil;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mapstruct.factory.Mappers;
@@ -19,10 +19,7 @@ import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.time.LocalDate;
-import java.util.List;
 import java.util.Optional;
-import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -40,177 +37,127 @@ class TraineeServiceTest {
     private TraineeRepository traineeRepository;
 
     @Mock
-    private UsernameGenerator usernameGenerator;
+    private TrainerRepository trainerRepository;
 
     @Mock
-    private PasswordGenerator passwordGenerator;
+    private UserInitializationUtil userInitializationUtil;
+
+    @Mock
+    private UserService userService;
 
     @Spy
     private TraineeMapper traineeMapper = Mappers.getMapper(TraineeMapper.class);
+
+    @Mock
+    private TrainerMapper trainerMapper;
 
     @InjectMocks
     private TraineeService traineeService;
 
     @Test
-    void shouldCreateTraineeWithGeneratedCredentials() {
-        when(traineeRepository.findAll()).thenAnswer(inv -> Stream.empty());
-        traineeService.initIdSequence();
+    void shouldCreateTrainee() {
+        TraineeDto request = TestDataFactory.traineeDto();
+        TraineeEntity created = TestDataFactory.traineeWithId(1L, "Jane.Doe");
+        created.setFirstName("Jane");
+        created.setLastName("Doe");
+        created.setDateOfBirth(request.getDateOfBirth());
+        created.setAddress(request.getAddress());
+        TraineeDto expected = traineeMapper.toDto(created);
 
-        when(usernameGenerator.generateUsername(eq("Alice"), eq("Walker")))
-                .thenReturn("Alice.Walker");
-        when(passwordGenerator.generatePassword()).thenReturn("abcdefghij");
-        when(traineeRepository.save(any(TraineeEntity.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(userInitializationUtil.createUser(any(TraineeEntity.class), any(), eq("Trainee")))
+                .thenReturn(created);
 
-        CreateTraineeRequest request = new CreateTraineeRequest(
-                new UserInfo("Alice", "Walker"), LocalDate.of(1995, 4, 12), "Kyiv");
+        TraineeDto actual = traineeService.createTrainee(request);
 
-        Trainee created = traineeService.create(request);
+        assertThat(actual).usingRecursiveComparison().isEqualTo(expected);
 
-        Trainee expected = new Trainee(
-                1L, "Alice Walker", "Alice.Walker", LocalDate.of(1995, 4, 12), "Kyiv");
-        assertThat(created).isEqualTo(expected);
-
-        ArgumentCaptor<TraineeEntity> captor = ArgumentCaptor.forClass(TraineeEntity.class);
-        verify(traineeRepository, times(1)).save(captor.capture());
-        assertThat(captor.getValue().getUsername()).isEqualTo("Alice.Walker");
-        assertThat(captor.getValue().getPassword()).isEqualTo("abcdefghij");
-        assertThat(captor.getValue().isActive()).isTrue();
-        verify(passwordGenerator, times(1)).generatePassword();
+        ArgumentCaptor<TraineeEntity> entityCaptor = ArgumentCaptor.forClass(TraineeEntity.class);
+        verify(userInitializationUtil, times(1))
+                .createUser(entityCaptor.capture(), any(), eq("Trainee"));
+        assertThat(entityCaptor.getValue())
+                .usingRecursiveComparison()
+                .ignoringFields("id", "username", "password", "active", "trainers", "trainings")
+                .isEqualTo(traineeMapper.toEntity(request));
     }
 
     @Test
-    void shouldUpdateExistingTraineeWithoutRegeneratingUsernameWhenNameUnchanged() {
-        TraineeEntity existing = TestDataFactory.createTraineeWithCredentials();
-        existing.setId(1L);
+    void shouldUpdateTrainee() {
+        TraineeDto request = TestDataFactory.traineeDtoWithCredentials(1L, "Alice.Walker");
+        request.setAddress("Odesa");
+        TraineeEntity existing = TestDataFactory.traineeWithId(1L, "Alice.Walker");
+        TraineeEntity updated = traineeMapper.toEntity(request);
+        TraineeDto expected = traineeMapper.toDto(updated);
+
         when(traineeRepository.findById(1L)).thenReturn(Optional.of(existing));
-        when(traineeRepository.save(any(TraineeEntity.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(traineeRepository.save(org.mockito.ArgumentMatchers.any(TraineeEntity.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
 
-        UpdateTraineeRequest request = new UpdateTraineeRequest(
-                1L, new UserInfo("Alice", "Walker"), LocalDate.of(1995, 4, 12), "Lviv", true);
+        TraineeDto actual = traineeService.updateTrainee(request);
 
-        Trainee updated = traineeService.update(request);
+        assertThat(actual).usingRecursiveComparison().isEqualTo(expected);
+        verify(traineeRepository, times(1)).findById(1L);
 
-        Trainee expected = new Trainee(
-                1L, "Alice Walker", "Alice.Walker", LocalDate.of(1995, 4, 12), "Lviv");
-        assertThat(updated).isEqualTo(expected);
-        verify(usernameGenerator, never()).generateUsername(any(), any());
-        verify(traineeRepository, times(1)).save(existing);
-    }
-
-    @Test
-    void shouldRegenerateUsernameWhenNameChangesOnUpdate() {
-        TraineeEntity existing = TestDataFactory.createTraineeWithCredentials();
-        existing.setId(1L);
-        when(traineeRepository.findById(1L)).thenReturn(Optional.of(existing));
-        when(traineeRepository.save(any(TraineeEntity.class))).thenAnswer(inv -> inv.getArgument(0));
-        when(usernameGenerator.generateUsername(eq("Alice"), eq("Cooper")))
-                .thenReturn("Alice.Cooper");
-
-        UpdateTraineeRequest request = new UpdateTraineeRequest(
-                1L, new UserInfo("Alice", "Cooper"), LocalDate.of(1995, 4, 12), "Kyiv", true);
-
-        Trainee updated = traineeService.update(request);
-
-        Trainee expected = new Trainee(
-                1L, "Alice Cooper", "Alice.Cooper", LocalDate.of(1995, 4, 12), "Kyiv");
-        assertThat(updated).isEqualTo(expected);
-        verify(usernameGenerator, times(1))
-                .generateUsername(eq("Alice"), eq("Cooper"));
+        ArgumentCaptor<TraineeEntity> saveCaptor = ArgumentCaptor.forClass(TraineeEntity.class);
+        verify(traineeRepository, times(1)).save(saveCaptor.capture());
+        assertThat(saveCaptor.getValue()).usingRecursiveComparison()
+                .ignoringFields("trainers", "trainings")
+                .isEqualTo(traineeMapper.toEntity(request));
     }
 
     @Test
     void shouldThrowWhenUpdatingMissingTrainee() {
+        TraineeDto request = TestDataFactory.traineeDtoWithCredentials(99L, "Missing.User");
         when(traineeRepository.findById(99L)).thenReturn(Optional.empty());
 
-        UpdateTraineeRequest request = new UpdateTraineeRequest(
-                99L, new UserInfo("Alice", "Walker"), LocalDate.of(1995, 4, 12), "Kyiv", true);
-
-        assertThatThrownBy(() -> traineeService.update(request))
+        assertThatThrownBy(() -> traineeService.updateTrainee(request))
                 .isInstanceOf(EntityNotFoundException.class)
                 .hasMessageContaining("99");
 
-        verify(traineeRepository, never()).save(any());
-    }
-
-    @Test
-    void shouldDeleteExistingTrainee() {
-        TraineeEntity trainee = TestDataFactory.createTraineeWithCredentials();
-        trainee.setId(1L);
-        when(traineeRepository.findById(1L)).thenReturn(Optional.of(trainee));
-
-        traineeService.delete(1L);
-
-        verify(traineeRepository, times(1)).delete(1L);
-    }
-
-    @Test
-    void shouldThrowWhenDeletingMissingTrainee() {
-        when(traineeRepository.findById(1L)).thenReturn(Optional.empty());
-
-        assertThatThrownBy(() -> traineeService.delete(1L))
-                .isInstanceOf(EntityNotFoundException.class);
-
-        verify(traineeRepository, never()).delete(1L);
+        verify(traineeRepository, never()).save(any(TraineeEntity.class));
     }
 
     @Test
     void shouldGetTraineeById() {
-        TraineeEntity trainee = TestDataFactory.createTraineeWithCredentials();
-        trainee.setId(1L);
+        TraineeEntity trainee = TestDataFactory.traineeWithId(1L, "Alice.Walker");
+        TraineeDto expected = traineeMapper.toDto(trainee);
         when(traineeRepository.findById(1L)).thenReturn(Optional.of(trainee));
 
-        Trainee response = traineeService.getById(1L);
+        TraineeDto actual = traineeService.getTrainee(1L);
 
-        Trainee expected = new Trainee(
-                1L, "Alice Walker", "Alice.Walker", LocalDate.of(1995, 4, 12), "Kyiv");
-        assertThat(response).isEqualTo(expected);
+        assertThat(actual).usingRecursiveComparison().isEqualTo(expected);
+        verify(traineeRepository, times(1)).findById(1L);
     }
 
     @Test
-    void shouldFindAllTrainees() {
-        TraineeEntity trainee = TestDataFactory.createTraineeWithCredentials();
-        trainee.setId(1L);
-        when(traineeRepository.findAll()).thenAnswer(inv -> Stream.of(trainee));
-
-        List<Trainee> all = traineeService.findAll();
-
-        Trainee expected = new Trainee(
-                1L, "Alice Walker", "Alice.Walker", LocalDate.of(1995, 4, 12), "Kyiv");
-        assertThat(all).containsExactly(expected);
-    }
-
-    @Test
-    void shouldThrowWhenGettingMissingTrainee() {
-        when(traineeRepository.findById(99L)).thenReturn(Optional.empty());
-
-        assertThatThrownBy(() -> traineeService.getById(99L))
-                .isInstanceOf(EntityNotFoundException.class)
-                .hasMessageContaining("99");
-    }
-
-    @Test
-    void shouldReturnActiveTrainee() {
-        TraineeEntity trainee = TestDataFactory.createTraineeWithCredentials();
-        trainee.setId(1L);
-        trainee.setActive(true);
+    void shouldGetActiveTrainee() {
+        TraineeEntity trainee = TestDataFactory.traineeWithId(1L, "Alice.Walker");
+        TraineeDto expected = traineeMapper.toDto(trainee);
         when(traineeRepository.findById(1L)).thenReturn(Optional.of(trainee));
 
-        Trainee response = traineeService.getActiveById(1L);
+        TraineeDto actual = traineeService.getActiveTrainee(1L);
 
-        Trainee expected = new Trainee(
-                1L, "Alice Walker", "Alice.Walker", LocalDate.of(1995, 4, 12), "Kyiv");
-        assertThat(response).isEqualTo(expected);
+        assertThat(actual).usingRecursiveComparison().isEqualTo(expected);
     }
 
     @Test
     void shouldThrowWhenTraineeInactive() {
-        TraineeEntity trainee = TestDataFactory.createTraineeWithCredentials();
-        trainee.setId(1L);
+        TraineeEntity trainee = TestDataFactory.traineeWithId(2L, "Inactive.User");
         trainee.setActive(false);
-        when(traineeRepository.findById(1L)).thenReturn(Optional.of(trainee));
+        when(traineeRepository.findById(2L)).thenReturn(Optional.of(trainee));
 
-        assertThatThrownBy(() -> traineeService.getActiveById(1L))
+        assertThatThrownBy(() -> traineeService.getActiveTrainee(2L))
                 .isInstanceOf(InvalidOperationException.class)
                 .hasMessageContaining("inactive");
+    }
+
+    @Test
+    void shouldDeleteTrainee() {
+        TraineeEntity trainee = TestDataFactory.traineeWithId(1L, "Alice.Walker");
+        when(traineeRepository.findById(1L)).thenReturn(Optional.of(trainee));
+
+        traineeService.deleteTrainee(1L);
+
+        verify(traineeRepository, times(1)).findById(1L);
+        verify(traineeRepository, times(1)).delete(1L);
     }
 }
