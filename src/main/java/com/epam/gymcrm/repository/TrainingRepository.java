@@ -1,12 +1,12 @@
 package com.epam.gymcrm.repository;
 
 import com.epam.gymcrm.entity.TrainingEntity;
+import com.epam.gymcrm.util.ManualTransactionSupport;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
 import org.springframework.stereotype.Repository;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -25,52 +25,56 @@ public class TrainingRepository {
                     + "LEFT JOIN FETCH t.trainingType";
 
     private final SessionFactory sessionFactory;
+    private final ManualTransactionSupport transactionSupport;
 
     private Session currentSession() {
         return sessionFactory.getCurrentSession();
     }
 
-    @Transactional
     public TrainingEntity save(TrainingEntity training) {
-        Session session = currentSession();
-        if (training.getId() == null) {
-            session.persist(training);
-        } else {
-            training = session.merge(training);
-        }
-        session.flush();
-        log.debug("Saved training id={}", training.getId());
-        return training;
+        return transactionSupport.inTransaction(() -> {
+            Session session = currentSession();
+            if (training.getId() == null) {
+                session.persist(training);
+            } else {
+                training = session.merge(training);
+            }
+            session.flush();
+            log.debug("Saved training id={}", training.getId());
+            return training;
+        });
     }
 
-    @Transactional
     public void delete(Long id) {
-        TrainingEntity training = currentSession().get(TrainingEntity.class, id);
-        if (training != null) {
-            currentSession().remove(training);
-            log.debug("Deleted training id={}", id);
-        }
+        transactionSupport.inTransaction(() -> {
+            TrainingEntity training = currentSession().get(TrainingEntity.class, id);
+            if (training != null) {
+                currentSession().remove(training);
+                log.debug("Deleted training id={}", id);
+            }
+        });
     }
 
-    @Transactional(readOnly = true)
     public Optional<TrainingEntity> findById(Long id) {
-        log.debug("findById training id={}", id);
-        return currentSession()
-                .createQuery(FETCH_TRAINING + " WHERE t.id = :id", TrainingEntity.class)
-                .setParameter("id", id)
-                .uniqueResultOptional();
+        return transactionSupport.inReadOnlyTransaction(() -> {
+            log.debug("findById training id={}", id);
+            return currentSession()
+                    .createQuery(FETCH_TRAINING + " WHERE t.id = :id", TrainingEntity.class)
+                    .setParameter("id", id)
+                    .uniqueResultOptional();
+        });
     }
 
-    @Transactional(readOnly = true)
     public Stream<TrainingEntity> findAll() {
-        var trainings = currentSession()
-                .createQuery(FETCH_TRAINING, TrainingEntity.class)
-                .getResultList();
-        log.debug("findAll trainings, count={}", trainings.size());
-        return trainings.stream();
+        return transactionSupport.inReadOnlyTransaction(() -> {
+            var trainings = currentSession()
+                    .createQuery(FETCH_TRAINING, TrainingEntity.class)
+                    .getResultList();
+            log.debug("findAll trainings, count={}", trainings.size());
+            return trainings.stream();
+        });
     }
 
-    @Transactional(readOnly = true)
     public List<TrainingEntity> findByTraineeUsernameAndCriteria(
             String traineeUsername,
             LocalDate fromDate,
@@ -78,78 +82,81 @@ public class TrainingRepository {
             String trainerUsername,
             Long trainingTypeId) {
 
-        StringBuilder hql = new StringBuilder(FETCH_TRAINING + " WHERE t.trainee.username = :traineeUsername");
+        return transactionSupport.inReadOnlyTransaction(() -> {
+            StringBuilder hql = new StringBuilder(FETCH_TRAINING + " WHERE t.trainee.username = :traineeUsername");
 
-        if (fromDate != null) {
-            hql.append(" AND t.trainingDate >= :fromDate");
-        }
-        if (toDate != null) {
-            hql.append(" AND t.trainingDate <= :toDate");
-        }
-        if (trainerUsername != null && !trainerUsername.isBlank()) {
-            hql.append(" AND t.trainer.username = :trainerUsername");
-        }
-        if (trainingTypeId != null) {
-            hql.append(" AND t.trainingType.id = :trainingTypeId");
-        }
+            if (fromDate != null) {
+                hql.append(" AND t.trainingDate >= :fromDate");
+            }
+            if (toDate != null) {
+                hql.append(" AND t.trainingDate <= :toDate");
+            }
+            if (trainerUsername != null && !trainerUsername.isBlank()) {
+                hql.append(" AND t.trainer.username = :trainerUsername");
+            }
+            if (trainingTypeId != null) {
+                hql.append(" AND t.trainingType.id = :trainingTypeId");
+            }
 
-        var query = currentSession()
-                .createQuery(hql.toString(), TrainingEntity.class)
-                .setParameter("traineeUsername", traineeUsername);
+            var query = currentSession()
+                    .createQuery(hql.toString(), TrainingEntity.class)
+                    .setParameter("traineeUsername", traineeUsername);
 
-        if (fromDate != null) {
-            query.setParameter("fromDate", fromDate);
-        }
-        if (toDate != null) {
-            query.setParameter("toDate", toDate);
-        }
-        if (trainerUsername != null && !trainerUsername.isBlank()) {
-            query.setParameter("trainerUsername", trainerUsername);
-        }
-        if (trainingTypeId != null) {
-            query.setParameter("trainingTypeId", trainingTypeId);
-        }
+            if (fromDate != null) {
+                query.setParameter("fromDate", fromDate);
+            }
+            if (toDate != null) {
+                query.setParameter("toDate", toDate);
+            }
+            if (trainerUsername != null && !trainerUsername.isBlank()) {
+                query.setParameter("trainerUsername", trainerUsername);
+            }
+            if (trainingTypeId != null) {
+                query.setParameter("trainingTypeId", trainingTypeId);
+            }
 
-        List<TrainingEntity> trainings = query.getResultList();
-        log.debug("findByTraineeUsernameAndCriteria trainee={}, count={}", traineeUsername, trainings.size());
-        return trainings;
+            List<TrainingEntity> trainings = query.getResultList();
+            log.debug("findByTraineeUsernameAndCriteria trainee={}, count={}", traineeUsername, trainings.size());
+            return trainings;
+        });
     }
 
-    @Transactional(readOnly = true)
     public List<TrainingEntity> findByTrainerUsernameAndCriteria(
             String trainerUsername,
             LocalDate fromDate,
             LocalDate toDate,
             String traineeUsername) {
 
-        StringBuilder hql = new StringBuilder(FETCH_TRAINING + " WHERE t.trainer.username = :trainerUsername");
+        return transactionSupport.inReadOnlyTransaction(() -> {
+            StringBuilder hql = new StringBuilder(FETCH_TRAINING + " WHERE t.trainer.username = :trainerUsername");
 
-        if (fromDate != null) {
-            hql.append(" AND t.trainingDate >= :fromDate");
-        }
-        if (toDate != null) {
-            hql.append(" AND t.trainingDate <= :toDate");
-        }
-        if (traineeUsername != null && !traineeUsername.isBlank()) {
-            hql.append(" AND t.trainee.username = :traineeUsername");
-        }
+            if (fromDate != null) {
+                hql.append(" AND t.trainingDate >= :fromDate");
+            }
+            if (toDate != null) {
+                hql.append(" AND t.trainingDate <= :toDate");
+            }
+            if (traineeUsername != null && !traineeUsername.isBlank()) {
+                hql.append(" AND t.trainee.username = :traineeUsername");
+            }
 
-        var query = currentSession()
-                .createQuery(hql.toString(), TrainingEntity.class)
-                .setParameter("trainerUsername", trainerUsername);
+            var query = currentSession()
+                    .createQuery(hql.toString(), TrainingEntity.class)
+                    .setParameter("trainerUsername", trainerUsername);
 
-        if (fromDate != null) {
-            query.setParameter("fromDate", fromDate);
-        }
-        if (toDate != null) {
-            query.setParameter("toDate", toDate);
-        }
-        if (traineeUsername != null && !traineeUsername.isBlank()) {
-            query.setParameter("traineeUsername", traineeUsername);
-        }
+            if (fromDate != null) {
+                query.setParameter("fromDate", fromDate);
+            }
+            if (toDate != null) {
+                query.setParameter("toDate", toDate);
+            }
+            if (traineeUsername != null && !traineeUsername.isBlank()) {
+                query.setParameter("traineeUsername", traineeUsername);
+            }
 
-        List<TrainingEntity> trainings = query.getResultList();
-        log.debug("findByTrainerUsernameAndCriteria trainer={}, count={}", trainerUsername, trainings.size());
-        return trainings;
+            List<TrainingEntity> trainings = query.getResultList();
+            log.debug("findByTrainerUsernameAndCriteria trainer={}, count={}", trainerUsername, trainings.size());
+            return trainings;
+        });
     }
 }
