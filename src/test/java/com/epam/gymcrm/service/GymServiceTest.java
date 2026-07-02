@@ -113,27 +113,50 @@ class GymServiceTest {
     }
 
     @Test
-    void shouldNotRemoveTraineeWhenTrainingsExist() {
+    void shouldRejectSchedulingWhenTraineeInactive() {
+        TrainingDto request = TestDataFactory.trainingDto(1L, 2L);
+        when(traineeService.getActiveTrainee(1L))
+                .thenThrow(new InvalidOperationException("Trainee is inactive: id=1"));
+
+        assertThatThrownBy(() -> gymService.scheduleTraining(request))
+                .isInstanceOf(InvalidOperationException.class)
+                .hasMessageContaining("inactive");
+
+        verify(trainerService, never()).getActiveTrainerForSpecialization(2L, "YOGA");
+        verify(trainingService, never()).createTraining(org.mockito.ArgumentMatchers.any());
+    }
+
+    @Test
+    void shouldRejectSchedulingWhenTrainerInactive() {
+        TrainingDto request = TestDataFactory.trainingDto(1L, 2L);
         TraineeDto trainee = TestDataFactory.traineeDtoWithCredentials(1L, "Alice.Walker");
-        when(traineeService.getTrainee(1L)).thenReturn(trainee);
+        when(traineeService.getActiveTrainee(1L)).thenReturn(trainee);
+        when(trainerService.getActiveTrainerForSpecialization(2L, "YOGA"))
+                .thenThrow(new InvalidOperationException("Trainer is inactive: id=2"));
+
+        assertThatThrownBy(() -> gymService.scheduleTraining(request))
+                .isInstanceOf(InvalidOperationException.class)
+                .hasMessageContaining("inactive");
+
+        verify(trainingService, never()).createTraining(org.mockito.ArgumentMatchers.any());
+    }
+
+    @Test
+    void shouldNotRemoveTraineeWhenTrainingsExist() {
         when(trainingService.existsByTraineeId(1L)).thenReturn(true);
 
         assertThatThrownBy(() -> gymService.removeTraineeProfile(1L))
                 .isInstanceOf(InvalidOperationException.class);
 
-        verify(traineeService, times(1)).getTrainee(1L);
         verify(traineeService, never()).deleteTrainee(1L);
     }
 
     @Test
     void shouldRemoveTraineeWhenNoTrainingsExist() {
-        TraineeDto trainee = TestDataFactory.traineeDtoWithCredentials(1L, "Alice.Walker");
-        when(traineeService.getTrainee(1L)).thenReturn(trainee);
         when(trainingService.existsByTraineeId(1L)).thenReturn(false);
 
         gymService.removeTraineeProfile(1L);
 
-        verify(traineeService, times(1)).getTrainee(1L);
         verify(traineeService, times(1)).deleteTrainee(1L);
     }
 }

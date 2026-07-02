@@ -51,14 +51,13 @@ public class TrainerService {
 
     @Transactional(readOnly = true)
     public TrainerDto getTrainer(Long id) {
-        TrainerEntity trainer = trainerRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Trainer not found with id: " + id));
-        return trainerMapper.toDto(trainer);
+        return trainerMapper.toDto(getActiveEntity(id));
     }
 
     @Transactional(readOnly = true)
     public List<TrainerDto> getAllTrainers() {
         return trainerRepository.findAll()
+                .filter(TrainerEntity::isActive)
                 .map(trainerMapper::toDto)
                 .toList();
     }
@@ -67,6 +66,9 @@ public class TrainerService {
     public TrainerDto getTrainerByUsername(String username) {
         TrainerEntity trainer = trainerRepository.findByUsername(username)
                 .orElseThrow(() -> new EntityNotFoundException("Trainer not found with username: " + username));
+        if (!trainer.isActive()) {
+            throw new InvalidOperationException("Trainer is inactive: username=" + username);
+        }
         return trainerMapper.toDto(trainer);
     }
 

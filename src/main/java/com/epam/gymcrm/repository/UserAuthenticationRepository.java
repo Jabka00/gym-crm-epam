@@ -13,7 +13,8 @@ import org.springframework.transaction.annotation.Transactional;
 public class UserAuthenticationRepository {
 
     private static final String HQL_AUTHENTICATE_USER =
-            "SELECT COUNT(u) FROM UserEntity u WHERE u.username = :username AND u.password = :password";
+            "SELECT COUNT(u) FROM UserEntity u "
+                    + "WHERE u.username = :username AND u.password = :password AND u.active = true";
 
     private final SessionFactory sessionFactory;
 

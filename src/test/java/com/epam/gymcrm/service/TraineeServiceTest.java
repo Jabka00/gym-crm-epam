@@ -19,7 +19,9 @@ import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.List;
 import java.util.Optional;
+import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -146,6 +148,34 @@ class TraineeServiceTest {
         when(traineeRepository.findById(2L)).thenReturn(Optional.of(trainee));
 
         assertThatThrownBy(() -> traineeService.getActiveTrainee(2L))
+                .isInstanceOf(InvalidOperationException.class)
+                .hasMessageContaining("inactive");
+
+        assertThatThrownBy(() -> traineeService.getTrainee(2L))
+                .isInstanceOf(InvalidOperationException.class)
+                .hasMessageContaining("inactive");
+    }
+
+    @Test
+    void shouldReturnOnlyActiveTrainees() {
+        TraineeEntity active = TestDataFactory.traineeWithId(1L, "Active.User");
+        TraineeEntity inactive = TestDataFactory.traineeWithId(2L, "Inactive.User");
+        inactive.setActive(false);
+        when(traineeRepository.findAll()).thenReturn(Stream.of(active, inactive));
+
+        List<TraineeDto> actual = traineeService.getAllTrainees();
+
+        assertThat(actual).hasSize(1);
+        assertThat(actual.getFirst().getId()).isEqualTo(1L);
+    }
+
+    @Test
+    void shouldThrowWhenGettingInactiveTraineeByUsername() {
+        TraineeEntity trainee = TestDataFactory.traineeWithId(2L, "Inactive.User");
+        trainee.setActive(false);
+        when(traineeRepository.findByUsername("Inactive.User")).thenReturn(Optional.of(trainee));
+
+        assertThatThrownBy(() -> traineeService.getTraineeByUsername("Inactive.User"))
                 .isInstanceOf(InvalidOperationException.class)
                 .hasMessageContaining("inactive");
     }

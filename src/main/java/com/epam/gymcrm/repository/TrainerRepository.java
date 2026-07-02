@@ -91,7 +91,7 @@ public class TrainerRepository {
         return currentSession()
                 .createQuery(
                         "FROM TrainerEntity tr LEFT JOIN FETCH tr.specialization "
-                                + "WHERE tr.id NOT IN "
+                                + "WHERE tr.active = true AND tr.id NOT IN "
                                 + "(SELECT t.id FROM TraineeEntity te JOIN te.trainers t WHERE te.username = :username)",
                         TrainerEntity.class)
                 .setParameter("username", traineeUsername)

@@ -72,24 +72,18 @@ public class TraineeService {
 
     @Transactional(readOnly = true)
     public TraineeDto getTrainee(Long id) {
-        TraineeEntity trainee = traineeRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Trainee not found with id: " + id));
-        return traineeMapper.toDto(trainee);
+        return traineeMapper.toDto(requireActiveTrainee(id));
     }
 
     @Transactional(readOnly = true)
     public TraineeDto getActiveTrainee(Long id) {
-        TraineeEntity trainee = traineeRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Trainee not found with id: " + id));
-        if (!trainee.isActive()) {
-            throw new InvalidOperationException("Trainee is inactive: id=" + id);
-        }
-        return traineeMapper.toDto(trainee);
+        return getTrainee(id);
     }
 
     @Transactional(readOnly = true)
     public List<TraineeDto> getAllTrainees() {
         return traineeRepository.findAll()
+                .filter(TraineeEntity::isActive)
                 .map(traineeMapper::toDto)
                 .toList();
     }
@@ -98,6 +92,9 @@ public class TraineeService {
     public TraineeDto getTraineeByUsername(String username) {
         TraineeEntity trainee = traineeRepository.findByUsername(username)
                 .orElseThrow(() -> new EntityNotFoundException("Trainee not found with username: " + username));
+        if (!trainee.isActive()) {
+            throw new InvalidOperationException("Trainee is inactive: username=" + username);
+        }
         return traineeMapper.toDto(trainee);
     }
 
@@ -135,6 +132,9 @@ public class TraineeService {
             TrainerEntity trainer = trainerRepository.findByUsername(trainerUsername)
                     .orElseThrow(() -> new EntityNotFoundException(
                             "Trainer not found with username: " + trainerUsername));
+            if (!trainer.isActive()) {
+                throw new InvalidOperationException("Trainer is inactive: username=" + trainerUsername);
+            }
 
             trainee.getTrainers().add(trainer);
             trainer.getTrainees().add(trainee);
@@ -151,7 +151,17 @@ public class TraineeService {
         }
 
         return trainerRepository.findNotAssignedToTrainee(traineeUsername).stream()
+                .filter(TrainerEntity::isActive)
                 .map(trainerMapper::toDto)
                 .toList();
+    }
+
+    private TraineeEntity requireActiveTrainee(Long id) {
+        TraineeEntity trainee = traineeRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Trainee not found with id: " + id));
+        if (!trainee.isActive()) {
+            throw new InvalidOperationException("Trainee is inactive: id=" + id);
+        }
+        return trainee;
     }
 }

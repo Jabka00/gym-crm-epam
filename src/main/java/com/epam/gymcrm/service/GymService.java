@@ -42,7 +42,6 @@ public class GymService {
     }
 
     public void removeTraineeProfile(Long traineeId) {
-        traineeService.getTrainee(traineeId);
         if (trainingService.existsByTraineeId(traineeId)) {
             throw new InvalidOperationException(
                     "Cannot remove trainee id=" + traineeId + ": active trainings exist");

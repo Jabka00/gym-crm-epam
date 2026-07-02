@@ -4,6 +4,7 @@ import com.epam.gymcrm.dto.TrainingDto;
 import com.epam.gymcrm.entity.TrainingEntity;
 import com.epam.gymcrm.entity.TrainingTypeEntity;
 import com.epam.gymcrm.exception.EntityNotFoundException;
+import com.epam.gymcrm.exception.InvalidOperationException;
 import com.epam.gymcrm.mapper.TrainingMapper;
 import com.epam.gymcrm.repository.TraineeRepository;
 import com.epam.gymcrm.repository.TrainerRepository;
@@ -33,12 +34,22 @@ public class TrainingService {
         validateTrainingDto(trainingDto);
 
         TrainingEntity training = trainingMapper.toEntity(trainingDto);
-        training.setTrainee(traineeRepository.findById(trainingDto.getTrainee().getId())
+        var trainee = traineeRepository.findById(trainingDto.getTrainee().getId())
                 .orElseThrow(() -> new EntityNotFoundException(
-                        "Trainee not found with id: " + trainingDto.getTrainee().getId())));
-        training.setTrainer(trainerRepository.findById(trainingDto.getTrainer().getId())
+                        "Trainee not found with id: " + trainingDto.getTrainee().getId()));
+        if (!trainee.isActive()) {
+            throw new InvalidOperationException(
+                    "Trainee is inactive: id=" + trainingDto.getTrainee().getId());
+        }
+        var trainer = trainerRepository.findById(trainingDto.getTrainer().getId())
                 .orElseThrow(() -> new EntityNotFoundException(
-                        "Trainer not found with id: " + trainingDto.getTrainer().getId())));
+                        "Trainer not found with id: " + trainingDto.getTrainer().getId()));
+        if (!trainer.isActive()) {
+            throw new InvalidOperationException(
+                    "Trainer is inactive: id=" + trainingDto.getTrainer().getId());
+        }
+        training.setTrainee(trainee);
+        training.setTrainer(trainer);
         training.setTrainingType(resolveTrainingType(trainingDto));
 
         TrainingEntity created = trainingRepository.save(training);

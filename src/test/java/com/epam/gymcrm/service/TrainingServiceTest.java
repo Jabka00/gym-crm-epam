@@ -6,6 +6,7 @@ import com.epam.gymcrm.entity.TrainerEntity;
 import com.epam.gymcrm.entity.TrainingEntity;
 import com.epam.gymcrm.entity.TrainingTypeEntity;
 import com.epam.gymcrm.exception.EntityNotFoundException;
+import com.epam.gymcrm.exception.InvalidOperationException;
 import com.epam.gymcrm.mapper.TrainingMapper;
 import com.epam.gymcrm.repository.TraineeRepository;
 import com.epam.gymcrm.repository.TrainerRepository;
@@ -163,6 +164,38 @@ class TrainingServiceTest {
         verify(traineeRepository, times(1)).findById(1L);
         verify(trainerRepository, times(1)).findById(2L);
         verify(trainingTypeRepository, never()).findById(1L);
+        verify(trainingRepository, never()).save(org.mockito.ArgumentMatchers.any(TrainingEntity.class));
+    }
+
+    @Test
+    void shouldThrowWhenCreatingTrainingForInactiveTrainee() {
+        TrainingDto request = TestDataFactory.trainingDto(1L, 2L);
+        TraineeEntity inactiveTrainee = TestDataFactory.traineeWithId(1L, "Inactive.User");
+        inactiveTrainee.setActive(false);
+        when(trainingMapper.toEntity(request)).thenReturn(new TrainingEntity());
+        when(traineeRepository.findById(1L)).thenReturn(Optional.of(inactiveTrainee));
+
+        assertThatThrownBy(() -> trainingService.createTraining(request))
+                .isInstanceOf(InvalidOperationException.class)
+                .hasMessageContaining("inactive");
+
+        verify(trainerRepository, never()).findById(2L);
+        verify(trainingRepository, never()).save(org.mockito.ArgumentMatchers.any(TrainingEntity.class));
+    }
+
+    @Test
+    void shouldThrowWhenCreatingTrainingForInactiveTrainer() {
+        TrainingDto request = TestDataFactory.trainingDto(1L, 2L);
+        TrainerEntity inactiveTrainer = TestDataFactory.trainerWithId(2L, "Inactive.Trainer");
+        inactiveTrainer.setActive(false);
+        when(trainingMapper.toEntity(request)).thenReturn(new TrainingEntity());
+        when(traineeRepository.findById(1L)).thenReturn(Optional.of(TestDataFactory.traineeWithId(1L, "Alice.Walker")));
+        when(trainerRepository.findById(2L)).thenReturn(Optional.of(inactiveTrainer));
+
+        assertThatThrownBy(() -> trainingService.createTraining(request))
+                .isInstanceOf(InvalidOperationException.class)
+                .hasMessageContaining("inactive");
+
         verify(trainingRepository, never()).save(org.mockito.ArgumentMatchers.any(TrainingEntity.class));
     }
 }
