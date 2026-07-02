@@ -121,6 +121,19 @@ public class TrainingRepository {
         });
     }
 
+    public boolean existsByTraineeId(Long traineeId) {
+        return transactionSupport.inReadOnlyTransaction(() -> {
+            Long count = currentSession()
+                    .createQuery(
+                            "SELECT COUNT(t) FROM TrainingEntity t WHERE t.trainee.id = :traineeId",
+                            Long.class)
+                    .setParameter("traineeId", traineeId)
+                    .getSingleResult();
+            log.debug("existsByTraineeId traineeId={}, count={}", traineeId, count);
+            return count > 0;
+        });
+    }
+
     public List<TrainingEntity> findByTrainerUsernameAndCriteria(
             String trainerUsername,
             LocalDate fromDate,

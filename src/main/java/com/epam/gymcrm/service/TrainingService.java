@@ -80,8 +80,7 @@ public class TrainingService {
 
     @Transactional(readOnly = true)
     public boolean existsByTraineeId(Long traineeId) {
-        return trainingRepository.findAll()
-                .anyMatch(training -> traineeId.equals(training.getTrainee().getId()));
+        return trainingRepository.existsByTraineeId(traineeId);
     }
 
     @Transactional(readOnly = true)

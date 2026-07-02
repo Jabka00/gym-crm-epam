@@ -30,7 +30,6 @@
 
         <hibernate.version>6.4.4.Final</hibernate.version>
         <jakarta.persistence.version>3.1.0</jakarta.persistence.version>
-        <h2.version>2.2.224</h2.version>
         <mysql.version>8.4.0</mysql.version>
         <hikaricp.version>5.1.0</hikaricp.version>
         <mapstruct.version>1.6.3</mapstruct.version>
@@ -79,13 +78,6 @@
             <groupId>com.zaxxer</groupId>
             <artifactId>HikariCP</artifactId>
             <version>${hikaricp.version}</version>
-        </dependency>
-
-        <dependency>
-            <groupId>com.h2database</groupId>
-            <artifactId>h2</artifactId>
-            <version>${h2.version}</version>
-            <scope>test</scope>
         </dependency>
 
         <dependency>

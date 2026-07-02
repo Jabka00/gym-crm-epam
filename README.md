@@ -24,14 +24,15 @@ docker compose down
 ## Tests
 
 ```bash
+docker compose up -d
 mvn test
 ```
 
-Tests use in-memory H2. Docker is not required.
+Integration tests use the same MySQL instance as the app (`gymdb` on port `3306`). Seed data from `docker/mysql/init/` must be present.
 
 ## Database
 
-MySQL runs in Docker on port `3306`. Schema and seed data are applied on first start from `docker/mysql/init/`.
+MySQL runs in Docker on port `3306`. Schema and seed data are applied on first container start from `docker/mysql/init/`.
 
 | | |
 |---|---|

@@ -78,6 +78,18 @@ public class TrainerRepository {
     }
 
     @Transactional(readOnly = true)
+    public Optional<TrainerEntity> findActiveBySpecialization(String typeName) {
+        return currentSession()
+                .createQuery(
+                        "FROM TrainerEntity tr LEFT JOIN FETCH tr.specialization "
+                                + "WHERE tr.active = true AND tr.specialization.typeName = :typeName",
+                        TrainerEntity.class)
+                .setParameter("typeName", typeName)
+                .setMaxResults(1)
+                .uniqueResultOptional();
+    }
+
+    @Transactional(readOnly = true)
     public List<TrainerEntity> findNotAssignedToTrainee(String traineeUsername) {
         return currentSession()
                 .createQuery(

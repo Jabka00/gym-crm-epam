@@ -1,29 +1,14 @@
 package com.epam.gymcrm.repository;
 
-import com.epam.gymcrm.config.AppConfig;
 import com.epam.gymcrm.entity.TrainingEntity;
+import com.epam.gymcrm.support.MySqlIntegrationTest;
 import com.epam.gymcrm.support.TestDataFactory;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.TestPropertySource;
-import org.springframework.test.context.junit.jupiter.SpringExtension;
-import org.springframework.transaction.annotation.Transactional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@ExtendWith(SpringExtension.class)
-@ContextConfiguration(classes = AppConfig.class)
-@TestPropertySource(properties = {
-        "db.url=jdbc:h2:mem:training_repository_test;DB_CLOSE_DELAY=-1",
-        "db.username=sa",
-        "db.password=",
-        "db.driver=org.h2.Driver",
-        "hibernate.dialect=org.hibernate.dialect.H2Dialect",
-        "db.init.enabled=true"
-})
-@Transactional
+@MySqlIntegrationTest
 class TrainingRepositoryTest {
 
     @Autowired

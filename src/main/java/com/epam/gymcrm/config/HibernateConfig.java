@@ -9,10 +9,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.DependsOn;
-import org.springframework.core.io.ClassPathResource;
-import org.springframework.jdbc.datasource.init.DataSourceInitializer;
-import org.springframework.jdbc.datasource.init.ResourceDatabasePopulator;
 import org.springframework.orm.hibernate5.HibernateTransactionManager;
 import org.springframework.orm.hibernate5.LocalSessionFactoryBean;
 import org.springframework.stereotype.Component;
@@ -51,7 +47,7 @@ public class HibernateConfig {
     @Setter
     @Component
     public static class HibernateProperties {
-        @Value("${hibernate.dialect:org.hibernate.dialect.H2Dialect}")
+        @Value("${hibernate.dialect:org.hibernate.dialect.MySQLDialect}")
         private String dialect;
 
         @Value("${hibernate.show_sql:true}")
@@ -65,27 +61,6 @@ public class HibernateConfig {
 
         @Value("${hibernate.jdbc.batch_size:20}")
         private int batchSize;
-    }
-
-    @Bean
-    public DataSourceInitializer dataSourceInitializer(
-            DataSource dataSource,
-            @Value("${db.init.enabled:false}") boolean initEnabled) {
-
-        DataSourceInitializer initializer = new DataSourceInitializer();
-        initializer.setDataSource(dataSource);
-
-        if (initEnabled) {
-            ResourceDatabasePopulator populator = new ResourceDatabasePopulator();
-            populator.addScript(new ClassPathResource("schema.sql"));
-            populator.addScript(new ClassPathResource("data.sql"));
-            initializer.setDatabasePopulator(populator);
-            log.info("Database initialization enabled via classpath SQL scripts");
-        } else {
-            log.info("Database initialization disabled; expecting schema/data from external source (e.g. Docker)");
-        }
-
-        return initializer;
     }
 
     @Bean
@@ -106,7 +81,6 @@ public class HibernateConfig {
     }
 
     @Bean
-    @DependsOn("dataSourceInitializer")
     public LocalSessionFactoryBean sessionFactory(DataSource dataSource) {
         LocalSessionFactoryBean sessionFactory = new LocalSessionFactoryBean();
         sessionFactory.setDataSource(dataSource);

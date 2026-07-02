@@ -59,7 +59,12 @@ public class TraineeRepository {
     @Transactional(readOnly = true)
     public Optional<TraineeEntity> findById(Long id) {
         log.debug("findById trainee id={}", id);
-        return Optional.ofNullable(currentSession().get(TraineeEntity.class, id));
+        return currentSession()
+                .createQuery(
+                        "FROM TraineeEntity t LEFT JOIN FETCH t.trainers WHERE t.id = :id",
+                        TraineeEntity.class)
+                .setParameter("id", id)
+                .uniqueResultOptional();
     }
 
     @Transactional(readOnly = true)

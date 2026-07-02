@@ -180,23 +180,21 @@ class TrainerServiceTest {
     @Test
     void shouldFindActiveTrainerBySpecialization() {
         TrainerEntity active = TestDataFactory.trainerWithId(5L, "John.Smith");
-        TrainerEntity inactive = TestDataFactory.trainerWithId(6L, "Inactive.Trainer");
-        inactive.setActive(false);
-        when(trainerRepository.findAll()).thenReturn(Stream.of(inactive, active));
+        when(trainerRepository.findActiveBySpecialization("YOGA")).thenReturn(Optional.of(active));
 
         TrainerDto actual = trainerService.findActiveBySpecialization("YOGA");
 
         assertThat(actual.getId()).isEqualTo(5L);
-        verify(trainerRepository, times(1)).findAll();
+        verify(trainerRepository, times(1)).findActiveBySpecialization("YOGA");
     }
 
     @Test
     void shouldThrowWhenNoActiveTrainerForSpecialization() {
-        when(trainerRepository.findAll()).thenReturn(Stream.empty());
+        when(trainerRepository.findActiveBySpecialization("YOGA")).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> trainerService.findActiveBySpecialization("YOGA"))
                 .isInstanceOf(EntityNotFoundException.class);
 
-        verify(trainerRepository, times(1)).findAll();
+        verify(trainerRepository, times(1)).findActiveBySpecialization("YOGA");
     }
 }

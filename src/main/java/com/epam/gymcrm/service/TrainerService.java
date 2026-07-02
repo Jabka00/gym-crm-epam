@@ -92,10 +92,7 @@ public class TrainerService {
 
     @Transactional(readOnly = true)
     public TrainerDto findActiveBySpecialization(String typeName) {
-        TrainerEntity trainer = trainerRepository.findAll()
-                .filter(TrainerEntity::isActive)
-                .filter(t -> t.matchesSpecialization(typeName))
-                .findFirst()
+        TrainerEntity trainer = trainerRepository.findActiveBySpecialization(typeName)
                 .orElseThrow(() -> new EntityNotFoundException(
                         "No active trainer found for type: " + typeName));
         return trainerMapper.toDto(trainer);

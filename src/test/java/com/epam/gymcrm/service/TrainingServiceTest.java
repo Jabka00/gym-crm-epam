@@ -21,7 +21,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.Optional;
-import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -112,10 +111,8 @@ class TrainingServiceTest {
 
     @Test
     void shouldDetectExistingTrainingsByTraineeId() {
-        TrainingEntity training = TestDataFactory.trainingWithId(7L, 1L, 2L);
-        when(trainingRepository.findAll())
-                .thenReturn(Stream.of(training))
-                .thenReturn(Stream.of(training));
+        when(trainingRepository.existsByTraineeId(1L)).thenReturn(true);
+        when(trainingRepository.existsByTraineeId(99L)).thenReturn(false);
 
         assertThat(trainingService.existsByTraineeId(1L)).isTrue();
         assertThat(trainingService.existsByTraineeId(99L)).isFalse();
