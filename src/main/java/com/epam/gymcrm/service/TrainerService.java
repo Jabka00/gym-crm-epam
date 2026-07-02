@@ -5,7 +5,6 @@ import com.epam.gymcrm.entity.TrainerEntity;
 import com.epam.gymcrm.exception.EntityNotFoundException;
 import com.epam.gymcrm.exception.InvalidOperationException;
 import com.epam.gymcrm.mapper.TrainerMapper;
-import com.epam.gymcrm.model.TrainingType;
 import com.epam.gymcrm.repository.TrainerRepository;
 import com.epam.gymcrm.util.UserInitializationUtil;
 import lombok.RequiredArgsConstructor;
@@ -86,23 +85,23 @@ public class TrainerService {
     }
 
     @Transactional(readOnly = true)
-    public TrainerDto getActiveTrainerForSpecialization(Long id, TrainingType type) {
+    public TrainerDto getActiveTrainerForSpecialization(Long id, String typeName) {
         TrainerEntity trainer = getActiveEntity(id);
-        if (!trainer.matchesSpecialization(type)) {
+        if (!trainer.matchesSpecialization(typeName)) {
             throw new InvalidOperationException(
-                    "Trainer specialization does not match training type: " + type);
+                    "Trainer specialization does not match training type: " + typeName);
         }
         return trainerMapper.toDto(trainer);
     }
 
     @Transactional(readOnly = true)
-    public TrainerDto findActiveBySpecialization(TrainingType type) {
+    public TrainerDto findActiveBySpecialization(String typeName) {
         TrainerEntity trainer = trainerRepository.findAll()
                 .filter(TrainerEntity::isActive)
-                .filter(t -> t.matchesSpecialization(type))
+                .filter(t -> t.matchesSpecialization(typeName))
                 .findFirst()
                 .orElseThrow(() -> new EntityNotFoundException(
-                        "No active trainer found for type: " + type));
+                        "No active trainer found for type: " + typeName));
         return trainerMapper.toDto(trainer);
     }
 

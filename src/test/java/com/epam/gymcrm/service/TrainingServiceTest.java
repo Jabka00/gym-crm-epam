@@ -4,7 +4,6 @@ import com.epam.gymcrm.dto.request.AutoScheduleTrainingRequest;
 import com.epam.gymcrm.dto.request.ScheduleTrainingRequest;
 import com.epam.gymcrm.dto.response.Training;
 import com.epam.gymcrm.entity.TrainingEntity;
-import com.epam.gymcrm.model.TrainingType;
 import com.epam.gymcrm.exception.EntityNotFoundException;
 import com.epam.gymcrm.mapper.TrainingMapper;
 import com.epam.gymcrm.repository.TrainingRepository;
@@ -59,7 +58,7 @@ class TrainingServiceTest {
         Training response = trainingService.getById(10L);
 
         Training expected = new Training(
-                10L, "Morning Yoga", TrainingType.YOGA,
+                10L, "Morning Yoga", "YOGA",
                 LocalDate.of(2024, 3, 1), Duration.ofMinutes(60), 1L, 2L);
         assertThat(response).isEqualTo(expected);
     }
@@ -81,7 +80,7 @@ class TrainingServiceTest {
         List<Training> all = trainingService.findAll();
 
         Training expected = new Training(
-                7L, "Morning Yoga", TrainingType.YOGA,
+                7L, "Morning Yoga", "YOGA",
                 LocalDate.of(2024, 3, 1), Duration.ofMinutes(60), 1L, 2L);
         assertThat(all).containsExactly(expected);
     }
@@ -123,13 +122,13 @@ class TrainingServiceTest {
         when(trainingRepository.save(any(TrainingEntity.class))).thenAnswer(inv -> inv.getArgument(0));
 
         ScheduleTrainingRequest request = new ScheduleTrainingRequest(
-                1L, 2L, "Morning Yoga", TrainingType.YOGA,
+                1L, 2L, "Morning Yoga", "YOGA",
                 LocalDate.of(2024, 3, 1), Duration.ofMinutes(60));
 
         Training result = trainingService.schedule(request);
 
         Training expected = new Training(
-                1L, "Morning Yoga", TrainingType.YOGA,
+                1L, "Morning Yoga", "YOGA",
                 LocalDate.of(2024, 3, 1), Duration.ofMinutes(60), 1L, 2L);
         assertThat(result).isEqualTo(expected);
 
@@ -149,13 +148,13 @@ class TrainingServiceTest {
         when(trainingRepository.save(any(TrainingEntity.class))).thenAnswer(inv -> inv.getArgument(0));
 
         AutoScheduleTrainingRequest request = new AutoScheduleTrainingRequest(
-                1L, "Boxing Session", TrainingType.BOXING,
+                1L, "Boxing Session", "BOXING",
                 LocalDate.of(2024, 3, 1), Duration.ofMinutes(45));
 
         Training result = trainingService.autoSchedule(request, 5L);
 
         Training expected = new Training(
-                1L, "Boxing Session", TrainingType.BOXING,
+                1L, "Boxing Session", "BOXING",
                 LocalDate.of(2024, 3, 1), Duration.ofMinutes(45), 1L, 5L);
         assertThat(result).isEqualTo(expected);
 
@@ -173,7 +172,7 @@ class TrainingServiceTest {
                 .thenThrow(new EntityNotFoundException("Trainee not found: id=1"));
 
         ScheduleTrainingRequest request = new ScheduleTrainingRequest(
-                1L, 2L, "Morning Yoga", TrainingType.YOGA,
+                1L, 2L, "Morning Yoga", "YOGA",
                 LocalDate.of(2024, 3, 1), Duration.ofMinutes(60));
 
         assertThatThrownBy(() -> trainingService.schedule(request))
@@ -189,7 +188,7 @@ class TrainingServiceTest {
                 .thenThrow(new EntityNotFoundException("Trainer not found: id=2"));
 
         ScheduleTrainingRequest request = new ScheduleTrainingRequest(
-                1L, 2L, "Morning Yoga", TrainingType.YOGA,
+                1L, 2L, "Morning Yoga", "YOGA",
                 LocalDate.of(2024, 3, 1), Duration.ofMinutes(60));
 
         assertThatThrownBy(() -> trainingService.schedule(request))

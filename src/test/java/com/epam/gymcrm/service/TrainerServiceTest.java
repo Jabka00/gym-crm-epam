@@ -5,8 +5,6 @@ import com.epam.gymcrm.dto.request.UpdateTrainerRequest;
 import com.epam.gymcrm.dto.request.UserInfo;
 import com.epam.gymcrm.dto.response.Trainer;
 import com.epam.gymcrm.entity.TrainerEntity;
-import com.epam.gymcrm.entity.TrainingTypeEntity;
-import com.epam.gymcrm.model.TrainingType;
 import com.epam.gymcrm.exception.EntityNotFoundException;
 import com.epam.gymcrm.exception.InvalidOperationException;
 import com.epam.gymcrm.mapper.TrainerMapper;
@@ -63,11 +61,11 @@ class TrainerServiceTest {
         when(trainerRepository.save(any(TrainerEntity.class))).thenAnswer(inv -> inv.getArgument(0));
 
         CreateTrainerRequest request = new CreateTrainerRequest(
-                new UserInfo("John", "Smith"), TrainingType.YOGA);
+                new UserInfo("John", "Smith"), "YOGA");
 
         Trainer created = trainerService.create(request);
 
-        Trainer expected = new Trainer(1L, "John Smith", "John.Smith", TrainingType.YOGA);
+        Trainer expected = new Trainer(1L, "John Smith", "John.Smith", "YOGA");
         assertThat(created).isEqualTo(expected);
 
         ArgumentCaptor<TrainerEntity> captor = ArgumentCaptor.forClass(TrainerEntity.class);
@@ -86,11 +84,11 @@ class TrainerServiceTest {
         when(trainerRepository.save(any(TrainerEntity.class))).thenAnswer(inv -> inv.getArgument(0));
 
         UpdateTrainerRequest request = new UpdateTrainerRequest(
-                1L, new UserInfo("John", "Smith"), TrainingType.BOXING, true);
+                1L, new UserInfo("John", "Smith"), "BOXING", true);
 
         Trainer updated = trainerService.update(request);
 
-        Trainer expected = new Trainer(1L, "John Smith", "John.Smith", TrainingType.BOXING);
+        Trainer expected = new Trainer(1L, "John Smith", "John.Smith", "BOXING");
         assertThat(updated).isEqualTo(expected);
         verify(usernameGenerator, never()).generateUsername(any(), any());
         verify(trainerRepository, times(1)).save(existing);
@@ -106,11 +104,11 @@ class TrainerServiceTest {
                 .thenReturn("John.Doe");
 
         UpdateTrainerRequest request = new UpdateTrainerRequest(
-                1L, new UserInfo("John", "Doe"), TrainingType.YOGA, true);
+                1L, new UserInfo("John", "Doe"), "YOGA", true);
 
         Trainer updated = trainerService.update(request);
 
-        Trainer expected = new Trainer(1L, "John Doe", "John.Doe", TrainingType.YOGA);
+        Trainer expected = new Trainer(1L, "John Doe", "John.Doe", "YOGA");
         assertThat(updated).isEqualTo(expected);
         verify(usernameGenerator, times(1))
                 .generateUsername(eq("John"), eq("Doe"));
@@ -121,7 +119,7 @@ class TrainerServiceTest {
         when(trainerRepository.findById(99L)).thenReturn(Optional.empty());
 
         UpdateTrainerRequest request = new UpdateTrainerRequest(
-                99L, new UserInfo("John", "Smith"), TrainingType.YOGA, true);
+                99L, new UserInfo("John", "Smith"), "YOGA", true);
 
         assertThatThrownBy(() -> trainerService.update(request))
                 .isInstanceOf(EntityNotFoundException.class)
@@ -138,7 +136,7 @@ class TrainerServiceTest {
 
         Trainer response = trainerService.getById(1L);
 
-        Trainer expected = new Trainer(1L, "John Smith", "John.Smith", TrainingType.YOGA);
+        Trainer expected = new Trainer(1L, "John Smith", "John.Smith", "YOGA");
         assertThat(response).isEqualTo(expected);
     }
 
@@ -150,7 +148,7 @@ class TrainerServiceTest {
 
         List<Trainer> all = trainerService.findAll();
 
-        Trainer expected = new Trainer(1L, "John Smith", "John.Smith", TrainingType.YOGA);
+        Trainer expected = new Trainer(1L, "John Smith", "John.Smith", "YOGA");
         assertThat(all).containsExactly(expected);
     }
 
@@ -178,10 +176,10 @@ class TrainerServiceTest {
     void shouldThrowWhenSpecializationDoesNotMatch() {
         TrainerEntity trainer = TestDataFactory.createTrainerWithCredentials();
         trainer.setId(2L);
-        trainer.setSpecialization(TrainingTypeEntity.of(TrainingType.BOXING));
+        trainer.setSpecialization(TestDataFactory.trainingType("BOXING"));
         when(trainerRepository.findById(2L)).thenReturn(Optional.of(trainer));
 
-        assertThatThrownBy(() -> trainerService.getActiveForSpecialization(2L, TrainingType.YOGA))
+        assertThatThrownBy(() -> trainerService.getActiveForSpecialization(2L, "YOGA"))
                 .isInstanceOf(InvalidOperationException.class)
                 .hasMessageContaining("specialization");
     }
@@ -192,9 +190,9 @@ class TrainerServiceTest {
         trainer.setId(2L);
         when(trainerRepository.findById(2L)).thenReturn(Optional.of(trainer));
 
-        Trainer response = trainerService.getActiveForSpecialization(2L, TrainingType.YOGA);
+        Trainer response = trainerService.getActiveForSpecialization(2L, "YOGA");
 
-        Trainer expected = new Trainer(2L, "John Smith", "John.Smith", TrainingType.YOGA);
+        Trainer expected = new Trainer(2L, "John Smith", "John.Smith", "YOGA");
         assertThat(response).isEqualTo(expected);
     }
 
@@ -204,9 +202,9 @@ class TrainerServiceTest {
         trainer.setId(5L);
         when(trainerRepository.findAll()).thenAnswer(inv -> Stream.of(trainer));
 
-        Trainer response = trainerService.findActiveBySpecialization(TrainingType.YOGA);
+        Trainer response = trainerService.findActiveBySpecialization("YOGA");
 
-        Trainer expected = new Trainer(5L, "John Smith", "John.Smith", TrainingType.YOGA);
+        Trainer expected = new Trainer(5L, "John Smith", "John.Smith", "YOGA");
         assertThat(response).isEqualTo(expected);
     }
 
@@ -214,7 +212,7 @@ class TrainerServiceTest {
     void shouldThrowWhenNoActiveTrainerForSpecialization() {
         when(trainerRepository.findAll()).thenAnswer(inv -> Stream.empty());
 
-        assertThatThrownBy(() -> trainerService.findActiveBySpecialization(TrainingType.YOGA))
+        assertThatThrownBy(() -> trainerService.findActiveBySpecialization("YOGA"))
                 .isInstanceOf(EntityNotFoundException.class);
     }
 }

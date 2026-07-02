@@ -1,7 +1,7 @@
 package com.epam.gymcrm.repository;
 
 import com.epam.gymcrm.config.AppConfig;
-import com.epam.gymcrm.model.TrainingType;
+import com.epam.gymcrm.entity.TrainingTypeEntity;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,7 +14,14 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 @ExtendWith(SpringExtension.class)
 @ContextConfiguration(classes = AppConfig.class)
-@TestPropertySource(properties = "db.url=jdbc:h2:mem:training_type_repository_test;DB_CLOSE_DELAY=-1")
+@TestPropertySource(properties = {
+        "db.url=jdbc:h2:mem:training_type_repository_test;DB_CLOSE_DELAY=-1",
+        "db.username=sa",
+        "db.password=",
+        "db.driver=org.h2.Driver",
+        "hibernate.dialect=org.hibernate.dialect.H2Dialect",
+        "db.init.enabled=true"
+})
 @Transactional
 class TrainingTypeRepositoryTest {
 
@@ -26,8 +33,8 @@ class TrainingTypeRepositoryTest {
         assertThat(trainingTypeRepository.findById(1L))
                 .isPresent()
                 .get()
-                .extracting(type -> type.toEnum())
-                .isEqualTo(TrainingType.YOGA);
+                .extracting(TrainingTypeEntity::getTypeName)
+                .isEqualTo("YOGA");
     }
 
     @Test

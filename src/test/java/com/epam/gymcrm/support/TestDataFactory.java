@@ -4,7 +4,6 @@ import com.epam.gymcrm.entity.TraineeEntity;
 import com.epam.gymcrm.entity.TrainerEntity;
 import com.epam.gymcrm.entity.TrainingEntity;
 import com.epam.gymcrm.entity.TrainingTypeEntity;
-import com.epam.gymcrm.model.TrainingType;
 
 import java.time.LocalDate;
 
@@ -13,11 +12,17 @@ public final class TestDataFactory {
     private TestDataFactory() {
     }
 
+    public static TrainingTypeEntity trainingType(String typeName) {
+        TrainingTypeEntity entity = new TrainingTypeEntity();
+        entity.setTypeName(typeName);
+        return entity;
+    }
+
     public static TrainerEntity createDefaultTrainer() {
         TrainerEntity trainer = new TrainerEntity();
         trainer.setFirstName("John");
         trainer.setLastName("Smith");
-        trainer.setSpecialization(TrainingTypeEntity.of(TrainingType.YOGA));
+        trainer.setSpecialization(trainingType("YOGA"));
         return trainer;
     }
 
@@ -58,7 +63,7 @@ public final class TestDataFactory {
         training.setTrainer(trainer);
 
         training.setTrainingName("Morning Yoga");
-        training.setTrainingType(TrainingTypeEntity.of(TrainingType.YOGA));
+        training.setTrainingType(trainingType("YOGA"));
         training.setTrainingDate(LocalDate.of(2024, 3, 1));
         training.setTrainingDuration(60);
         return training;

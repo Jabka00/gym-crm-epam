@@ -15,7 +15,14 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 @ExtendWith(SpringExtension.class)
 @ContextConfiguration(classes = AppConfig.class)
-@TestPropertySource(properties = "db.url=jdbc:h2:mem:trainee_repository_test;DB_CLOSE_DELAY=-1")
+@TestPropertySource(properties = {
+        "db.url=jdbc:h2:mem:trainee_repository_test;DB_CLOSE_DELAY=-1",
+        "db.username=sa",
+        "db.password=",
+        "db.driver=org.h2.Driver",
+        "hibernate.dialect=org.hibernate.dialect.H2Dialect",
+        "db.init.enabled=true"
+})
 @Transactional
 class TraineeRepositoryTest {
 

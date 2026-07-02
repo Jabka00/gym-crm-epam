@@ -5,7 +5,6 @@ import com.epam.gymcrm.dto.TrainerDto;
 import com.epam.gymcrm.dto.TrainingDto;
 import com.epam.gymcrm.dto.TrainingTypeDto;
 import com.epam.gymcrm.exception.InvalidOperationException;
-import com.epam.gymcrm.model.TrainingType;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -23,9 +22,9 @@ public class GymService {
         validateScheduleTraining(trainingDto);
 
         TraineeDto trainee = traineeService.getActiveTrainee(trainingDto.getTrainee().getId());
-        TrainingType trainingType = toTrainingType(trainingDto.getTrainingType());
+        String typeName = trainingDto.getTrainingType().getTypeName();
         TrainerDto trainer = trainerService.getActiveTrainerForSpecialization(
-                trainingDto.getTrainer().getId(), trainingType);
+                trainingDto.getTrainer().getId(), typeName);
 
         return trainingService.createTraining(enrichTraining(trainingDto, trainee, trainer));
     }
@@ -34,8 +33,8 @@ public class GymService {
         validateAutoScheduleTraining(trainingDto);
 
         TraineeDto trainee = traineeService.getActiveTrainee(trainingDto.getTrainee().getId());
-        TrainingType trainingType = toTrainingType(trainingDto.getTrainingType());
-        TrainerDto trainer = trainerService.findActiveBySpecialization(trainingType);
+        String typeName = trainingDto.getTrainingType().getTypeName();
+        TrainerDto trainer = trainerService.findActiveBySpecialization(typeName);
 
         log.info("Auto-assigned trainer id={} for training '{}'", trainer.getId(), trainingDto.getTrainingName());
 
@@ -63,10 +62,6 @@ public class GymService {
                 .build();
     }
 
-    private TrainingType toTrainingType(TrainingTypeDto trainingTypeDto) {
-        return TrainingType.valueOf(trainingTypeDto.getTypeName());
-    }
-
     private void validateScheduleTraining(TrainingDto trainingDto) {
         validateCommonTrainingFields(trainingDto);
         if (trainingDto.getTrainer() == null || trainingDto.getTrainer().getId() == null) {
@@ -85,7 +80,9 @@ public class GymService {
         if (trainingDto.getTrainee() == null || trainingDto.getTrainee().getId() == null) {
             throw new IllegalArgumentException("Trainee id is required");
         }
-        if (trainingDto.getTrainingType() == null || trainingDto.getTrainingType().getTypeName() == null) {
+        if (trainingDto.getTrainingType() == null
+                || trainingDto.getTrainingType().getTypeName() == null
+                || trainingDto.getTrainingType().getTypeName().isBlank()) {
             throw new IllegalArgumentException("Training type is required");
         }
         if (trainingDto.getTrainingName() == null || trainingDto.getTrainingName().isBlank()) {

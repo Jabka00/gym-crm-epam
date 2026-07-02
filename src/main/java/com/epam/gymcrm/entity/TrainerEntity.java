@@ -1,6 +1,5 @@
 package com.epam.gymcrm.entity;
 
-import com.epam.gymcrm.model.TrainingType;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
@@ -40,8 +39,8 @@ public class TrainerEntity extends UserEntity {
     @OneToMany(mappedBy = "trainer", fetch = FetchType.LAZY)
     private Set<TrainingEntity> trainings = new HashSet<>();
 
-    public boolean matchesSpecialization(TrainingType type) {
-        return type != null && specialization != null
-                && type.name().equalsIgnoreCase(specialization.getTypeName());
+    public boolean matchesSpecialization(String typeName) {
+        return typeName != null && !typeName.isBlank() && specialization != null
+                && typeName.equalsIgnoreCase(specialization.getTypeName());
     }
 }

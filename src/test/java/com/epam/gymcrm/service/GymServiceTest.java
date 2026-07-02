@@ -4,7 +4,6 @@ import com.epam.gymcrm.dto.request.AutoScheduleTrainingRequest;
 import com.epam.gymcrm.dto.request.ScheduleTrainingRequest;
 import com.epam.gymcrm.dto.response.Trainer;
 import com.epam.gymcrm.dto.response.Training;
-import com.epam.gymcrm.model.TrainingType;
 import com.epam.gymcrm.exception.InvalidOperationException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -41,10 +40,10 @@ class GymServiceTest {
     @Test
     void shouldScheduleTrainingDelegatingValidationToServices() {
         ScheduleTrainingRequest request = new ScheduleTrainingRequest(
-                1L, 2L, "Morning Yoga", TrainingType.YOGA,
+                1L, 2L, "Morning Yoga", "YOGA",
                 LocalDate.of(2024, 3, 1), Duration.ofMinutes(60));
         Training scheduled = new Training(
-                10L, "Morning Yoga", TrainingType.YOGA,
+                10L, "Morning Yoga", "YOGA",
                 LocalDate.of(2024, 3, 1), Duration.ofMinutes(60), 1L, 2L);
         when(trainingService.schedule(request)).thenReturn(scheduled);
 
@@ -52,20 +51,20 @@ class GymServiceTest {
 
         assertThat(response).isEqualTo(scheduled);
         verify(traineeService, times(1)).getActiveById(1L);
-        verify(trainerService, times(1)).getActiveForSpecialization(2L, TrainingType.YOGA);
+        verify(trainerService, times(1)).getActiveForSpecialization(2L, "YOGA");
         verify(trainingService, times(1)).schedule(request);
     }
 
     @Test
     void shouldAutoAssignTrainerFromService() {
         AutoScheduleTrainingRequest request = new AutoScheduleTrainingRequest(
-                1L, "Morning Yoga", TrainingType.YOGA,
+                1L, "Morning Yoga", "YOGA",
                 LocalDate.of(2024, 3, 1), Duration.ofMinutes(60));
-        Trainer trainer = new Trainer(5L, "John Smith", "John.Smith", TrainingType.YOGA);
+        Trainer trainer = new Trainer(5L, "John Smith", "John.Smith", "YOGA");
         Training autoScheduled = new Training(
-                100L, "Morning Yoga", TrainingType.YOGA,
+                100L, "Morning Yoga", "YOGA",
                 LocalDate.of(2024, 3, 1), Duration.ofMinutes(60), 1L, 5L);
-        when(trainerService.findActiveBySpecialization(TrainingType.YOGA)).thenReturn(trainer);
+        when(trainerService.findActiveBySpecialization("YOGA")).thenReturn(trainer);
         when(trainingService.autoSchedule(request, 5L)).thenReturn(autoScheduled);
 
         Training response = gymService.autoScheduleTraining(request);

@@ -42,6 +42,9 @@ public class HibernateConfig {
 
         @Value("${db.password:root}")
         private String password;
+
+        @Value("${db.driver:com.mysql.cj.jdbc.Driver}")
+        private String driver;
     }
 
     @Getter
@@ -65,14 +68,22 @@ public class HibernateConfig {
     }
 
     @Bean
-    public DataSourceInitializer dataSourceInitializer(DataSource dataSource) {
-        ResourceDatabasePopulator populator = new ResourceDatabasePopulator();
-        populator.addScript(new ClassPathResource("schema.sql"));
-        populator.addScript(new ClassPathResource("data.sql"));
+    public DataSourceInitializer dataSourceInitializer(
+            DataSource dataSource,
+            @Value("${db.init.enabled:false}") boolean initEnabled) {
 
         DataSourceInitializer initializer = new DataSourceInitializer();
         initializer.setDataSource(dataSource);
-        initializer.setDatabasePopulator(populator);
+
+        if (initEnabled) {
+            ResourceDatabasePopulator populator = new ResourceDatabasePopulator();
+            populator.addScript(new ClassPathResource("schema.sql"));
+            populator.addScript(new ClassPathResource("data.sql"));
+            initializer.setDatabasePopulator(populator);
+            log.info("Database initialization enabled via classpath SQL scripts");
+        } else {
+            log.info("Database initialization disabled; expecting schema/data from external source (e.g. Docker)");
+        }
 
         return initializer;
     }
@@ -83,7 +94,7 @@ public class HibernateConfig {
         config.setJdbcUrl(databaseProperties.getUrl());
         config.setUsername(databaseProperties.getUsername());
         config.setPassword(databaseProperties.getPassword());
-        config.setDriverClassName("org.h2.Driver");
+        config.setDriverClassName(databaseProperties.getDriver());
 
         config.setMaximumPoolSize(10);
         config.setMinimumIdle(2);

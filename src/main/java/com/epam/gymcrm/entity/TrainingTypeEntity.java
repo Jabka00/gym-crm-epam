@@ -1,6 +1,5 @@
 package com.epam.gymcrm.entity;
 
-import com.epam.gymcrm.model.TrainingType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -30,14 +29,4 @@ public class TrainingTypeEntity {
 
     @Column(name = "type_name", unique = true, nullable = false, length = 50)
     private String typeName;
-
-    public static TrainingTypeEntity of(TrainingType type) {
-        TrainingTypeEntity entity = new TrainingTypeEntity();
-        entity.setTypeName(type.name());
-        return entity;
-    }
-
-    public TrainingType toEnum() {
-        return TrainingType.valueOf(typeName);
-    }
 }

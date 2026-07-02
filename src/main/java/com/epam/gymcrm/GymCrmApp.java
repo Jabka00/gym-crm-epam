@@ -45,6 +45,9 @@ public class GymCrmApp {
             TraineeDto createdTrainee = traineeService.createTrainee(traineeDto);
             log.info("Created trainee id={}, username={}", createdTrainee.getId(), createdTrainee.getUsername());
 
+            gymService.removeTraineeProfile(createdTrainee.getId());
+            log.info("Removed trainee id={} (no trainings)", createdTrainee.getId());
+
             TrainingTypeDto pilatesType = trainingTypeService.getTrainingTypeByName("PILATES");
 
             TrainerDto trainerDto = TrainerDto.builder()
@@ -56,8 +59,17 @@ public class GymCrmApp {
             TrainerDto createdTrainer = trainerService.createTrainer(trainerDto);
             log.info("Created trainer id={}, username={}", createdTrainer.getId(), createdTrainer.getUsername());
 
+            TraineeDto traineeForTraining = traineeService.createTrainee(TraineeDto.builder()
+                    .firstName("Kate")
+                    .lastName("Doe")
+                    .dateOfBirth(LocalDate.of(1999, 3, 10))
+                    .address("Lviv")
+                    .build());
+            log.info("Created trainee for training id={}, username={}",
+                    traineeForTraining.getId(), traineeForTraining.getUsername());
+
             TrainingDto newTraining = TrainingDto.builder()
-                    .trainee(createdTrainee)
+                    .trainee(traineeForTraining)
                     .trainer(createdTrainer)
                     .trainingName("Evening Pilates")
                     .trainingType(pilatesType)
@@ -68,7 +80,7 @@ public class GymCrmApp {
             TrainingDto createdTraining = trainingService.createTraining(newTraining);
             log.info("Created training id={}, name={}", createdTraining.getId(), createdTraining.getTrainingName());
 
-            TraineeDto fetchedTrainee = traineeService.getTraineeByUsername(createdTrainee.getUsername());
+            TraineeDto fetchedTrainee = traineeService.getTraineeByUsername(traineeForTraining.getUsername());
             TrainerDto fetchedTrainer = trainerService.getTrainerByUsername(createdTrainer.getUsername());
             TrainingDto fetchedTraining = trainingService.getTraining(createdTraining.getId());
 
@@ -76,7 +88,6 @@ public class GymCrmApp {
             log.info("Fetched trainer: {}", fetchedTrainer.getUsername());
             log.info("Fetched training: {}", fetchedTraining.getTrainingName());
 
-            gymService.removeTraineeProfile(createdTrainee.getId());
             log.info("Demo completed successfully");
         } catch (Exception e) {
             log.error("Error running application", e);
