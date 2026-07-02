@@ -81,12 +81,6 @@ public class TrainerService {
     }
 
     @Transactional(readOnly = true)
-    public TrainerDto getActiveTrainer(Long id) {
-        TrainerEntity trainer = getActiveEntity(id);
-        return trainerMapper.toDto(trainer);
-    }
-
-    @Transactional(readOnly = true)
     public TrainerDto getActiveTrainerForSpecialization(Long id, String typeName) {
         TrainerEntity trainer = getActiveEntity(id);
         if (!trainer.matchesSpecialization(typeName)) {

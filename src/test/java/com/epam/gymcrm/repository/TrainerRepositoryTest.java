@@ -45,7 +45,6 @@ class TrainerRepositoryTest {
                 .usingRecursiveComparison()
                 .ignoringFields("trainees", "trainings")
                 .isEqualTo(expected);
-        assertThat(trainerRepository.existsById(saved.getId())).isTrue();
     }
 
     @Test

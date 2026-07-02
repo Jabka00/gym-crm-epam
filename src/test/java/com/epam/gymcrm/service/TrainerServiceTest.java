@@ -115,10 +115,6 @@ class TrainerServiceTest {
         assertThatThrownBy(() -> trainerService.getTrainer(2L))
                 .isInstanceOf(InvalidOperationException.class)
                 .hasMessageContaining("inactive");
-
-        assertThatThrownBy(() -> trainerService.getActiveTrainer(2L))
-                .isInstanceOf(InvalidOperationException.class)
-                .hasMessageContaining("inactive");
     }
 
     @Test

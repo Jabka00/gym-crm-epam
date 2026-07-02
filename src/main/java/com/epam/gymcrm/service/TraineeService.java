@@ -71,13 +71,8 @@ public class TraineeService {
     }
 
     @Transactional(readOnly = true)
-    public TraineeDto getTrainee(Long id) {
-        return traineeMapper.toDto(requireActiveTrainee(id));
-    }
-
-    @Transactional(readOnly = true)
     public TraineeDto getActiveTrainee(Long id) {
-        return getTrainee(id);
+        return traineeMapper.toDto(requireActiveTrainee(id));
     }
 
     @Transactional(readOnly = true)

@@ -119,19 +119,7 @@ class TraineeServiceTest {
     }
 
     @Test
-    void shouldGetTraineeById() {
-        TraineeEntity trainee = TestDataFactory.traineeWithId(1L, "Alice.Walker");
-        TraineeDto expected = traineeMapper.toDto(trainee);
-        when(traineeRepository.findById(1L)).thenReturn(Optional.of(trainee));
-
-        TraineeDto actual = traineeService.getTrainee(1L);
-
-        assertThat(actual).usingRecursiveComparison().isEqualTo(expected);
-        verify(traineeRepository, times(1)).findById(1L);
-    }
-
-    @Test
-    void shouldGetActiveTrainee() {
+    void shouldGetActiveTraineeById() {
         TraineeEntity trainee = TestDataFactory.traineeWithId(1L, "Alice.Walker");
         TraineeDto expected = traineeMapper.toDto(trainee);
         when(traineeRepository.findById(1L)).thenReturn(Optional.of(trainee));
@@ -139,6 +127,7 @@ class TraineeServiceTest {
         TraineeDto actual = traineeService.getActiveTrainee(1L);
 
         assertThat(actual).usingRecursiveComparison().isEqualTo(expected);
+        verify(traineeRepository, times(1)).findById(1L);
     }
 
     @Test
@@ -148,10 +137,6 @@ class TraineeServiceTest {
         when(traineeRepository.findById(2L)).thenReturn(Optional.of(trainee));
 
         assertThatThrownBy(() -> traineeService.getActiveTrainee(2L))
-                .isInstanceOf(InvalidOperationException.class)
-                .hasMessageContaining("inactive");
-
-        assertThatThrownBy(() -> traineeService.getTrainee(2L))
                 .isInstanceOf(InvalidOperationException.class)
                 .hasMessageContaining("inactive");
     }

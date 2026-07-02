@@ -69,15 +69,6 @@ public class TrainerRepository {
     }
 
     @Transactional(readOnly = true)
-    public boolean existsById(Long id) {
-        Long count = currentSession()
-                .createQuery("SELECT COUNT(t) FROM TrainerEntity t WHERE t.id = :id", Long.class)
-                .setParameter("id", id)
-                .getSingleResult();
-        return count > 0;
-    }
-
-    @Transactional(readOnly = true)
     public boolean existsByUsername(String username) {
         Long count = currentSession()
                 .createQuery("SELECT COUNT(t) FROM TrainerEntity t WHERE t.username = :username", Long.class)
