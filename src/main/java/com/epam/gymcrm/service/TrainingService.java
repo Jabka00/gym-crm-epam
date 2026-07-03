@@ -10,6 +10,8 @@ import com.epam.gymcrm.repository.TraineeRepository;
 import com.epam.gymcrm.repository.TrainerRepository;
 import com.epam.gymcrm.repository.TrainingRepository;
 import com.epam.gymcrm.repository.TrainingTypeRepository;
+import com.epam.gymcrm.security.AuthenticationGuard;
+import com.epam.gymcrm.security.Credentials;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -29,8 +31,10 @@ public class TrainingService {
     private final TraineeRepository traineeRepository;
     private final TrainerRepository trainerRepository;
     private final TrainingMapper trainingMapper;
+    private final AuthenticationGuard authenticationGuard;
 
-    public TrainingDto createTraining(TrainingDto trainingDto) {
+    public TrainingDto createTraining(Credentials auth, TrainingDto trainingDto) {
+        authenticationGuard.ensureAuthenticated(auth);
         validateTrainingDto(trainingDto);
 
         TrainingEntity training = trainingMapper.toEntity(trainingDto);
@@ -85,11 +89,14 @@ public class TrainingService {
 
     @Transactional(readOnly = true)
     public List<TrainingDto> getTraineeTrainings(
+            Credentials auth,
             String traineeUsername,
             LocalDate fromDate,
             LocalDate toDate,
             String trainerUsername,
             Long trainingTypeId) {
+
+        authenticationGuard.ensureAuthenticated(auth);
 
         if (traineeUsername == null || traineeUsername.isBlank()) {
             throw new IllegalArgumentException("Trainee username is required");
@@ -111,10 +118,13 @@ public class TrainingService {
 
     @Transactional(readOnly = true)
     public List<TrainingDto> getTrainerTrainings(
+            Credentials auth,
             String trainerUsername,
             LocalDate fromDate,
             LocalDate toDate,
             String traineeUsername) {
+
+        authenticationGuard.ensureAuthenticated(auth);
 
         if (trainerUsername == null || trainerUsername.isBlank()) {
             throw new IllegalArgumentException("Trainer username is required");

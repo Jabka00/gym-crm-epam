@@ -2,13 +2,17 @@ package com.epam.gymcrm.service;
 
 import com.epam.gymcrm.dto.TrainerDto;
 import com.epam.gymcrm.entity.TrainerEntity;
+import com.epam.gymcrm.exception.AuthenticationException;
 import com.epam.gymcrm.exception.EntityNotFoundException;
 import com.epam.gymcrm.exception.InvalidOperationException;
 import com.epam.gymcrm.mapper.TrainerMapper;
 import com.epam.gymcrm.repository.TrainerRepository;
+import com.epam.gymcrm.security.AuthenticationGuard;
+import com.epam.gymcrm.security.Credentials;
 import com.epam.gymcrm.support.MapperTestSupport;
 import com.epam.gymcrm.support.TestDataFactory;
 import com.epam.gymcrm.util.UserInitializationUtil;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -24,9 +28,12 @@ import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -41,11 +48,25 @@ class TrainerServiceTest {
     @Mock
     private UserInitializationUtil userInitializationUtil;
 
+    @Mock
+    private UserService userService;
+
+    @Mock
+    private AuthenticationGuard authenticationGuard;
+
     @Spy
     private TrainerMapper trainerMapper = MapperTestSupport.trainerMapper();
 
     @InjectMocks
     private TrainerService trainerService;
+
+    private Credentials auth;
+
+    @BeforeEach
+    void setUp() {
+        auth = TestDataFactory.credentials();
+        doNothing().when(authenticationGuard).ensureAuthenticated(any(Credentials.class));
+    }
 
     @Test
     void shouldCreateTrainer() {
@@ -76,6 +97,7 @@ class TrainerServiceTest {
                 .ignoringFields("id", "username", "password", "active", "trainees", "trainings", "specialization")
                 .isEqualTo(mappedEntity);
         verify(trainerRepository, times(1)).save(entityCaptor.getValue());
+        verify(authenticationGuard, never()).ensureAuthenticated(any());
     }
 
     @Test
@@ -90,7 +112,7 @@ class TrainerServiceTest {
         when(trainerRepository.save(argThat(entity -> matchesTrainerEntity(entity, entityToSave))))
                 .thenAnswer(invocation -> invocation.getArgument(0));
 
-        TrainerDto actual = trainerService.updateTrainer(request);
+        TrainerDto actual = trainerService.updateTrainer(auth, request);
 
         assertThat(actual).usingRecursiveComparison().isEqualTo(expected);
         verify(trainerRepository, times(1)).findById(1L);
@@ -100,6 +122,7 @@ class TrainerServiceTest {
         assertThat(saveCaptor.getValue()).usingRecursiveComparison()
                 .ignoringFields("trainees", "trainings")
                 .isEqualTo(entityToSave);
+        verify(authenticationGuard, times(1)).ensureAuthenticated(auth);
     }
 
     @Test
@@ -149,11 +172,81 @@ class TrainerServiceTest {
         trainer.setActive(false);
         when(trainerRepository.findByUsername("Inactive.Trainer")).thenReturn(Optional.of(trainer));
 
-        assertThatThrownBy(() -> trainerService.getTrainerByUsername("Inactive.Trainer"))
+        assertThatThrownBy(() -> trainerService.getTrainerByUsername(auth, "Inactive.Trainer"))
                 .isInstanceOf(InvalidOperationException.class)
                 .hasMessageContaining("inactive");
 
         verify(trainerRepository, times(1)).findByUsername("Inactive.Trainer");
+        verify(authenticationGuard, times(1)).ensureAuthenticated(auth);
+    }
+
+    @Test
+    void shouldRejectUnauthenticatedTrainerLookup() {
+        doThrow(new AuthenticationException("Invalid credentials for username: John.Smith"))
+                .when(authenticationGuard)
+                .ensureAuthenticated(auth);
+
+        assertThatThrownBy(() -> trainerService.getTrainerByUsername(auth, "John.Smith"))
+                .isInstanceOf(AuthenticationException.class);
+
+        verify(authenticationGuard, times(1)).ensureAuthenticated(auth);
+        verify(trainerRepository, never()).findByUsername(any());
+    }
+
+    @Test
+    void shouldGetTrainerByUsernameWhenAuthenticated() {
+        TrainerEntity trainer = TestDataFactory.trainerWithId(1L, "John.Smith");
+        TrainerDto expected = trainerMapper.toDto(trainer);
+        when(trainerRepository.findByUsername("John.Smith")).thenReturn(Optional.of(trainer));
+
+        TrainerDto actual = trainerService.getTrainerByUsername(auth, "John.Smith");
+
+        assertThat(actual).usingRecursiveComparison().isEqualTo(expected);
+        verify(authenticationGuard, times(1)).ensureAuthenticated(auth);
+        verify(trainerRepository, times(1)).findByUsername("John.Smith");
+    }
+
+    @Test
+    void shouldRejectUnauthenticatedUpdateTrainer() {
+        TrainerDto request = TestDataFactory.trainerDtoWithCredentials(1L, "John.Smith");
+        doThrow(new AuthenticationException("Invalid credentials for username: John.Smith"))
+                .when(authenticationGuard)
+                .ensureAuthenticated(auth);
+
+        assertThatThrownBy(() -> trainerService.updateTrainer(auth, request))
+                .isInstanceOf(AuthenticationException.class);
+
+        verify(authenticationGuard, times(1)).ensureAuthenticated(auth);
+        verify(trainerRepository, never()).findById(any());
+        verify(trainerRepository, never()).save(any());
+    }
+
+    @Test
+    void shouldRejectUnauthenticatedToggleActivation() {
+        doThrow(new AuthenticationException("Invalid credentials for username: John.Smith"))
+                .when(authenticationGuard)
+                .ensureAuthenticated(auth);
+
+        assertThatThrownBy(() -> trainerService.toggleActivation(auth, "John.Smith"))
+                .isInstanceOf(AuthenticationException.class);
+
+        verify(authenticationGuard, times(1)).ensureAuthenticated(auth);
+        verify(userService, never()).toggleActivation(any());
+    }
+
+    @Test
+    void shouldDelegateChangePasswordToUserService() {
+        trainerService.changePassword("John.Smith", "oldPass1", "NewPass1!");
+
+        verify(userService, times(1)).changePassword("John.Smith", "oldPass1", "NewPass1!");
+    }
+
+    @Test
+    void shouldDelegateToggleActivationToUserService() {
+        trainerService.toggleActivation(auth, "John.Smith");
+
+        verify(authenticationGuard, times(1)).ensureAuthenticated(auth);
+        verify(userService, times(1)).toggleActivation("John.Smith");
     }
 
     @Test

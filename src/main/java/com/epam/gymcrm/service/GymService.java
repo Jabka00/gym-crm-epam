@@ -3,8 +3,8 @@ package com.epam.gymcrm.service;
 import com.epam.gymcrm.dto.TraineeDto;
 import com.epam.gymcrm.dto.TrainerDto;
 import com.epam.gymcrm.dto.TrainingDto;
-import com.epam.gymcrm.dto.TrainingTypeDto;
 import com.epam.gymcrm.exception.InvalidOperationException;
+import com.epam.gymcrm.security.Credentials;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -18,7 +18,7 @@ public class GymService {
     private final TraineeService traineeService;
     private final TrainingService trainingService;
 
-    public TrainingDto scheduleTraining(TrainingDto trainingDto) {
+    public TrainingDto scheduleTraining(Credentials auth, TrainingDto trainingDto) {
         validateScheduleTraining(trainingDto);
 
         TraineeDto trainee = traineeService.getActiveTrainee(trainingDto.getTrainee().getId());
@@ -26,10 +26,10 @@ public class GymService {
         TrainerDto trainer = trainerService.getActiveTrainerForSpecialization(
                 trainingDto.getTrainer().getId(), typeName);
 
-        return trainingService.createTraining(enrichTraining(trainingDto, trainee, trainer));
+        return trainingService.createTraining(auth, enrichTraining(trainingDto, trainee, trainer));
     }
 
-    public TrainingDto autoScheduleTraining(TrainingDto trainingDto) {
+    public TrainingDto autoScheduleTraining(Credentials auth, TrainingDto trainingDto) {
         validateAutoScheduleTraining(trainingDto);
 
         TraineeDto trainee = traineeService.getActiveTrainee(trainingDto.getTrainee().getId());
@@ -38,7 +38,7 @@ public class GymService {
 
         log.info("Auto-assigned trainer id={} for training '{}'", trainer.getId(), trainingDto.getTrainingName());
 
-        return trainingService.createTraining(enrichTraining(trainingDto, trainee, trainer));
+        return trainingService.createTraining(auth, enrichTraining(trainingDto, trainee, trainer));
     }
 
     public void removeTraineeProfile(Long traineeId) {

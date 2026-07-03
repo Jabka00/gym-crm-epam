@@ -6,6 +6,8 @@ import com.epam.gymcrm.exception.EntityNotFoundException;
 import com.epam.gymcrm.exception.InvalidOperationException;
 import com.epam.gymcrm.mapper.TrainerMapper;
 import com.epam.gymcrm.repository.TrainerRepository;
+import com.epam.gymcrm.security.AuthenticationGuard;
+import com.epam.gymcrm.security.Credentials;
 import com.epam.gymcrm.util.UserInitializationUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -23,6 +25,8 @@ public class TrainerService {
     private final TrainerRepository trainerRepository;
     private final UserInitializationUtil userInitializationUtil;
     private final TrainerMapper trainerMapper;
+    private final UserService userService;
+    private final AuthenticationGuard authenticationGuard;
 
     public TrainerDto createTrainer(TrainerDto trainerDto) {
         if (trainerDto == null) {
@@ -34,7 +38,9 @@ public class TrainerService {
         return trainerMapper.toDto(created);
     }
 
-    public TrainerDto updateTrainer(TrainerDto trainerDto) {
+    public TrainerDto updateTrainer(Credentials auth, TrainerDto trainerDto) {
+        authenticationGuard.ensureAuthenticated(auth);
+
         if (trainerDto == null || trainerDto.getId() == null) {
             throw new IllegalArgumentException("Trainer or id cannot be null");
         }
@@ -62,13 +68,24 @@ public class TrainerService {
     }
 
     @Transactional(readOnly = true)
-    public TrainerDto getTrainerByUsername(String username) {
+    public TrainerDto getTrainerByUsername(Credentials auth, String username) {
+        authenticationGuard.ensureAuthenticated(auth);
+
         TrainerEntity trainer = trainerRepository.findByUsername(username)
                 .orElseThrow(() -> new EntityNotFoundException("Trainer not found with username: " + username));
         if (!trainer.isActive()) {
             throw new InvalidOperationException("Trainer is inactive: username=" + username);
         }
         return trainerMapper.toDto(trainer);
+    }
+
+    public void changePassword(String username, String oldPassword, String newPassword) {
+        userService.changePassword(username, oldPassword, newPassword);
+    }
+
+    public void toggleActivation(Credentials auth, String username) {
+        authenticationGuard.ensureAuthenticated(auth);
+        userService.toggleActivation(username);
     }
 
     @Transactional(readOnly = true)

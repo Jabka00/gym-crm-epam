@@ -8,6 +8,7 @@ import com.epam.gymcrm.entity.TraineeEntity;
 import com.epam.gymcrm.entity.TrainerEntity;
 import com.epam.gymcrm.entity.TrainingEntity;
 import com.epam.gymcrm.entity.TrainingTypeEntity;
+import com.epam.gymcrm.security.Credentials;
 
 import java.time.LocalDate;
 
@@ -215,5 +216,29 @@ public final class TestDataFactory {
         TrainingEntity training = createDefaultTraining(traineeId, trainerId);
         training.setId(id);
         return training;
+    }
+
+    public static Credentials credentials() {
+        return new Credentials("Alice.Walker", "secret1234");
+    }
+
+    public static Credentials credentials(String username, String password) {
+        return new Credentials(username, password);
+    }
+
+    public static Credentials credentialsOf(TraineeDto trainee) {
+        return new Credentials(trainee.getUsername(), trainee.getPassword());
+    }
+
+    public static Credentials credentialsOf(TrainerDto trainer) {
+        return new Credentials(trainer.getUsername(), trainer.getPassword());
+    }
+
+    public static Credentials aliceCredentials() {
+        return new Credentials("Alice.Walker", "qW3eRt5yUi");
+    }
+
+    public static Credentials johnSmithCredentials() {
+        return new Credentials("John.Smith", "pass1234AB");
     }
 }

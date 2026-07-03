@@ -10,6 +10,8 @@ import com.epam.gymcrm.mapper.TraineeMapper;
 import com.epam.gymcrm.mapper.TrainerMapper;
 import com.epam.gymcrm.repository.TraineeRepository;
 import com.epam.gymcrm.repository.TrainerRepository;
+import com.epam.gymcrm.security.AuthenticationGuard;
+import com.epam.gymcrm.security.Credentials;
 import com.epam.gymcrm.util.UserInitializationUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -32,6 +34,7 @@ public class TraineeService {
     private final TraineeMapper traineeMapper;
     private final TrainerMapper trainerMapper;
     private final UserService userService;
+    private final AuthenticationGuard authenticationGuard;
 
     public TraineeDto createTrainee(TraineeDto traineeDto) {
         if (traineeDto == null) {
@@ -43,7 +46,9 @@ public class TraineeService {
         return traineeMapper.toDto(created);
     }
 
-    public TraineeDto updateTrainee(TraineeDto traineeDto) {
+    public TraineeDto updateTrainee(Credentials auth, TraineeDto traineeDto) {
+        authenticationGuard.ensureAuthenticated(auth);
+
         if (traineeDto == null) {
             throw new IllegalArgumentException("Trainee cannot be null");
         }
@@ -84,7 +89,9 @@ public class TraineeService {
     }
 
     @Transactional(readOnly = true)
-    public TraineeDto getTraineeByUsername(String username) {
+    public TraineeDto getTraineeByUsername(Credentials auth, String username) {
+        authenticationGuard.ensureAuthenticated(auth);
+
         TraineeEntity trainee = traineeRepository.findByUsername(username)
                 .orElseThrow(() -> new EntityNotFoundException("Trainee not found with username: " + username));
         if (!trainee.isActive()) {
@@ -97,11 +104,14 @@ public class TraineeService {
         userService.changePassword(username, oldPassword, newPassword);
     }
 
-    public void toggleActivation(String username) {
+    public void toggleActivation(Credentials auth, String username) {
+        authenticationGuard.ensureAuthenticated(auth);
         userService.toggleActivation(username);
     }
 
-    public void updateTrainersList(String traineeUsername, Set<String> trainerUsernames) {
+    public void updateTrainersList(Credentials auth, String traineeUsername, Set<String> trainerUsernames) {
+        authenticationGuard.ensureAuthenticated(auth);
+
         if (traineeUsername == null || traineeUsername.isBlank()) {
             throw new IllegalArgumentException("Trainee username cannot be null or empty");
         }
@@ -120,7 +130,7 @@ public class TraineeService {
                     .map(TrainerEntity::getUsername)
                     .collect(Collectors.toSet());
             String missingUsername = trainerUsernames.stream()
-                    .filter(username -> !foundUsernames.contains(username))
+                    .filter(trainerUsername -> !foundUsernames.contains(trainerUsername))
                     .findFirst()
                     .orElseThrow();
             throw new EntityNotFoundException("Trainer not found with username: " + missingUsername);
@@ -138,7 +148,9 @@ public class TraineeService {
     }
 
     @Transactional(readOnly = true)
-    public List<TrainerDto> getNotAssignedTrainers(String traineeUsername) {
+    public List<TrainerDto> getNotAssignedTrainers(Credentials auth, String traineeUsername) {
+        authenticationGuard.ensureAuthenticated(auth);
+
         if (traineeUsername == null || traineeUsername.isBlank()) {
             throw new IllegalArgumentException("Trainee username cannot be null or empty");
         }
