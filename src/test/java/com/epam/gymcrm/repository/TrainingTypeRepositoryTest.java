@@ -6,6 +6,8 @@ import com.epam.gymcrm.support.TestDataFactory;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
+import java.util.List;
+
 import static org.assertj.core.api.Assertions.assertThat;
 
 @MySqlIntegrationTest
@@ -38,7 +40,16 @@ class TrainingTypeRepositoryTest {
 
     @Test
     void shouldFindAll() {
-        assertThat(trainingTypeRepository.findAll()).hasSize(4);
+        List<TrainingTypeEntity> expected = List.of(
+                TestDataFactory.yogaTypeEntity(),
+                TestDataFactory.crossfitTypeEntity(),
+                TestDataFactory.boxingTypeEntity(),
+                TestDataFactory.pilatesTypeEntity()
+        );
+
+        assertThat(trainingTypeRepository.findAll())
+                .usingRecursiveFieldByFieldElementComparator()
+                .containsExactlyInAnyOrderElementsOf(expected);
     }
 
     @Test

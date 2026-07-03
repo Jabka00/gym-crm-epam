@@ -8,6 +8,7 @@ import org.hibernate.SessionFactory;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
@@ -55,6 +56,19 @@ public class TrainerRepository {
                         TrainerEntity.class)
                 .setParameter("username", username)
                 .uniqueResultOptional();
+    }
+
+    @Transactional(readOnly = true)
+    public List<TrainerEntity> findByUsernames(Collection<String> usernames) {
+        if (usernames == null || usernames.isEmpty()) {
+            return List.of();
+        }
+        return currentSession()
+                .createQuery(
+                        "FROM TrainerEntity t LEFT JOIN FETCH t.specialization WHERE t.username IN :usernames",
+                        TrainerEntity.class)
+                .setParameter("usernames", usernames)
+                .getResultList();
     }
 
     @Transactional(readOnly = true)

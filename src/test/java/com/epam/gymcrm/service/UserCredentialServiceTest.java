@@ -9,6 +9,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -49,6 +50,10 @@ class UserCredentialServiceTest {
         String username = userCredentialService.generateUniqueUsername("John", "Smith");
 
         assertThat(username).isEqualTo("John.Smith1");
+        verify(traineeRepository, times(1)).existsByUsername("John.Smith");
+        verify(traineeRepository, times(1)).existsByUsername("John.Smith1");
+        verify(trainerRepository, times(1)).existsByUsername("John.Smith1");
+        verify(trainerRepository, never()).existsByUsername("John.Smith");
     }
 
     @Test

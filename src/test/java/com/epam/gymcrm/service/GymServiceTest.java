@@ -19,6 +19,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -122,8 +123,9 @@ class GymServiceTest {
                 .isInstanceOf(InvalidOperationException.class)
                 .hasMessageContaining("inactive");
 
+        verify(traineeService, times(1)).getActiveTrainee(1L);
         verify(trainerService, never()).getActiveTrainerForSpecialization(2L, "YOGA");
-        verify(trainingService, never()).createTraining(org.mockito.ArgumentMatchers.any());
+        verifyNoInteractions(trainingService);
     }
 
     @Test
@@ -138,7 +140,9 @@ class GymServiceTest {
                 .isInstanceOf(InvalidOperationException.class)
                 .hasMessageContaining("inactive");
 
-        verify(trainingService, never()).createTraining(org.mockito.ArgumentMatchers.any());
+        verify(traineeService, times(1)).getActiveTrainee(1L);
+        verify(trainerService, times(1)).getActiveTrainerForSpecialization(2L, "YOGA");
+        verifyNoInteractions(trainingService);
     }
 
     @Test
@@ -148,6 +152,7 @@ class GymServiceTest {
         assertThatThrownBy(() -> gymService.removeTraineeProfile(1L))
                 .isInstanceOf(InvalidOperationException.class);
 
+        verify(trainingService, times(1)).existsByTraineeId(1L);
         verify(traineeService, never()).deleteTrainee(1L);
     }
 
@@ -157,6 +162,7 @@ class GymServiceTest {
 
         gymService.removeTraineeProfile(1L);
 
+        verify(trainingService, times(1)).existsByTraineeId(1L);
         verify(traineeService, times(1)).deleteTrainee(1L);
     }
 }

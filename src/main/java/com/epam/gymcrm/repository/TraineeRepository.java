@@ -1,7 +1,6 @@
 package com.epam.gymcrm.repository;
 
 import com.epam.gymcrm.entity.TraineeEntity;
-import com.epam.gymcrm.entity.TrainerEntity;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.hibernate.Session;
@@ -9,7 +8,6 @@ import org.hibernate.SessionFactory;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.HashSet;
 import java.util.Optional;
 import java.util.stream.Stream;
 
@@ -47,10 +45,7 @@ public class TraineeRepository {
                 .uniqueResult();
 
         if (trainee != null) {
-            for (TrainerEntity trainer : new HashSet<>(trainee.getTrainers())) {
-                trainee.getTrainers().remove(trainer);
-                trainer.getTrainees().remove(trainee);
-            }
+            trainee.getTrainers().clear();
             currentSession().remove(trainee);
             log.debug("Deleted trainee id={}", id);
         }

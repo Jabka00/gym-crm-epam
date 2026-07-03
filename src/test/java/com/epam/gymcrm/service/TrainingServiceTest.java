@@ -24,6 +24,7 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.same;
 import static org.mockito.Mockito.times;
@@ -116,6 +117,9 @@ class TrainingServiceTest {
 
         assertThat(trainingService.existsByTraineeId(1L)).isTrue();
         assertThat(trainingService.existsByTraineeId(99L)).isFalse();
+
+        verify(trainingRepository, times(1)).existsByTraineeId(1L);
+        verify(trainingRepository, times(1)).existsByTraineeId(99L);
     }
 
     @Test
@@ -132,7 +136,8 @@ class TrainingServiceTest {
     @Test
     void shouldThrowWhenCreatingTrainingForMissingTrainee() {
         TrainingDto request = TestDataFactory.trainingDto(1L, 2L);
-        when(trainingMapper.toEntity(request)).thenReturn(new TrainingEntity());
+        TrainingEntity mapped = new TrainingEntity();
+        when(trainingMapper.toEntity(request)).thenReturn(mapped);
         when(traineeRepository.findById(1L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> trainingService.createTraining(request))
@@ -143,13 +148,14 @@ class TrainingServiceTest {
         verify(traineeRepository, times(1)).findById(1L);
         verify(trainerRepository, never()).findById(2L);
         verify(trainingTypeRepository, never()).findById(1L);
-        verify(trainingRepository, never()).save(org.mockito.ArgumentMatchers.any(TrainingEntity.class));
+        verify(trainingRepository, never()).save(eq(mapped));
     }
 
     @Test
     void shouldThrowWhenCreatingTrainingForMissingTrainer() {
         TrainingDto request = TestDataFactory.trainingDto(1L, 2L);
-        when(trainingMapper.toEntity(request)).thenReturn(new TrainingEntity());
+        TrainingEntity mapped = new TrainingEntity();
+        when(trainingMapper.toEntity(request)).thenReturn(mapped);
         when(traineeRepository.findById(1L)).thenReturn(Optional.of(TestDataFactory.traineeWithId(1L, "Alice.Walker")));
         when(trainerRepository.findById(2L)).thenReturn(Optional.empty());
 
@@ -161,31 +167,35 @@ class TrainingServiceTest {
         verify(traineeRepository, times(1)).findById(1L);
         verify(trainerRepository, times(1)).findById(2L);
         verify(trainingTypeRepository, never()).findById(1L);
-        verify(trainingRepository, never()).save(org.mockito.ArgumentMatchers.any(TrainingEntity.class));
+        verify(trainingRepository, never()).save(eq(mapped));
     }
 
     @Test
     void shouldThrowWhenCreatingTrainingForInactiveTrainee() {
         TrainingDto request = TestDataFactory.trainingDto(1L, 2L);
+        TrainingEntity mapped = new TrainingEntity();
         TraineeEntity inactiveTrainee = TestDataFactory.traineeWithId(1L, "Inactive.User");
         inactiveTrainee.setActive(false);
-        when(trainingMapper.toEntity(request)).thenReturn(new TrainingEntity());
+        when(trainingMapper.toEntity(request)).thenReturn(mapped);
         when(traineeRepository.findById(1L)).thenReturn(Optional.of(inactiveTrainee));
 
         assertThatThrownBy(() -> trainingService.createTraining(request))
                 .isInstanceOf(InvalidOperationException.class)
                 .hasMessageContaining("inactive");
 
+        verify(trainingMapper, times(1)).toEntity(request);
+        verify(traineeRepository, times(1)).findById(1L);
         verify(trainerRepository, never()).findById(2L);
-        verify(trainingRepository, never()).save(org.mockito.ArgumentMatchers.any(TrainingEntity.class));
+        verify(trainingRepository, never()).save(eq(mapped));
     }
 
     @Test
     void shouldThrowWhenCreatingTrainingForInactiveTrainer() {
         TrainingDto request = TestDataFactory.trainingDto(1L, 2L);
+        TrainingEntity mapped = new TrainingEntity();
         TrainerEntity inactiveTrainer = TestDataFactory.trainerWithId(2L, "Inactive.Trainer");
         inactiveTrainer.setActive(false);
-        when(trainingMapper.toEntity(request)).thenReturn(new TrainingEntity());
+        when(trainingMapper.toEntity(request)).thenReturn(mapped);
         when(traineeRepository.findById(1L)).thenReturn(Optional.of(TestDataFactory.traineeWithId(1L, "Alice.Walker")));
         when(trainerRepository.findById(2L)).thenReturn(Optional.of(inactiveTrainer));
 
@@ -193,6 +203,9 @@ class TrainingServiceTest {
                 .isInstanceOf(InvalidOperationException.class)
                 .hasMessageContaining("inactive");
 
-        verify(trainingRepository, never()).save(org.mockito.ArgumentMatchers.any(TrainingEntity.class));
+        verify(trainingMapper, times(1)).toEntity(request);
+        verify(traineeRepository, times(1)).findById(1L);
+        verify(trainerRepository, times(1)).findById(2L);
+        verify(trainingRepository, never()).save(eq(mapped));
     }
 }

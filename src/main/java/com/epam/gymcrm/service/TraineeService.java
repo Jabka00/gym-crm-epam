@@ -16,9 +16,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -117,22 +117,25 @@ public class TraineeService {
         TraineeEntity trainee = traineeRepository.findByUsername(traineeUsername)
                 .orElseThrow(() -> new EntityNotFoundException("Trainee not found with username: " + traineeUsername));
 
-        Set<TrainerEntity> currentTrainers = new HashSet<>(trainee.getTrainers());
-        for (TrainerEntity trainer : currentTrainers) {
-            trainee.getTrainers().remove(trainer);
-            trainer.getTrainees().remove(trainee);
+        trainee.getTrainers().clear();
+
+        List<TrainerEntity> trainers = trainerRepository.findByUsernames(trainerUsernames);
+        if (trainers.size() != trainerUsernames.size()) {
+            Set<String> foundUsernames = trainers.stream()
+                    .map(TrainerEntity::getUsername)
+                    .collect(Collectors.toSet());
+            String missingUsername = trainerUsernames.stream()
+                    .filter(username -> !foundUsernames.contains(username))
+                    .findFirst()
+                    .orElseThrow();
+            throw new EntityNotFoundException("Trainer not found with username: " + missingUsername);
         }
 
-        for (String trainerUsername : trainerUsernames) {
-            TrainerEntity trainer = trainerRepository.findByUsername(trainerUsername)
-                    .orElseThrow(() -> new EntityNotFoundException(
-                            "Trainer not found with username: " + trainerUsername));
+        for (TrainerEntity trainer : trainers) {
             if (!trainer.isActive()) {
-                throw new InvalidOperationException("Trainer is inactive: username=" + trainerUsername);
+                throw new InvalidOperationException("Trainer is inactive: username=" + trainer.getUsername());
             }
-
             trainee.getTrainers().add(trainer);
-            trainer.getTrainees().add(trainee);
         }
 
         traineeRepository.save(trainee);

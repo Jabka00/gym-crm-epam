@@ -31,9 +31,58 @@ public final class TestDataFactory {
     }
 
     public static TrainingTypeEntity yogaTypeEntity() {
-        TrainingTypeEntity entity = trainingType("YOGA");
-        entity.setId(1L);
+        return trainingTypeWithId(1L, "YOGA");
+    }
+
+    public static TrainingTypeEntity crossfitTypeEntity() {
+        return trainingTypeWithId(2L, "CROSSFIT");
+    }
+
+    public static TrainingTypeEntity boxingTypeEntity() {
+        return trainingTypeWithId(3L, "BOXING");
+    }
+
+    public static TrainingTypeEntity pilatesTypeEntity() {
+        return trainingTypeWithId(4L, "PILATES");
+    }
+
+    public static TrainingTypeEntity trainingTypeWithId(long id, String typeName) {
+        TrainingTypeEntity entity = trainingType(typeName);
+        entity.setId(id);
         return entity;
+    }
+
+    public static TraineeEntity seedTraineeAliceWalker() {
+        TraineeEntity trainee = new TraineeEntity();
+        trainee.setId(4L);
+        trainee.setFirstName("Alice");
+        trainee.setLastName("Walker");
+        trainee.setUsername("Alice.Walker");
+        trainee.setPassword("qW3eRt5yUi");
+        trainee.setActive(true);
+        trainee.setDateOfBirth(LocalDate.of(1995, 4, 12));
+        trainee.setAddress("123 Main St");
+        return trainee;
+    }
+
+    public static TrainerEntity seedTrainerJohnSmith() {
+        TrainerEntity trainer = new TrainerEntity();
+        trainer.setId(1L);
+        trainer.setFirstName("John");
+        trainer.setLastName("Smith");
+        trainer.setUsername("John.Smith");
+        trainer.setPassword("pass1234AB");
+        trainer.setActive(true);
+        trainer.setSpecialization(yogaTypeEntity());
+        return trainer;
+    }
+
+    public static TrainingEntity trainingWithSeedAssociations(long trainingId) {
+        TrainingEntity training = createDefaultTraining(4L, 1L);
+        training.setId(trainingId);
+        training.setTrainee(seedTraineeAliceWalker());
+        training.setTrainer(seedTrainerJohnSmith());
+        return training;
     }
 
     public static TrainerEntity createDefaultTrainer() {

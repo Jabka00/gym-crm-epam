@@ -21,12 +21,14 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.function.UnaryOperator;
 import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -59,6 +61,7 @@ class TraineeServiceTest {
     @Test
     void shouldCreateTrainee() {
         TraineeDto request = TestDataFactory.traineeDto();
+        TraineeEntity mappedEntity = traineeMapper.toEntity(request);
         TraineeEntity created = TestDataFactory.traineeWithId(1L, "Jane.Doe");
         created.setFirstName("Jane");
         created.setLastName("Doe");
@@ -66,8 +69,15 @@ class TraineeServiceTest {
         created.setAddress(request.getAddress());
         TraineeDto expected = traineeMapper.toDto(created);
 
-        when(userInitializationUtil.createUser(any(TraineeEntity.class), any(), eq("Trainee")))
-                .thenReturn(created);
+        doAnswer(invocation -> {
+            TraineeEntity entity = invocation.getArgument(0);
+            UnaryOperator<TraineeEntity> saver = invocation.getArgument(1);
+            when(traineeRepository.save(entity)).thenReturn(created);
+            return saver.apply(entity);
+        }).when(userInitializationUtil).createUser(
+                argThat(entity -> matchesTraineeEntity(entity, mappedEntity)),
+                argThat(TraineeServiceTest::isUnaryOperator),
+                eq("Trainee"));
 
         TraineeDto actual = traineeService.createTrainee(request);
 
@@ -75,11 +85,12 @@ class TraineeServiceTest {
 
         ArgumentCaptor<TraineeEntity> entityCaptor = ArgumentCaptor.forClass(TraineeEntity.class);
         verify(userInitializationUtil, times(1))
-                .createUser(entityCaptor.capture(), any(), eq("Trainee"));
+                .createUser(entityCaptor.capture(), argThat(TraineeServiceTest::isUnaryOperator), eq("Trainee"));
         assertThat(entityCaptor.getValue())
                 .usingRecursiveComparison()
                 .ignoringFields("id", "username", "password", "active", "trainers", "trainings")
-                .isEqualTo(traineeMapper.toEntity(request));
+                .isEqualTo(mappedEntity);
+        verify(traineeRepository, times(1)).save(entityCaptor.getValue());
     }
 
     @Test
@@ -87,11 +98,11 @@ class TraineeServiceTest {
         TraineeDto request = TestDataFactory.traineeDtoWithCredentials(1L, "Alice.Walker");
         request.setAddress("Odesa");
         TraineeEntity existing = TestDataFactory.traineeWithId(1L, "Alice.Walker");
-        TraineeEntity updated = traineeMapper.toEntity(request);
-        TraineeDto expected = traineeMapper.toDto(updated);
+        TraineeEntity entityToSave = traineeMapper.toEntity(request);
+        TraineeDto expected = traineeMapper.toDto(entityToSave);
 
         when(traineeRepository.findById(1L)).thenReturn(Optional.of(existing));
-        when(traineeRepository.save(org.mockito.ArgumentMatchers.any(TraineeEntity.class)))
+        when(traineeRepository.save(argThat(entity -> matchesTraineeEntity(entity, entityToSave))))
                 .thenAnswer(invocation -> invocation.getArgument(0));
 
         TraineeDto actual = traineeService.updateTrainee(request);
@@ -103,19 +114,21 @@ class TraineeServiceTest {
         verify(traineeRepository, times(1)).save(saveCaptor.capture());
         assertThat(saveCaptor.getValue()).usingRecursiveComparison()
                 .ignoringFields("trainers", "trainings")
-                .isEqualTo(traineeMapper.toEntity(request));
+                .isEqualTo(entityToSave);
     }
 
     @Test
     void shouldThrowWhenUpdatingMissingTrainee() {
         TraineeDto request = TestDataFactory.traineeDtoWithCredentials(99L, "Missing.User");
+        TraineeEntity entityToSave = traineeMapper.toEntity(request);
         when(traineeRepository.findById(99L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> traineeService.updateTrainee(request))
                 .isInstanceOf(EntityNotFoundException.class)
                 .hasMessageContaining("99");
 
-        verify(traineeRepository, never()).save(any(TraineeEntity.class));
+        verify(traineeRepository, times(1)).findById(99L);
+        verify(traineeRepository, never()).save(argThat(entity -> matchesTraineeEntity(entity, entityToSave)));
     }
 
     @Test
@@ -139,6 +152,8 @@ class TraineeServiceTest {
         assertThatThrownBy(() -> traineeService.getActiveTrainee(2L))
                 .isInstanceOf(InvalidOperationException.class)
                 .hasMessageContaining("inactive");
+
+        verify(traineeRepository, times(1)).findById(2L);
     }
 
     @Test
@@ -149,9 +164,12 @@ class TraineeServiceTest {
         when(traineeRepository.findAll()).thenReturn(Stream.of(active, inactive));
 
         List<TraineeDto> actual = traineeService.getAllTrainees();
+        List<TraineeDto> expected = List.of(traineeMapper.toDto(active));
 
-        assertThat(actual).hasSize(1);
-        assertThat(actual.getFirst().getId()).isEqualTo(1L);
+        assertThat(actual)
+                .usingRecursiveFieldByFieldElementComparator()
+                .containsExactlyElementsOf(expected);
+        verify(traineeRepository, times(1)).findAll();
     }
 
     @Test
@@ -163,6 +181,8 @@ class TraineeServiceTest {
         assertThatThrownBy(() -> traineeService.getTraineeByUsername("Inactive.User"))
                 .isInstanceOf(InvalidOperationException.class)
                 .hasMessageContaining("inactive");
+
+        verify(traineeRepository, times(1)).findByUsername("Inactive.User");
     }
 
     @Test
@@ -174,5 +194,18 @@ class TraineeServiceTest {
 
         verify(traineeRepository, times(1)).findById(1L);
         verify(traineeRepository, times(1)).delete(1L);
+    }
+
+    private static boolean matchesTraineeEntity(TraineeEntity actual, TraineeEntity expected) {
+        try {
+            assertThat(actual).usingRecursiveComparison().isEqualTo(expected);
+            return true;
+        } catch (AssertionError error) {
+            return false;
+        }
+    }
+
+    private static boolean isUnaryOperator(Object value) {
+        return value instanceof UnaryOperator<?>;
     }
 }

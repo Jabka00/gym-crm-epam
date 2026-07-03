@@ -21,7 +21,8 @@ public class TrainingRepository {
     private static final String FETCH_TRAINING =
             "FROM TrainingEntity t "
                     + "LEFT JOIN FETCH t.trainee "
-                    + "LEFT JOIN FETCH t.trainer "
+                    + "LEFT JOIN FETCH t.trainer tr "
+                    + "LEFT JOIN FETCH tr.specialization "
                     + "LEFT JOIN FETCH t.trainingType";
 
     private final SessionFactory sessionFactory;
@@ -34,14 +35,16 @@ public class TrainingRepository {
     public TrainingEntity save(TrainingEntity training) {
         return transactionSupport.inTransaction(() -> {
             Session session = currentSession();
+            TrainingEntity persisted;
             if (training.getId() == null) {
                 session.persist(training);
+                persisted = training;
             } else {
-                training = session.merge(training);
+                persisted = session.merge(training);
             }
             session.flush();
-            log.debug("Saved training id={}", training.getId());
-            return training;
+            log.debug("Saved training id={}", persisted.getId());
+            return persisted;
         });
     }
 

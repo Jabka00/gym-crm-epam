@@ -3,6 +3,7 @@ package com.epam.gymcrm.repository;
 import com.epam.gymcrm.entity.TrainingEntity;
 import com.epam.gymcrm.support.MySqlIntegrationTest;
 import com.epam.gymcrm.support.TestDataFactory;
+import org.hibernate.SessionFactory;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -14,24 +15,28 @@ class TrainingRepositoryTest {
     @Autowired
     private TrainingRepository trainingRepository;
 
+    @Autowired
+    private SessionFactory sessionFactory;
+
     @Test
     void shouldSaveAndFindTrainingById() {
         TrainingEntity input = TestDataFactory.createDefaultTraining(4L, 1L);
 
         TrainingEntity saved = trainingRepository.save(input);
-        TrainingEntity expected = TestDataFactory.createDefaultTraining(4L, 1L);
-        expected.setId(saved.getId());
+        TrainingEntity expectedAfterSave = TestDataFactory.createDefaultTraining(4L, 1L);
+        expectedAfterSave.setId(saved.getId());
+        TrainingEntity expectedFromDb = TestDataFactory.trainingWithSeedAssociations(saved.getId());
 
         assertThat(saved).usingRecursiveComparison()
-                .ignoringFields("trainee", "trainer", "trainingType")
-                .isEqualTo(expected);
+                .isEqualTo(expectedAfterSave);
+
+        sessionFactory.getCurrentSession().clear();
+
         assertThat(trainingRepository.findById(saved.getId()))
                 .get()
                 .usingRecursiveComparison()
-                .ignoringFields("trainee", "trainer", "trainingType")
-                .isEqualTo(saved);
-        assertThat(trainingRepository.findById(saved.getId()).get().getTrainee().getId()).isEqualTo(4L);
-        assertThat(trainingRepository.findById(saved.getId()).get().getTrainer().getId()).isEqualTo(1L);
+                .ignoringFields("trainee.trainers", "trainee.trainings", "trainer.trainees", "trainer.trainings")
+                .isEqualTo(expectedFromDb);
     }
 
     @Test
