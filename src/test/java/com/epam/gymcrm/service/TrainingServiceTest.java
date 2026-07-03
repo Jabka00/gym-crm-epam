@@ -17,8 +17,6 @@ import com.epam.gymcrm.security.AuthenticationGuard;
 import com.epam.gymcrm.security.Credentials;
 import com.epam.gymcrm.support.TestDataFactory;
 import com.epam.gymcrm.util.DtoValidator;
-import jakarta.validation.Validation;
-import jakarta.validation.Validator;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -65,10 +63,8 @@ class TrainingServiceTest {
     @Mock
     private AuthenticationGuard authenticationGuard;
 
-    private static final Validator VALIDATOR = Validation.buildDefaultValidatorFactory().getValidator();
-
     @Spy
-    private DtoValidator dtoValidator = new DtoValidator(VALIDATOR);
+    private DtoValidator dtoValidator = new DtoValidator();
 
     @InjectMocks
     private TrainingService trainingService;

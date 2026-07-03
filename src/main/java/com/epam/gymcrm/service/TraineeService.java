@@ -42,7 +42,7 @@ public class TraineeService {
         dtoValidator.validate(traineeDto);
 
         TraineeEntity trainee = traineeMapper.toEntity(traineeDto);
-        TraineeEntity created = userInitializationUtil.createUser(trainee, traineeRepository::save, "Trainee");
+        TraineeEntity created = userInitializationUtil.createTrainee(trainee, traineeRepository::save);
         return traineeMapper.toDto(created);
     }
 

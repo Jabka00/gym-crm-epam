@@ -4,8 +4,6 @@ import com.epam.gymcrm.dto.TraineeDto;
 import com.epam.gymcrm.dto.TrainerDto;
 import com.epam.gymcrm.dto.TrainingDto;
 import com.epam.gymcrm.support.TestDataFactory;
-import jakarta.validation.Validation;
-import jakarta.validation.Validator;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -17,8 +15,7 @@ class DtoValidatorTest {
 
     @BeforeEach
     void setUp() {
-        Validator validator = Validation.buildDefaultValidatorFactory().getValidator();
-        dtoValidator = new DtoValidator(validator);
+        dtoValidator = new DtoValidator();
     }
 
     @Test

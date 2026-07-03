@@ -1,5 +1,7 @@
 package com.epam.gymcrm.util;
 
+import com.epam.gymcrm.entity.TraineeEntity;
+import com.epam.gymcrm.entity.TrainerEntity;
 import com.epam.gymcrm.entity.UserEntity;
 import com.epam.gymcrm.service.UserCredentialService;
 import lombok.RequiredArgsConstructor;
@@ -15,7 +17,15 @@ public class UserInitializationUtil {
 
     private final UserCredentialService userCredentialService;
 
-    public <T extends UserEntity> T createUser(T user, UnaryOperator<T> saver, String userType) {
+    public TraineeEntity createTrainee(TraineeEntity trainee, UnaryOperator<TraineeEntity> saver) {
+        return initializeAndSave(trainee, saver, "Trainee");
+    }
+
+    public TrainerEntity createTrainer(TrainerEntity trainer, UnaryOperator<TrainerEntity> saver) {
+        return initializeAndSave(trainer, saver, "Trainer");
+    }
+
+    private <T extends UserEntity> T initializeAndSave(T user, UnaryOperator<T> saver, String userType) {
         String username = userCredentialService.generateUniqueUsername(
                 user.getFirstName(),
                 user.getLastName()

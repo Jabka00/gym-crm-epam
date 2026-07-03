@@ -13,8 +13,6 @@ import com.epam.gymcrm.support.MapperTestSupport;
 import com.epam.gymcrm.support.TestDataFactory;
 import com.epam.gymcrm.util.DtoValidator;
 import com.epam.gymcrm.util.UserInitializationUtil;
-import jakarta.validation.Validation;
-import jakarta.validation.Validator;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -57,10 +55,8 @@ class TrainerServiceTest {
     @Mock
     private AuthenticationGuard authenticationGuard;
 
-    private static final Validator VALIDATOR = Validation.buildDefaultValidatorFactory().getValidator();
-
     @Spy
-    private DtoValidator dtoValidator = new DtoValidator(VALIDATOR);
+    private DtoValidator dtoValidator = new DtoValidator();
 
     @Spy
     private TrainerMapper trainerMapper = MapperTestSupport.trainerMapper();
@@ -84,7 +80,7 @@ class TrainerServiceTest {
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("Specialization is required");
 
-        verify(userInitializationUtil, never()).createUser(any(), any(), any());
+        verify(userInitializationUtil, never()).createTrainer(any(), any());
     }
 
     @Test
@@ -99,10 +95,9 @@ class TrainerServiceTest {
             UnaryOperator<TrainerEntity> saver = invocation.getArgument(1);
             when(trainerRepository.save(entity)).thenReturn(created);
             return saver.apply(entity);
-        }).when(userInitializationUtil).createUser(
+        }).when(userInitializationUtil).createTrainer(
                 argThat(entity -> matchesTrainerEntity(entity, mappedEntity)),
-                argThat(TrainerServiceTest::isUnaryOperator),
-                eq("Trainer"));
+                argThat(TrainerServiceTest::isUnaryOperator));
 
         TrainerDto actual = trainerService.createTrainer(request);
 
@@ -110,7 +105,7 @@ class TrainerServiceTest {
 
         ArgumentCaptor<TrainerEntity> entityCaptor = ArgumentCaptor.forClass(TrainerEntity.class);
         verify(userInitializationUtil, times(1))
-                .createUser(entityCaptor.capture(), argThat(TrainerServiceTest::isUnaryOperator), eq("Trainer"));
+                .createTrainer(entityCaptor.capture(), argThat(TrainerServiceTest::isUnaryOperator));
         assertThat(entityCaptor.getValue())
                 .usingRecursiveComparison()
                 .ignoringFields("id", "username", "password", "active", "trainees", "trainings", "specialization")

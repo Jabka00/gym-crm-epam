@@ -1,18 +1,17 @@
 package com.epam.gymcrm.util;
 
 import jakarta.validation.ConstraintViolation;
+import jakarta.validation.Validation;
 import jakarta.validation.Validator;
-import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.util.Set;
 import java.util.stream.Collectors;
 
 @Component
-@RequiredArgsConstructor
 public class DtoValidator {
 
-    private final Validator validator;
+    private final Validator validator = Validation.buildDefaultValidatorFactory().getValidator();
 
     public <T> void validate(T dto) {
         if (dto == null) {

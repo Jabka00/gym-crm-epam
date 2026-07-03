@@ -8,7 +8,7 @@ import java.security.SecureRandom;
 @Configuration
 @ComponentScan(basePackages = "com.epam.gymcrm")
 @PropertySource("classpath:application.properties")
-@Import({HibernateConfig.class, ValidationConfig.class})
+@Import(HibernateConfig.class)
 
 public class AppConfig {
 

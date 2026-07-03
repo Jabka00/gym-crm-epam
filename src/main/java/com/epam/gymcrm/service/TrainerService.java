@@ -34,7 +34,7 @@ public class TrainerService {
         dtoValidator.validate(trainerDto);
 
         TrainerEntity trainer = trainerMapper.toEntity(trainerDto);
-        TrainerEntity created = userInitializationUtil.createUser(trainer, trainerRepository::save, "Trainer");
+        TrainerEntity created = userInitializationUtil.createTrainer(trainer, trainerRepository::save);
         return trainerMapper.toDto(created);
     }
 
