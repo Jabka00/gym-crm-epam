@@ -12,6 +12,7 @@ import com.epam.gymcrm.repository.TraineeRepository;
 import com.epam.gymcrm.repository.TrainerRepository;
 import com.epam.gymcrm.security.AuthenticationGuard;
 import com.epam.gymcrm.security.Credentials;
+import com.epam.gymcrm.util.DtoValidator;
 import com.epam.gymcrm.util.UserInitializationUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -35,11 +36,10 @@ public class TraineeService {
     private final TrainerMapper trainerMapper;
     private final UserService userService;
     private final AuthenticationGuard authenticationGuard;
+    private final DtoValidator dtoValidator;
 
     public TraineeDto createTrainee(TraineeDto traineeDto) {
-        if (traineeDto == null) {
-            throw new IllegalArgumentException("Trainee cannot be null");
-        }
+        dtoValidator.validate(traineeDto);
 
         TraineeEntity trainee = traineeMapper.toEntity(traineeDto);
         TraineeEntity created = userInitializationUtil.createUser(trainee, traineeRepository::save, "Trainee");
@@ -56,6 +56,8 @@ public class TraineeService {
             throw new IllegalArgumentException("Trainee ID cannot be null");
         }
 
+        dtoValidator.validate(traineeDto);
+
         traineeRepository.findById(traineeDto.getId())
                 .orElseThrow(() -> new EntityNotFoundException("Trainee not found with id: " + traineeDto.getId()));
 
@@ -64,15 +66,18 @@ public class TraineeService {
         return traineeMapper.toDto(updated);
     }
 
-    public void deleteTrainee(Long id) {
-        if (id == null) {
-            throw new IllegalArgumentException("Trainee ID cannot be null");
+    public void deleteTraineeByUsername(Credentials auth, String username) {
+        authenticationGuard.ensureAuthenticated(auth);
+
+        if (username == null || username.isBlank()) {
+            throw new IllegalArgumentException("Trainee username cannot be null or empty");
         }
 
-        traineeRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Trainee not found with id: " + id));
-        traineeRepository.delete(id);
-        log.info("Deleted trainee id={}", id);
+        traineeRepository.findByUsername(username)
+                .orElseThrow(() -> new EntityNotFoundException("Trainee not found with username: " + username));
+
+        traineeRepository.deleteByUsername(username);
+        log.info("Deleted trainee username={}", username);
     }
 
     @Transactional(readOnly = true)
@@ -100,7 +105,8 @@ public class TraineeService {
         return traineeMapper.toDto(trainee);
     }
 
-    public void changePassword(String username, String oldPassword, String newPassword) {
+    public void changePassword(Credentials auth, String username, String oldPassword, String newPassword) {
+        authenticationGuard.ensureAuthenticated(auth);
         userService.changePassword(username, oldPassword, newPassword);
     }
 

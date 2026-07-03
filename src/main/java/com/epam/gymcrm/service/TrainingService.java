@@ -12,6 +12,7 @@ import com.epam.gymcrm.repository.TrainingRepository;
 import com.epam.gymcrm.repository.TrainingTypeRepository;
 import com.epam.gymcrm.security.AuthenticationGuard;
 import com.epam.gymcrm.security.Credentials;
+import com.epam.gymcrm.util.DtoValidator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -32,10 +33,12 @@ public class TrainingService {
     private final TrainerRepository trainerRepository;
     private final TrainingMapper trainingMapper;
     private final AuthenticationGuard authenticationGuard;
+    private final DtoValidator dtoValidator;
 
     public TrainingDto createTraining(Credentials auth, TrainingDto trainingDto) {
         authenticationGuard.ensureAuthenticated(auth);
-        validateTrainingDto(trainingDto);
+        dtoValidator.validate(trainingDto);
+        requireTrainingParticipantIds(trainingDto);
 
         TrainingEntity training = trainingMapper.toEntity(trainingDto);
         var trainee = traineeRepository.findById(trainingDto.getTrainee().getId())
@@ -94,7 +97,7 @@ public class TrainingService {
             LocalDate fromDate,
             LocalDate toDate,
             String trainerUsername,
-            Long trainingTypeId) {
+            String trainingTypeName) {
 
         authenticationGuard.ensureAuthenticated(auth);
 
@@ -102,12 +105,12 @@ public class TrainingService {
             throw new IllegalArgumentException("Trainee username is required");
         }
 
-        log.info("Fetching trainings for trainee: {}, fromDate: {}, toDate: {}, trainer: {}, typeId: {}",
-                traineeUsername, fromDate, toDate, trainerUsername, trainingTypeId);
+        log.info("Fetching trainings for trainee: {}, fromDate: {}, toDate: {}, trainer: {}, typeName: {}",
+                traineeUsername, fromDate, toDate, trainerUsername, trainingTypeName);
 
         List<TrainingDto> trainings = trainingRepository
                 .findByTraineeUsernameAndCriteria(
-                        traineeUsername, fromDate, toDate, trainerUsername, trainingTypeId)
+                        traineeUsername, fromDate, toDate, trainerUsername, trainingTypeName)
                 .stream()
                 .map(trainingMapper::toDto)
                 .toList();
@@ -143,18 +146,12 @@ public class TrainingService {
         return trainings;
     }
 
-    private void validateTrainingDto(TrainingDto trainingDto) {
-        if (trainingDto == null) {
-            throw new IllegalArgumentException("Training cannot be null");
+    private void requireTrainingParticipantIds(TrainingDto trainingDto) {
+        if (trainingDto.getTrainee().getId() == null) {
+            throw new IllegalArgumentException("Trainee id is required");
         }
-        if (trainingDto.getTrainee() == null) {
-            throw new IllegalArgumentException("Trainee cannot be null");
-        }
-        if (trainingDto.getTrainer() == null) {
-            throw new IllegalArgumentException("Trainer cannot be null");
-        }
-        if (trainingDto.getTrainingType() == null) {
-            throw new IllegalArgumentException("Training type cannot be null");
+        if (trainingDto.getTrainer().getId() == null) {
+            throw new IllegalArgumentException("Trainer id is required");
         }
     }
 

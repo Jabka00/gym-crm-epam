@@ -49,8 +49,9 @@ public class GymCrmApp {
                     .build());
             log.info("Created trainee id={}, username={}", disposableTrainee.getId(), disposableTrainee.getUsername());
 
-            gymService.removeTraineeProfile(disposableTrainee.getId());
-            log.info("Removed trainee id={} (no trainings)", disposableTrainee.getId());
+            Credentials disposableAuth = credentialsOf(disposableTrainee);
+            gymService.removeTraineeProfile(disposableAuth, disposableTrainee.getUsername());
+            log.info("Removed trainee username={}", disposableTrainee.getUsername());
 
             TrainingTypeDto pilatesType = trainingTypeService.getTrainingTypeByName("PILATES");
             TrainingTypeDto yogaType = trainingTypeService.getTrainingTypeByName("YOGA");
@@ -111,9 +112,9 @@ public class GymCrmApp {
                     "Alice.Walker",
                     LocalDate.of(2024, 3, 1),
                     LocalDate.of(2024, 3, 31),
-                    null,
-                    null);
-            log.info("Alice.Walker trainings in March 2024: {}", aliceTrainings.size());
+                    "John.Smith",
+                    "YOGA");
+            log.info("Alice.Walker YOGA trainings with John.Smith in March 2024: {}", aliceTrainings.size());
 
             List<TrainingDto> johnTrainings = trainingService.getTrainerTrainings(
                     johnAuth,
@@ -124,7 +125,7 @@ public class GymCrmApp {
             log.info("John.Smith trainings in 2024: {}", johnTrainings.size());
 
             String newPassword = "SecurePass1";
-            traineeService.changePassword(kate.getUsername(), kateAuth.password(), newPassword);
+            traineeService.changePassword(kateAuth, kate.getUsername(), kateAuth.password(), newPassword);
             kateAuth = new Credentials(kate.getUsername(), newPassword);
             log.info("Password changed for {}", kate.getUsername());
             logAuthentication(authenticationService, kateAuth);

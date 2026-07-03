@@ -28,11 +28,8 @@ public class TraineeDto {
     @Size(max = 100, message = "Last name must not exceed 100 characters")
     private String lastName;
 
-    @NotBlank(message = "Username is required")
-    @Size(max = 100, message = "Username must not exceed 100 characters")
     private String username;
 
-    @NotBlank(message = "Password is required")
     private String password;
 
     private boolean active;

@@ -8,6 +8,7 @@ import com.epam.gymcrm.mapper.TrainerMapper;
 import com.epam.gymcrm.repository.TrainerRepository;
 import com.epam.gymcrm.security.AuthenticationGuard;
 import com.epam.gymcrm.security.Credentials;
+import com.epam.gymcrm.util.DtoValidator;
 import com.epam.gymcrm.util.UserInitializationUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -27,11 +28,10 @@ public class TrainerService {
     private final TrainerMapper trainerMapper;
     private final UserService userService;
     private final AuthenticationGuard authenticationGuard;
+    private final DtoValidator dtoValidator;
 
     public TrainerDto createTrainer(TrainerDto trainerDto) {
-        if (trainerDto == null) {
-            throw new IllegalArgumentException("Trainer cannot be null");
-        }
+        dtoValidator.validate(trainerDto);
 
         TrainerEntity trainer = trainerMapper.toEntity(trainerDto);
         TrainerEntity created = userInitializationUtil.createUser(trainer, trainerRepository::save, "Trainer");
@@ -44,6 +44,8 @@ public class TrainerService {
         if (trainerDto == null || trainerDto.getId() == null) {
             throw new IllegalArgumentException("Trainer or id cannot be null");
         }
+
+        dtoValidator.validate(trainerDto);
 
         trainerRepository.findById(trainerDto.getId())
                 .orElseThrow(() -> new EntityNotFoundException("Trainer not found with id: " + trainerDto.getId()));
@@ -79,7 +81,8 @@ public class TrainerService {
         return trainerMapper.toDto(trainer);
     }
 
-    public void changePassword(String username, String oldPassword, String newPassword) {
+    public void changePassword(Credentials auth, String username, String oldPassword, String newPassword) {
+        authenticationGuard.ensureAuthenticated(auth);
         userService.changePassword(username, oldPassword, newPassword);
     }
 

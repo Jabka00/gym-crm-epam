@@ -1,8 +1,10 @@
 package com.epam.gymcrm.repository;
 
 import com.epam.gymcrm.entity.TraineeEntity;
+import com.epam.gymcrm.entity.TrainingEntity;
 import com.epam.gymcrm.support.MySqlIntegrationTest;
 import com.epam.gymcrm.support.TestDataFactory;
+import org.hibernate.SessionFactory;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -13,6 +15,12 @@ class TraineeRepositoryTest {
 
     @Autowired
     private TraineeRepository traineeRepository;
+
+    @Autowired
+    private TrainingRepository trainingRepository;
+
+    @Autowired
+    private SessionFactory sessionFactory;
 
     @Test
     void shouldSaveAndFindTraineeById() {
@@ -59,6 +67,25 @@ class TraineeRepositoryTest {
         traineeRepository.delete(saved.getId());
 
         assertThat(traineeRepository.findById(saved.getId())).isEmpty();
+    }
+
+    @Test
+    void shouldCascadeDeleteTrainingsWhenDeletingTraineeByUsername() {
+        TraineeEntity trainee = traineeRepository.save(TestDataFactory.trainee("Cascade.User"));
+        TrainingEntity training = trainingRepository.save(
+                TestDataFactory.createDefaultTraining(trainee.getId(), 1L));
+        Long trainingId = training.getId();
+
+        sessionFactory.getCurrentSession().flush();
+        sessionFactory.getCurrentSession().clear();
+
+        traineeRepository.deleteByUsername("Cascade.User");
+
+        sessionFactory.getCurrentSession().flush();
+        sessionFactory.getCurrentSession().clear();
+
+        assertThat(traineeRepository.findByUsername("Cascade.User")).isEmpty();
+        assertThat(trainingRepository.findById(trainingId)).isEmpty();
     }
 
     @Test

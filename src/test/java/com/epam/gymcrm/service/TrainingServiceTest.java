@@ -16,12 +16,16 @@ import com.epam.gymcrm.repository.TrainingTypeRepository;
 import com.epam.gymcrm.security.AuthenticationGuard;
 import com.epam.gymcrm.security.Credentials;
 import com.epam.gymcrm.support.TestDataFactory;
+import com.epam.gymcrm.util.DtoValidator;
+import jakarta.validation.Validation;
+import jakarta.validation.Validator;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDate;
@@ -61,6 +65,11 @@ class TrainingServiceTest {
     @Mock
     private AuthenticationGuard authenticationGuard;
 
+    private static final Validator VALIDATOR = Validation.buildDefaultValidatorFactory().getValidator();
+
+    @Spy
+    private DtoValidator dtoValidator = new DtoValidator(VALIDATOR);
+
     @InjectMocks
     private TrainingService trainingService;
 
@@ -70,6 +79,18 @@ class TrainingServiceTest {
     void setUp() {
         auth = TestDataFactory.credentials();
         doNothing().when(authenticationGuard).ensureAuthenticated(any(Credentials.class));
+    }
+
+    @Test
+    void shouldRejectCreateWithMissingTrainingName() {
+        TrainingDto request = TestDataFactory.trainingDto(1L, 2L);
+        request.setTrainingName(null);
+
+        assertThatThrownBy(() -> trainingService.createTraining(auth, request))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Training name is required");
+
+        verify(trainingMapper, never()).toEntity(request);
     }
 
     @Test
@@ -254,8 +275,8 @@ class TrainingServiceTest {
                 "Alice.Walker",
                 LocalDate.of(2024, 3, 1),
                 LocalDate.of(2024, 3, 31),
-                null,
-                null)).thenReturn(List.of(training));
+                "John.Smith",
+                "YOGA")).thenReturn(List.of(training));
         when(trainingMapper.toDto(training)).thenReturn(trainingDto);
 
         List<TrainingDto> actual = trainingService.getTraineeTrainings(
@@ -263,8 +284,8 @@ class TrainingServiceTest {
                 "Alice.Walker",
                 LocalDate.of(2024, 3, 1),
                 LocalDate.of(2024, 3, 31),
-                null,
-                null);
+                "John.Smith",
+                "YOGA");
 
         assertThat(actual).containsExactly(trainingDto);
         verify(authenticationGuard, times(1)).ensureAuthenticated(auth);
@@ -272,8 +293,8 @@ class TrainingServiceTest {
                 "Alice.Walker",
                 LocalDate.of(2024, 3, 1),
                 LocalDate.of(2024, 3, 31),
-                null,
-                null);
+                "John.Smith",
+                "YOGA");
     }
 
     @Test

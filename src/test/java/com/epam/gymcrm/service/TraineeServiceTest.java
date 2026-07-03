@@ -14,7 +14,10 @@ import com.epam.gymcrm.repository.TrainerRepository;
 import com.epam.gymcrm.security.AuthenticationGuard;
 import com.epam.gymcrm.security.Credentials;
 import com.epam.gymcrm.support.TestDataFactory;
+import com.epam.gymcrm.util.DtoValidator;
 import com.epam.gymcrm.util.UserInitializationUtil;
+import jakarta.validation.Validation;
+import jakarta.validation.Validator;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -62,6 +65,11 @@ class TraineeServiceTest {
     @Mock
     private AuthenticationGuard authenticationGuard;
 
+    private static final Validator VALIDATOR = Validation.buildDefaultValidatorFactory().getValidator();
+
+    @Spy
+    private DtoValidator dtoValidator = new DtoValidator(VALIDATOR);
+
     @Spy
     private TraineeMapper traineeMapper = Mappers.getMapper(TraineeMapper.class);
 
@@ -77,6 +85,17 @@ class TraineeServiceTest {
     void setUp() {
         auth = TestDataFactory.credentials();
         doNothing().when(authenticationGuard).ensureAuthenticated(any(Credentials.class));
+    }
+
+    @Test
+    void shouldRejectCreateWithBlankFirstName() {
+        TraineeDto request = TraineeDto.builder().firstName("").lastName("Doe").build();
+
+        assertThatThrownBy(() -> traineeService.createTrainee(request))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("First name is required");
+
+        verify(userInitializationUtil, never()).createUser(any(), any(), any());
     }
 
     @Test
@@ -277,15 +296,28 @@ class TraineeServiceTest {
     }
 
     @Test
-    void shouldDeleteTrainee() {
+    void shouldDeleteTraineeByUsername() {
         TraineeEntity trainee = TestDataFactory.traineeWithId(1L, "Alice.Walker");
-        when(traineeRepository.findById(1L)).thenReturn(Optional.of(trainee));
+        when(traineeRepository.findByUsername("Alice.Walker")).thenReturn(Optional.of(trainee));
 
-        traineeService.deleteTrainee(1L);
+        traineeService.deleteTraineeByUsername(auth, "Alice.Walker");
 
-        verify(traineeRepository, times(1)).findById(1L);
-        verify(traineeRepository, times(1)).delete(1L);
-        verify(authenticationGuard, never()).ensureAuthenticated(any());
+        verify(authenticationGuard, times(1)).ensureAuthenticated(auth);
+        verify(traineeRepository, times(1)).findByUsername("Alice.Walker");
+        verify(traineeRepository, times(1)).deleteByUsername("Alice.Walker");
+    }
+
+    @Test
+    void shouldRejectUnauthenticatedTraineeDeletion() {
+        doThrow(new AuthenticationException("Invalid credentials for username: Alice.Walker"))
+                .when(authenticationGuard)
+                .ensureAuthenticated(auth);
+
+        assertThatThrownBy(() -> traineeService.deleteTraineeByUsername(auth, "Alice.Walker"))
+                .isInstanceOf(AuthenticationException.class);
+
+        verify(authenticationGuard, times(1)).ensureAuthenticated(auth);
+        verify(traineeRepository, never()).deleteByUsername(any());
     }
 
     @Test
@@ -340,10 +372,23 @@ class TraineeServiceTest {
 
     @Test
     void shouldDelegateChangePasswordToUserService() {
-        traineeService.changePassword("Alice.Walker", "oldPass1", "NewPass1!");
+        traineeService.changePassword(auth, "Alice.Walker", "oldPass1", "NewPass1!");
 
+        verify(authenticationGuard, times(1)).ensureAuthenticated(auth);
         verify(userService, times(1)).changePassword("Alice.Walker", "oldPass1", "NewPass1!");
-        verify(authenticationGuard, never()).ensureAuthenticated(any());
+    }
+
+    @Test
+    void shouldRejectUnauthenticatedChangePassword() {
+        doThrow(new AuthenticationException("Invalid credentials for username: Alice.Walker"))
+                .when(authenticationGuard)
+                .ensureAuthenticated(auth);
+
+        assertThatThrownBy(() -> traineeService.changePassword(auth, "Alice.Walker", "oldPass1", "NewPass1!"))
+                .isInstanceOf(AuthenticationException.class);
+
+        verify(authenticationGuard, times(1)).ensureAuthenticated(auth);
+        verify(userService, never()).changePassword(any(), any(), any());
     }
 
     private static boolean matchesTraineeEntity(TraineeEntity actual, TraineeEntity expected) {

@@ -183,23 +183,9 @@ class GymServiceTest {
     }
 
     @Test
-    void shouldNotRemoveTraineeWhenTrainingsExist() {
-        when(trainingService.existsByTraineeId(1L)).thenReturn(true);
+    void shouldRemoveTraineeProfile() {
+        gymService.removeTraineeProfile(auth, "Alice.Walker");
 
-        assertThatThrownBy(() -> gymService.removeTraineeProfile(1L))
-                .isInstanceOf(InvalidOperationException.class);
-
-        verify(trainingService, times(1)).existsByTraineeId(1L);
-        verify(traineeService, never()).deleteTrainee(1L);
-    }
-
-    @Test
-    void shouldRemoveTraineeWhenNoTrainingsExist() {
-        when(trainingService.existsByTraineeId(1L)).thenReturn(false);
-
-        gymService.removeTraineeProfile(1L);
-
-        verify(trainingService, times(1)).existsByTraineeId(1L);
-        verify(traineeService, times(1)).deleteTrainee(1L);
+        verify(traineeService, times(1)).deleteTraineeByUsername(auth, "Alice.Walker");
     }
 }

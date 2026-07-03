@@ -83,7 +83,7 @@ public class TrainingRepository {
             LocalDate fromDate,
             LocalDate toDate,
             String trainerUsername,
-            Long trainingTypeId) {
+            String trainingTypeName) {
 
         return transactionSupport.inReadOnlyTransaction(() -> {
             StringBuilder hql = new StringBuilder(FETCH_TRAINING + " WHERE t.trainee.username = :traineeUsername");
@@ -97,8 +97,8 @@ public class TrainingRepository {
             if (trainerUsername != null && !trainerUsername.isBlank()) {
                 hql.append(" AND t.trainer.username = :trainerUsername");
             }
-            if (trainingTypeId != null) {
-                hql.append(" AND t.trainingType.id = :trainingTypeId");
+            if (trainingTypeName != null && !trainingTypeName.isBlank()) {
+                hql.append(" AND t.trainingType.typeName = :trainingTypeName");
             }
 
             var query = currentSession()
@@ -114,8 +114,8 @@ public class TrainingRepository {
             if (trainerUsername != null && !trainerUsername.isBlank()) {
                 query.setParameter("trainerUsername", trainerUsername);
             }
-            if (trainingTypeId != null) {
-                query.setParameter("trainingTypeId", trainingTypeId);
+            if (trainingTypeName != null && !trainingTypeName.isBlank()) {
+                query.setParameter("trainingTypeName", trainingTypeName);
             }
 
             List<TrainingEntity> trainings = query.getResultList();

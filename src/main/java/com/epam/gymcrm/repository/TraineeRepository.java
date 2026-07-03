@@ -51,6 +51,23 @@ public class TraineeRepository {
         }
     }
 
+    @Transactional
+    public void deleteByUsername(String username) {
+        TraineeEntity trainee = currentSession()
+                .createQuery(
+                        "FROM TraineeEntity t LEFT JOIN FETCH t.trainers LEFT JOIN FETCH t.trainings "
+                                + "WHERE t.username = :username",
+                        TraineeEntity.class)
+                .setParameter("username", username)
+                .uniqueResult();
+
+        if (trainee != null) {
+            trainee.getTrainers().clear();
+            currentSession().remove(trainee);
+            log.debug("Deleted trainee username={}", username);
+        }
+    }
+
     @Transactional(readOnly = true)
     public Optional<TraineeEntity> findById(Long id) {
         log.debug("findById trainee id={}", id);

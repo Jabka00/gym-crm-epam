@@ -3,7 +3,6 @@ package com.epam.gymcrm.service;
 import com.epam.gymcrm.dto.TraineeDto;
 import com.epam.gymcrm.dto.TrainerDto;
 import com.epam.gymcrm.dto.TrainingDto;
-import com.epam.gymcrm.exception.InvalidOperationException;
 import com.epam.gymcrm.security.Credentials;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -41,13 +40,9 @@ public class GymService {
         return trainingService.createTraining(auth, enrichTraining(trainingDto, trainee, trainer));
     }
 
-    public void removeTraineeProfile(Long traineeId) {
-        if (trainingService.existsByTraineeId(traineeId)) {
-            throw new InvalidOperationException(
-                    "Cannot remove trainee id=" + traineeId + ": active trainings exist");
-        }
-        traineeService.deleteTrainee(traineeId);
-        log.info("Removed trainee profile id={}", traineeId);
+    public void removeTraineeProfile(Credentials auth, String username) {
+        traineeService.deleteTraineeByUsername(auth, username);
+        log.info("Removed trainee profile username={}", username);
     }
 
     private TrainingDto enrichTraining(TrainingDto source, TraineeDto trainee, TrainerDto trainer) {

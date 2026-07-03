@@ -11,7 +11,10 @@ import com.epam.gymcrm.security.AuthenticationGuard;
 import com.epam.gymcrm.security.Credentials;
 import com.epam.gymcrm.support.MapperTestSupport;
 import com.epam.gymcrm.support.TestDataFactory;
+import com.epam.gymcrm.util.DtoValidator;
 import com.epam.gymcrm.util.UserInitializationUtil;
+import jakarta.validation.Validation;
+import jakarta.validation.Validator;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -54,6 +57,11 @@ class TrainerServiceTest {
     @Mock
     private AuthenticationGuard authenticationGuard;
 
+    private static final Validator VALIDATOR = Validation.buildDefaultValidatorFactory().getValidator();
+
+    @Spy
+    private DtoValidator dtoValidator = new DtoValidator(VALIDATOR);
+
     @Spy
     private TrainerMapper trainerMapper = MapperTestSupport.trainerMapper();
 
@@ -66,6 +74,17 @@ class TrainerServiceTest {
     void setUp() {
         auth = TestDataFactory.credentials();
         doNothing().when(authenticationGuard).ensureAuthenticated(any(Credentials.class));
+    }
+
+    @Test
+    void shouldRejectCreateWithoutSpecialization() {
+        TrainerDto request = TrainerDto.builder().firstName("John").lastName("Smith").build();
+
+        assertThatThrownBy(() -> trainerService.createTrainer(request))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Specialization is required");
+
+        verify(userInitializationUtil, never()).createUser(any(), any(), any());
     }
 
     @Test
@@ -236,9 +255,23 @@ class TrainerServiceTest {
 
     @Test
     void shouldDelegateChangePasswordToUserService() {
-        trainerService.changePassword("John.Smith", "oldPass1", "NewPass1!");
+        trainerService.changePassword(auth, "John.Smith", "oldPass1", "NewPass1!");
 
+        verify(authenticationGuard, times(1)).ensureAuthenticated(auth);
         verify(userService, times(1)).changePassword("John.Smith", "oldPass1", "NewPass1!");
+    }
+
+    @Test
+    void shouldRejectUnauthenticatedChangePassword() {
+        doThrow(new AuthenticationException("Invalid credentials for username: John.Smith"))
+                .when(authenticationGuard)
+                .ensureAuthenticated(auth);
+
+        assertThatThrownBy(() -> trainerService.changePassword(auth, "John.Smith", "oldPass1", "NewPass1!"))
+                .isInstanceOf(AuthenticationException.class);
+
+        verify(authenticationGuard, times(1)).ensureAuthenticated(auth);
+        verify(userService, never()).changePassword(any(), any(), any());
     }
 
     @Test
