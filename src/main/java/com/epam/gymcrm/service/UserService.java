@@ -69,18 +69,6 @@ public class UserService {
         throw new EntityNotFoundException("User not found with username: " + username);
     }
 
-    public void deleteByUsername(String username) {
-        validateUsername(username);
-
-        var traineeOpt = traineeRepository.findByUsername(username);
-        if (traineeOpt.isPresent()) {
-            traineeRepository.delete(traineeOpt.get().getId());
-            return;
-        }
-
-        throw new EntityNotFoundException("User not found with username: " + username);
-    }
-
     private <T extends UserEntity> void validateOldPassword(T user, String oldPassword) {
         if (!user.getPassword().equals(oldPassword)) {
             throw new IllegalArgumentException("Old password is incorrect");

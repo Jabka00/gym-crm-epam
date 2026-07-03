@@ -29,8 +29,4 @@ public class PasswordValidator {
         }
         log.debug("Password validation successful");
     }
-
-    public boolean isValid(String password) {
-        return password != null && passwordPattern.matcher(password).matches();
-    }
 }

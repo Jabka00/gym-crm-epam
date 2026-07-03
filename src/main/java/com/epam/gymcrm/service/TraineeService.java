@@ -101,11 +101,6 @@ public class TraineeService {
         userService.toggleActivation(username);
     }
 
-    public void deleteTraineeByUsername(String username) {
-        userService.deleteByUsername(username);
-        log.info("Deleted trainee profile by username={}", username);
-    }
-
     public void updateTrainersList(String traineeUsername, Set<String> trainerUsernames) {
         if (traineeUsername == null || traineeUsername.isBlank()) {
             throw new IllegalArgumentException("Trainee username cannot be null or empty");
@@ -149,7 +144,6 @@ public class TraineeService {
         }
 
         return trainerRepository.findNotAssignedToTrainee(traineeUsername).stream()
-                .filter(TrainerEntity::isActive)
                 .map(trainerMapper::toDto)
                 .toList();
     }

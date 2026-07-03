@@ -41,9 +41,6 @@ class TrainerServiceTest {
     @Mock
     private UserInitializationUtil userInitializationUtil;
 
-    @Mock
-    private UserService userService;
-
     @Spy
     private TrainerMapper trainerMapper = MapperTestSupport.trainerMapper();
 

@@ -75,7 +75,7 @@ public class TrainerRepository {
     public Stream<TrainerEntity> findAll() {
         var trainers = currentSession()
                 .createQuery(
-                        "FROM TrainerEntity t LEFT JOIN FETCH t.specialization LEFT JOIN FETCH t.trainees",
+                        "FROM TrainerEntity t LEFT JOIN FETCH t.specialization",
                         TrainerEntity.class)
                 .getResultList();
         log.debug("findAll trainers, count={}", trainers.size());

@@ -23,7 +23,6 @@ public class TrainerService {
     private final TrainerRepository trainerRepository;
     private final UserInitializationUtil userInitializationUtil;
     private final TrainerMapper trainerMapper;
-    private final UserService userService;
 
     public TrainerDto createTrainer(TrainerDto trainerDto) {
         if (trainerDto == null) {
@@ -70,14 +69,6 @@ public class TrainerService {
             throw new InvalidOperationException("Trainer is inactive: username=" + username);
         }
         return trainerMapper.toDto(trainer);
-    }
-
-    public void changePassword(String username, String oldPassword, String newPassword) {
-        userService.changePassword(username, oldPassword, newPassword);
-    }
-
-    public void toggleActivation(String username) {
-        userService.toggleActivation(username);
     }
 
     @Transactional(readOnly = true)

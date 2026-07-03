@@ -20,10 +20,6 @@ public final class TestDataFactory {
         return TrainingTypeDto.builder().id(1L).typeName("YOGA").build();
     }
 
-    public static TrainingTypeDto boxingTypeDto() {
-        return TrainingTypeDto.builder().id(3L).typeName("BOXING").build();
-    }
-
     public static TrainingTypeEntity trainingType(String typeName) {
         TrainingTypeEntity entity = new TrainingTypeEntity();
         entity.setTypeName(typeName);

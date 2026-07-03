@@ -9,8 +9,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
-
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -24,12 +22,5 @@ public class TrainingTypeService {
         return trainingTypeRepository.findByTypeName(typeName)
                 .map(trainingTypeMapper::toDto)
                 .orElseThrow(() -> new EntityNotFoundException("Training type not found: " + typeName));
-    }
-
-    @Transactional(readOnly = true)
-    public List<TrainingTypeDto> getAllTrainingTypes() {
-        return trainingTypeRepository.findAll().stream()
-                .map(trainingTypeMapper::toDto)
-                .toList();
     }
 }
