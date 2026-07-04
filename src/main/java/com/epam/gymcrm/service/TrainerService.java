@@ -6,7 +6,7 @@ import com.epam.gymcrm.exception.EntityNotFoundException;
 import com.epam.gymcrm.exception.InvalidOperationException;
 import com.epam.gymcrm.mapper.TrainerMapper;
 import com.epam.gymcrm.repository.TrainerRepository;
-import com.epam.gymcrm.security.AuthenticationGuard;
+
 import com.epam.gymcrm.security.Credentials;
 import com.epam.gymcrm.util.DtoValidator;
 import com.epam.gymcrm.util.UserInitializationUtil;
@@ -27,7 +27,6 @@ public class TrainerService {
     private final UserInitializationUtil userInitializationUtil;
     private final TrainerMapper trainerMapper;
     private final UserService userService;
-    private final AuthenticationGuard authenticationGuard;
     private final AuthenticationService authenticationService;
     private final DtoValidator dtoValidator;
 
@@ -45,7 +44,7 @@ public class TrainerService {
     }
 
     public TrainerDto updateTrainer(Credentials auth, TrainerDto trainerDto) {
-        authenticationGuard.ensureAuthenticated(auth);
+        authenticationService.requireAuthenticated(auth);
 
         if (trainerDto == null || trainerDto.getId() == null) {
             throw new IllegalArgumentException("Trainer or id cannot be null");
@@ -77,7 +76,7 @@ public class TrainerService {
 
     @Transactional(readOnly = true)
     public TrainerDto getTrainerByUsername(Credentials auth, String username) {
-        authenticationGuard.ensureAuthenticated(auth);
+        authenticationService.requireAuthenticated(auth);
 
         TrainerEntity trainer = trainerRepository.findByUsername(username)
                 .orElseThrow(() -> new EntityNotFoundException("Trainer not found with username: " + username));
@@ -92,7 +91,7 @@ public class TrainerService {
     }
 
     public void toggleActivation(Credentials auth, String username) {
-        authenticationGuard.ensureAuthenticated(auth);
+        authenticationService.requireAuthenticated(auth);
         userService.toggleActivation(username);
     }
 

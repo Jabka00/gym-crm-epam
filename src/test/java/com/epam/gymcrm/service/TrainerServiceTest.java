@@ -7,7 +7,6 @@ import com.epam.gymcrm.exception.EntityNotFoundException;
 import com.epam.gymcrm.exception.InvalidOperationException;
 import com.epam.gymcrm.mapper.TrainerMapper;
 import com.epam.gymcrm.repository.TrainerRepository;
-import com.epam.gymcrm.security.AuthenticationGuard;
 import com.epam.gymcrm.security.Credentials;
 import com.epam.gymcrm.support.MapperTestSupport;
 import com.epam.gymcrm.support.TestDataFactory;
@@ -53,9 +52,6 @@ class TrainerServiceTest {
     private UserService userService;
 
     @Mock
-    private AuthenticationGuard authenticationGuard;
-
-    @Mock
     private AuthenticationService authenticationService;
 
     @Spy
@@ -72,7 +68,7 @@ class TrainerServiceTest {
     @BeforeEach
     void setUp() {
         auth = TestDataFactory.credentials();
-        doNothing().when(authenticationGuard).ensureAuthenticated(any(Credentials.class));
+        doNothing().when(authenticationService).requireAuthenticated(any(Credentials.class));
     }
 
     @Test
@@ -93,7 +89,7 @@ class TrainerServiceTest {
         assertThat(trainerService.verifyPassword("John.Smith", "pass1234AB")).isTrue();
 
         verify(authenticationService, times(1)).authenticateTrainer("John.Smith", "pass1234AB");
-        verify(authenticationGuard, never()).ensureAuthenticated(any());
+        verify(authenticationService, never()).requireAuthenticated(any());
     }
 
     @Test
@@ -133,7 +129,7 @@ class TrainerServiceTest {
                 .ignoringFields("id", "username", "password", "active", "trainees", "trainings", "specialization")
                 .isEqualTo(mappedEntity);
         verify(trainerRepository, times(1)).save(entityCaptor.getValue());
-        verify(authenticationGuard, never()).ensureAuthenticated(any());
+        verify(authenticationService, never()).requireAuthenticated(any());
     }
 
     @Test
@@ -158,7 +154,7 @@ class TrainerServiceTest {
         assertThat(saveCaptor.getValue()).usingRecursiveComparison()
                 .ignoringFields("trainees", "trainings")
                 .isEqualTo(entityToSave);
-        verify(authenticationGuard, times(1)).ensureAuthenticated(auth);
+        verify(authenticationService, times(1)).requireAuthenticated(auth);
     }
 
     @Test
@@ -213,19 +209,19 @@ class TrainerServiceTest {
                 .hasMessageContaining("inactive");
 
         verify(trainerRepository, times(1)).findByUsername("Inactive.Trainer");
-        verify(authenticationGuard, times(1)).ensureAuthenticated(auth);
+        verify(authenticationService, times(1)).requireAuthenticated(auth);
     }
 
     @Test
     void shouldRejectUnauthenticatedTrainerLookup() {
         doThrow(new AuthenticationException("Invalid credentials for username: John.Smith"))
-                .when(authenticationGuard)
-                .ensureAuthenticated(auth);
+                .when(authenticationService)
+                .requireAuthenticated(auth);
 
         assertThatThrownBy(() -> trainerService.getTrainerByUsername(auth, "John.Smith"))
                 .isInstanceOf(AuthenticationException.class);
 
-        verify(authenticationGuard, times(1)).ensureAuthenticated(auth);
+        verify(authenticationService, times(1)).requireAuthenticated(auth);
         verify(trainerRepository, never()).findByUsername(any());
     }
 
@@ -238,7 +234,7 @@ class TrainerServiceTest {
         TrainerDto actual = trainerService.getTrainerByUsername(auth, "John.Smith");
 
         assertThat(actual).usingRecursiveComparison().isEqualTo(expected);
-        verify(authenticationGuard, times(1)).ensureAuthenticated(auth);
+        verify(authenticationService, times(1)).requireAuthenticated(auth);
         verify(trainerRepository, times(1)).findByUsername("John.Smith");
     }
 
@@ -246,13 +242,13 @@ class TrainerServiceTest {
     void shouldRejectUnauthenticatedUpdateTrainer() {
         TrainerDto request = TestDataFactory.trainerDtoWithCredentials(1L, "John.Smith");
         doThrow(new AuthenticationException("Invalid credentials for username: John.Smith"))
-                .when(authenticationGuard)
-                .ensureAuthenticated(auth);
+                .when(authenticationService)
+                .requireAuthenticated(auth);
 
         assertThatThrownBy(() -> trainerService.updateTrainer(auth, request))
                 .isInstanceOf(AuthenticationException.class);
 
-        verify(authenticationGuard, times(1)).ensureAuthenticated(auth);
+        verify(authenticationService, times(1)).requireAuthenticated(auth);
         verify(trainerRepository, never()).findById(any());
         verify(trainerRepository, never()).save(any());
     }
@@ -260,13 +256,13 @@ class TrainerServiceTest {
     @Test
     void shouldRejectUnauthenticatedToggleActivation() {
         doThrow(new AuthenticationException("Invalid credentials for username: John.Smith"))
-                .when(authenticationGuard)
-                .ensureAuthenticated(auth);
+                .when(authenticationService)
+                .requireAuthenticated(auth);
 
         assertThatThrownBy(() -> trainerService.toggleActivation(auth, "John.Smith"))
                 .isInstanceOf(AuthenticationException.class);
 
-        verify(authenticationGuard, times(1)).ensureAuthenticated(auth);
+        verify(authenticationService, times(1)).requireAuthenticated(auth);
         verify(userService, never()).toggleActivation(any());
     }
 
@@ -274,7 +270,7 @@ class TrainerServiceTest {
     void shouldDelegateChangePasswordToUserService() {
         trainerService.changePassword("John.Smith", "oldPass1", "NewPass1!");
 
-        verify(authenticationGuard, never()).ensureAuthenticated(any());
+        verify(authenticationService, never()).requireAuthenticated(any());
         verify(userService, times(1)).changePassword("John.Smith", "oldPass1", "NewPass1!");
     }
 
@@ -287,7 +283,7 @@ class TrainerServiceTest {
         assertThatThrownBy(() -> trainerService.changePassword("John.Smith", "wrong", "NewPass1!"))
                 .isInstanceOf(AuthenticationException.class);
 
-        verify(authenticationGuard, never()).ensureAuthenticated(any());
+        verify(authenticationService, never()).requireAuthenticated(any());
         verify(userService, times(1)).changePassword("John.Smith", "wrong", "NewPass1!");
     }
 
@@ -295,7 +291,7 @@ class TrainerServiceTest {
     void shouldDelegateToggleActivationToUserService() {
         trainerService.toggleActivation(auth, "John.Smith");
 
-        verify(authenticationGuard, times(1)).ensureAuthenticated(auth);
+        verify(authenticationService, times(1)).requireAuthenticated(auth);
         verify(userService, times(1)).toggleActivation("John.Smith");
     }
 

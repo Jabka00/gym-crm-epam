@@ -1,5 +1,6 @@
 package com.epam.gymcrm.dto;
 
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -24,7 +25,6 @@ public class TrainingDto {
     @NotNull(message = "Trainee is required")
     private TraineeDto trainee;
 
-    @NotNull(message = "Trainer is required")
     private TrainerDto trainer;
 
     @NotBlank(message = "Training name is required")
@@ -32,6 +32,7 @@ public class TrainingDto {
     private String trainingName;
 
     @NotNull(message = "Training type is required")
+    @Valid
     private TrainingTypeDto trainingType;
 
     @NotNull(message = "Training date is required")

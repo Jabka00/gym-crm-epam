@@ -13,8 +13,8 @@ import com.epam.gymcrm.repository.TraineeRepository;
 import com.epam.gymcrm.repository.TrainerRepository;
 import com.epam.gymcrm.repository.TrainingRepository;
 import com.epam.gymcrm.repository.TrainingTypeRepository;
-import com.epam.gymcrm.security.AuthenticationGuard;
 import com.epam.gymcrm.security.Credentials;
+import com.epam.gymcrm.service.AuthenticationService;
 import com.epam.gymcrm.support.TestDataFactory;
 import com.epam.gymcrm.util.DtoValidator;
 import org.junit.jupiter.api.BeforeEach;
@@ -61,7 +61,7 @@ class TrainingServiceTest {
     private TrainingMapper trainingMapper;
 
     @Mock
-    private AuthenticationGuard authenticationGuard;
+    private AuthenticationService authenticationService;
 
     @Spy
     private DtoValidator dtoValidator = new DtoValidator();
@@ -74,7 +74,7 @@ class TrainingServiceTest {
     @BeforeEach
     void setUp() {
         auth = TestDataFactory.credentials();
-        doNothing().when(authenticationGuard).ensureAuthenticated(any(Credentials.class));
+        doNothing().when(authenticationService).requireAuthenticated(any(Credentials.class));
     }
 
     @Test
@@ -130,7 +130,7 @@ class TrainingServiceTest {
                 .ignoringFields("id", "trainee.trainers", "trainee.trainings", "trainer.trainees", "trainer.trainings")
                 .isEqualTo(expectedToSave);
         verify(trainingMapper, times(1)).toDto(saved);
-        verify(authenticationGuard, times(1)).ensureAuthenticated(auth);
+        verify(authenticationService, times(1)).requireAuthenticated(auth);
     }
 
     @Test
@@ -146,7 +146,7 @@ class TrainingServiceTest {
         assertThat(actual).usingRecursiveComparison().isEqualTo(expected);
         verify(trainingRepository, times(1)).findById(10L);
         verify(trainingMapper, times(1)).toDto(training);
-        verify(authenticationGuard, never()).ensureAuthenticated(any());
+        verify(authenticationService, never()).requireAuthenticated(any());
     }
 
     @Test
@@ -252,13 +252,13 @@ class TrainingServiceTest {
     void shouldRejectUnauthenticatedTrainingCreation() {
         TrainingDto request = TestDataFactory.trainingDto(1L, 2L);
         doThrow(new AuthenticationException("Invalid credentials for username: Alice.Walker"))
-                .when(authenticationGuard)
-                .ensureAuthenticated(auth);
+                .when(authenticationService)
+                .requireAuthenticated(auth);
 
         assertThatThrownBy(() -> trainingService.createTraining(auth, request))
                 .isInstanceOf(AuthenticationException.class);
 
-        verify(authenticationGuard, times(1)).ensureAuthenticated(auth);
+        verify(authenticationService, times(1)).requireAuthenticated(auth);
         verify(trainingMapper, never()).toEntity(request);
     }
 
@@ -284,7 +284,7 @@ class TrainingServiceTest {
                 "YOGA");
 
         assertThat(actual).containsExactly(trainingDto);
-        verify(authenticationGuard, times(1)).ensureAuthenticated(auth);
+        verify(authenticationService, times(1)).requireAuthenticated(auth);
         verify(trainingRepository, times(1)).findByTraineeUsernameAndCriteria(
                 "Alice.Walker",
                 LocalDate.of(2024, 3, 1),
@@ -313,7 +313,7 @@ class TrainingServiceTest {
                 null);
 
         assertThat(actual).containsExactly(trainingDto);
-        verify(authenticationGuard, times(1)).ensureAuthenticated(auth);
+        verify(authenticationService, times(1)).requireAuthenticated(auth);
         verify(trainingRepository, times(1)).findByTrainerUsernameAndCriteria(
                 "John.Smith",
                 LocalDate.of(2024, 1, 1),
@@ -324,14 +324,14 @@ class TrainingServiceTest {
     @Test
     void shouldRejectUnauthenticatedTraineeTrainingsLookup() {
         doThrow(new AuthenticationException("Invalid credentials for username: Alice.Walker"))
-                .when(authenticationGuard)
-                .ensureAuthenticated(auth);
+                .when(authenticationService)
+                .requireAuthenticated(auth);
 
         assertThatThrownBy(() -> trainingService.getTraineeTrainings(
                 auth, "Alice.Walker", null, null, null, null))
                 .isInstanceOf(AuthenticationException.class);
 
-        verify(authenticationGuard, times(1)).ensureAuthenticated(auth);
+        verify(authenticationService, times(1)).requireAuthenticated(auth);
         verify(trainingRepository, never()).findByTraineeUsernameAndCriteria(
                 any(), any(), any(), any(), any());
     }
@@ -339,14 +339,14 @@ class TrainingServiceTest {
     @Test
     void shouldRejectUnauthenticatedTrainerTrainingsLookup() {
         doThrow(new AuthenticationException("Invalid credentials for username: John.Smith"))
-                .when(authenticationGuard)
-                .ensureAuthenticated(auth);
+                .when(authenticationService)
+                .requireAuthenticated(auth);
 
         assertThatThrownBy(() -> trainingService.getTrainerTrainings(
                 auth, "John.Smith", null, null, null))
                 .isInstanceOf(AuthenticationException.class);
 
-        verify(authenticationGuard, times(1)).ensureAuthenticated(auth);
+        verify(authenticationService, times(1)).requireAuthenticated(auth);
         verify(trainingRepository, never()).findByTrainerUsernameAndCriteria(
                 any(), any(), any(), any());
     }

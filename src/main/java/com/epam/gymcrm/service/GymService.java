@@ -4,6 +4,7 @@ import com.epam.gymcrm.dto.TraineeDto;
 import com.epam.gymcrm.dto.TrainerDto;
 import com.epam.gymcrm.dto.TrainingDto;
 import com.epam.gymcrm.security.Credentials;
+import com.epam.gymcrm.util.DtoValidator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -16,9 +17,12 @@ public class GymService {
     private final TrainerService trainerService;
     private final TraineeService traineeService;
     private final TrainingService trainingService;
+    private final DtoValidator dtoValidator;
 
     public TrainingDto scheduleTraining(Credentials auth, TrainingDto trainingDto) {
-        validateScheduleTraining(trainingDto);
+        dtoValidator.validate(trainingDto);
+        requireTraineeId(trainingDto);
+        requireTrainerId(trainingDto);
 
         TraineeDto trainee = traineeService.getActiveTrainee(trainingDto.getTrainee().getId());
         String typeName = trainingDto.getTrainingType().getTypeName();
@@ -29,7 +33,8 @@ public class GymService {
     }
 
     public TrainingDto autoScheduleTraining(Credentials auth, TrainingDto trainingDto) {
-        validateAutoScheduleTraining(trainingDto);
+        dtoValidator.validate(trainingDto);
+        requireTraineeId(trainingDto);
 
         TraineeDto trainee = traineeService.getActiveTrainee(trainingDto.getTrainee().getId());
         String typeName = trainingDto.getTrainingType().getTypeName();
@@ -56,37 +61,15 @@ public class GymService {
                 .build();
     }
 
-    private void validateScheduleTraining(TrainingDto trainingDto) {
-        validateCommonTrainingFields(trainingDto);
-        if (trainingDto.getTrainer() == null || trainingDto.getTrainer().getId() == null) {
-            throw new IllegalArgumentException("Trainer id is required");
-        }
-    }
-
-    private void validateAutoScheduleTraining(TrainingDto trainingDto) {
-        validateCommonTrainingFields(trainingDto);
-    }
-
-    private void validateCommonTrainingFields(TrainingDto trainingDto) {
-        if (trainingDto == null) {
-            throw new IllegalArgumentException("Training cannot be null");
-        }
-        if (trainingDto.getTrainee() == null || trainingDto.getTrainee().getId() == null) {
+    private void requireTraineeId(TrainingDto trainingDto) {
+        if (trainingDto.getTrainee().getId() == null) {
             throw new IllegalArgumentException("Trainee id is required");
         }
-        if (trainingDto.getTrainingType() == null
-                || trainingDto.getTrainingType().getTypeName() == null
-                || trainingDto.getTrainingType().getTypeName().isBlank()) {
-            throw new IllegalArgumentException("Training type is required");
-        }
-        if (trainingDto.getTrainingName() == null || trainingDto.getTrainingName().isBlank()) {
-            throw new IllegalArgumentException("Training name is required");
-        }
-        if (trainingDto.getTrainingDate() == null) {
-            throw new IllegalArgumentException("Training date is required");
-        }
-        if (trainingDto.getTrainingDuration() == null || trainingDto.getTrainingDuration() < 1) {
-            throw new IllegalArgumentException("Training duration must be at least 1 minute");
+    }
+
+    private void requireTrainerId(TrainingDto trainingDto) {
+        if (trainingDto.getTrainer() == null || trainingDto.getTrainer().getId() == null) {
+            throw new IllegalArgumentException("Trainer id is required");
         }
     }
 }

@@ -11,7 +11,6 @@ import com.epam.gymcrm.mapper.TraineeMapper;
 import com.epam.gymcrm.mapper.TrainerMapper;
 import com.epam.gymcrm.repository.TraineeRepository;
 import com.epam.gymcrm.repository.TrainerRepository;
-import com.epam.gymcrm.security.AuthenticationGuard;
 import com.epam.gymcrm.security.Credentials;
 import com.epam.gymcrm.support.TestDataFactory;
 import com.epam.gymcrm.util.DtoValidator;
@@ -61,9 +60,6 @@ class TraineeServiceTest {
     private UserService userService;
 
     @Mock
-    private AuthenticationGuard authenticationGuard;
-
-    @Mock
     private AuthenticationService authenticationService;
 
     @Spy
@@ -83,7 +79,7 @@ class TraineeServiceTest {
     @BeforeEach
     void setUp() {
         auth = TestDataFactory.credentials();
-        doNothing().when(authenticationGuard).ensureAuthenticated(any(Credentials.class));
+        doNothing().when(authenticationService).requireAuthenticated(any(Credentials.class));
     }
 
     @Test
@@ -104,7 +100,7 @@ class TraineeServiceTest {
         assertThat(traineeService.verifyPassword("Kate.Doe", "secret1234")).isTrue();
 
         verify(authenticationService, times(1)).authenticateTrainee("Kate.Doe", "secret1234");
-        verify(authenticationGuard, never()).ensureAuthenticated(any());
+        verify(authenticationService, never()).requireAuthenticated(any());
     }
 
     @Test
@@ -148,7 +144,7 @@ class TraineeServiceTest {
                 .ignoringFields("id", "username", "password", "active", "trainers", "trainings")
                 .isEqualTo(mappedEntity);
         verify(traineeRepository, times(1)).save(entityCaptor.getValue());
-        verify(authenticationGuard, never()).ensureAuthenticated(any());
+        verify(authenticationService, never()).requireAuthenticated(any());
     }
 
     @Test
@@ -173,7 +169,7 @@ class TraineeServiceTest {
         assertThat(saveCaptor.getValue()).usingRecursiveComparison()
                 .ignoringFields("trainers", "trainings")
                 .isEqualTo(entityToSave);
-        verify(authenticationGuard, times(1)).ensureAuthenticated(auth);
+        verify(authenticationService, times(1)).requireAuthenticated(auth);
     }
 
     @Test
@@ -242,19 +238,19 @@ class TraineeServiceTest {
                 .hasMessageContaining("inactive");
 
         verify(traineeRepository, times(1)).findByUsername("Inactive.User");
-        verify(authenticationGuard, times(1)).ensureAuthenticated(auth);
+        verify(authenticationService, times(1)).requireAuthenticated(auth);
     }
 
     @Test
     void shouldRejectUnauthenticatedTraineeLookup() {
         doThrow(new AuthenticationException("Invalid credentials for username: Alice.Walker"))
-                .when(authenticationGuard)
-                .ensureAuthenticated(auth);
+                .when(authenticationService)
+                .requireAuthenticated(auth);
 
         assertThatThrownBy(() -> traineeService.getTraineeByUsername(auth, "Alice.Walker"))
                 .isInstanceOf(AuthenticationException.class);
 
-        verify(authenticationGuard, times(1)).ensureAuthenticated(auth);
+        verify(authenticationService, times(1)).requireAuthenticated(auth);
         verify(traineeRepository, never()).findByUsername(any());
     }
 
@@ -267,7 +263,7 @@ class TraineeServiceTest {
         TraineeDto actual = traineeService.getTraineeByUsername(auth, "Alice.Walker");
 
         assertThat(actual).usingRecursiveComparison().isEqualTo(expected);
-        verify(authenticationGuard, times(1)).ensureAuthenticated(auth);
+        verify(authenticationService, times(1)).requireAuthenticated(auth);
         verify(traineeRepository, times(1)).findByUsername("Alice.Walker");
     }
 
@@ -275,13 +271,13 @@ class TraineeServiceTest {
     void shouldRejectUnauthenticatedUpdateTrainee() {
         TraineeDto request = TestDataFactory.traineeDtoWithCredentials(1L, "Alice.Walker");
         doThrow(new AuthenticationException("Invalid credentials for username: Alice.Walker"))
-                .when(authenticationGuard)
-                .ensureAuthenticated(auth);
+                .when(authenticationService)
+                .requireAuthenticated(auth);
 
         assertThatThrownBy(() -> traineeService.updateTrainee(auth, request))
                 .isInstanceOf(AuthenticationException.class);
 
-        verify(authenticationGuard, times(1)).ensureAuthenticated(auth);
+        verify(authenticationService, times(1)).requireAuthenticated(auth);
         verify(traineeRepository, never()).findById(any());
         verify(traineeRepository, never()).save(any());
     }
@@ -289,26 +285,26 @@ class TraineeServiceTest {
     @Test
     void shouldRejectUnauthenticatedNotAssignedTrainersLookup() {
         doThrow(new AuthenticationException("Invalid credentials for username: Alice.Walker"))
-                .when(authenticationGuard)
-                .ensureAuthenticated(auth);
+                .when(authenticationService)
+                .requireAuthenticated(auth);
 
         assertThatThrownBy(() -> traineeService.getNotAssignedTrainers(auth, "Alice.Walker"))
                 .isInstanceOf(AuthenticationException.class);
 
-        verify(authenticationGuard, times(1)).ensureAuthenticated(auth);
+        verify(authenticationService, times(1)).requireAuthenticated(auth);
         verify(trainerRepository, never()).findNotAssignedToTrainee(any());
     }
 
     @Test
     void shouldRejectUnauthenticatedToggleActivation() {
         doThrow(new AuthenticationException("Invalid credentials for username: Alice.Walker"))
-                .when(authenticationGuard)
-                .ensureAuthenticated(auth);
+                .when(authenticationService)
+                .requireAuthenticated(auth);
 
         assertThatThrownBy(() -> traineeService.toggleActivation(auth, "Alice.Walker"))
                 .isInstanceOf(AuthenticationException.class);
 
-        verify(authenticationGuard, times(1)).ensureAuthenticated(auth);
+        verify(authenticationService, times(1)).requireAuthenticated(auth);
         verify(userService, never()).toggleActivation(any());
     }
 
@@ -319,7 +315,7 @@ class TraineeServiceTest {
 
         traineeService.deleteTraineeByUsername(auth, "Alice.Walker");
 
-        verify(authenticationGuard, times(1)).ensureAuthenticated(auth);
+        verify(authenticationService, times(1)).requireAuthenticated(auth);
         verify(traineeRepository, times(1)).findByUsername("Alice.Walker");
         verify(traineeRepository, times(1)).deleteByUsername("Alice.Walker");
     }
@@ -327,13 +323,13 @@ class TraineeServiceTest {
     @Test
     void shouldRejectUnauthenticatedTraineeDeletion() {
         doThrow(new AuthenticationException("Invalid credentials for username: Alice.Walker"))
-                .when(authenticationGuard)
-                .ensureAuthenticated(auth);
+                .when(authenticationService)
+                .requireAuthenticated(auth);
 
         assertThatThrownBy(() -> traineeService.deleteTraineeByUsername(auth, "Alice.Walker"))
                 .isInstanceOf(AuthenticationException.class);
 
-        verify(authenticationGuard, times(1)).ensureAuthenticated(auth);
+        verify(authenticationService, times(1)).requireAuthenticated(auth);
         verify(traineeRepository, never()).deleteByUsername(any());
     }
 
@@ -347,7 +343,7 @@ class TraineeServiceTest {
         List<TrainerDto> actual = traineeService.getNotAssignedTrainers(auth, "Alice.Walker");
 
         assertThat(actual).containsExactly(trainerDto);
-        verify(authenticationGuard, times(1)).ensureAuthenticated(auth);
+        verify(authenticationService, times(1)).requireAuthenticated(auth);
         verify(trainerRepository, times(1)).findNotAssignedToTrainee("Alice.Walker");
     }
 
@@ -361,7 +357,7 @@ class TraineeServiceTest {
 
         traineeService.updateTrainersList(auth, "Alice.Walker", Set.of("John.Smith"));
 
-        verify(authenticationGuard, times(1)).ensureAuthenticated(auth);
+        verify(authenticationService, times(1)).requireAuthenticated(auth);
         verify(traineeRepository, times(1)).save(trainee);
         assertThat(trainee.getTrainers()).containsExactly(trainer);
     }
@@ -369,13 +365,13 @@ class TraineeServiceTest {
     @Test
     void shouldRejectUnauthenticatedTrainersListUpdate() {
         doThrow(new AuthenticationException("Invalid credentials for username: Alice.Walker"))
-                .when(authenticationGuard)
-                .ensureAuthenticated(auth);
+                .when(authenticationService)
+                .requireAuthenticated(auth);
 
         assertThatThrownBy(() -> traineeService.updateTrainersList(auth, "Alice.Walker", Set.of("John.Smith")))
                 .isInstanceOf(AuthenticationException.class);
 
-        verify(authenticationGuard, times(1)).ensureAuthenticated(auth);
+        verify(authenticationService, times(1)).requireAuthenticated(auth);
         verify(traineeRepository, never()).findByUsername(any());
     }
 
@@ -383,7 +379,7 @@ class TraineeServiceTest {
     void shouldToggleActivation() {
         traineeService.toggleActivation(auth, "Alice.Walker");
 
-        verify(authenticationGuard, times(1)).ensureAuthenticated(auth);
+        verify(authenticationService, times(1)).requireAuthenticated(auth);
         verify(userService, times(1)).toggleActivation("Alice.Walker");
     }
 
@@ -391,7 +387,7 @@ class TraineeServiceTest {
     void shouldDelegateChangePasswordToUserService() {
         traineeService.changePassword("Alice.Walker", "oldPass1", "NewPass1!");
 
-        verify(authenticationGuard, never()).ensureAuthenticated(any());
+        verify(authenticationService, never()).requireAuthenticated(any());
         verify(userService, times(1)).changePassword("Alice.Walker", "oldPass1", "NewPass1!");
     }
 
@@ -404,7 +400,7 @@ class TraineeServiceTest {
         assertThatThrownBy(() -> traineeService.changePassword("Alice.Walker", "wrong", "NewPass1!"))
                 .isInstanceOf(AuthenticationException.class);
 
-        verify(authenticationGuard, never()).ensureAuthenticated(any());
+        verify(authenticationService, never()).requireAuthenticated(any());
         verify(userService, times(1)).changePassword("Alice.Walker", "wrong", "NewPass1!");
     }
 

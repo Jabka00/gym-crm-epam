@@ -7,11 +7,13 @@ import com.epam.gymcrm.exception.AuthenticationException;
 import com.epam.gymcrm.exception.InvalidOperationException;
 import com.epam.gymcrm.security.Credentials;
 import com.epam.gymcrm.support.TestDataFactory;
+import com.epam.gymcrm.util.DtoValidator;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDate;
@@ -36,6 +38,9 @@ class GymServiceTest {
 
     @Mock
     private TrainingService trainingService;
+
+    @Spy
+    private DtoValidator dtoValidator = new DtoValidator();
 
     @InjectMocks
     private GymService gymService;
@@ -180,6 +185,39 @@ class GymServiceTest {
         verify(traineeService, times(1)).getActiveTrainee(1L);
         verify(trainerService, times(1)).getActiveTrainerForSpecialization(2L, "YOGA");
         verifyNoInteractions(trainingService);
+    }
+
+    @Test
+    void shouldRejectManualScheduleWithoutTrainerId() {
+        TrainingDto request = TrainingDto.builder()
+                .trainee(TraineeDto.builder().id(1L).build())
+                .trainingName("Morning Yoga")
+                .trainingType(TestDataFactory.yogaTypeDto())
+                .trainingDate(LocalDate.of(2024, 3, 1))
+                .trainingDuration(60)
+                .build();
+
+        assertThatThrownBy(() -> gymService.scheduleTraining(auth, request))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Trainer id is required");
+
+        verifyNoInteractions(traineeService, trainerService, trainingService);
+    }
+
+    @Test
+    void shouldRejectAutoScheduleWithoutTrainingName() {
+        TrainingDto request = TrainingDto.builder()
+                .trainee(TraineeDto.builder().id(1L).build())
+                .trainingType(TestDataFactory.yogaTypeDto())
+                .trainingDate(LocalDate.of(2024, 3, 1))
+                .trainingDuration(60)
+                .build();
+
+        assertThatThrownBy(() -> gymService.autoScheduleTraining(auth, request))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Training name is required");
+
+        verifyNoInteractions(traineeService, trainerService, trainingService);
     }
 
     @Test

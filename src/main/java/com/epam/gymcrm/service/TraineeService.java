@@ -10,7 +10,7 @@ import com.epam.gymcrm.mapper.TraineeMapper;
 import com.epam.gymcrm.mapper.TrainerMapper;
 import com.epam.gymcrm.repository.TraineeRepository;
 import com.epam.gymcrm.repository.TrainerRepository;
-import com.epam.gymcrm.security.AuthenticationGuard;
+
 import com.epam.gymcrm.security.Credentials;
 import com.epam.gymcrm.util.DtoValidator;
 import com.epam.gymcrm.util.UserInitializationUtil;
@@ -35,7 +35,6 @@ public class TraineeService {
     private final TraineeMapper traineeMapper;
     private final TrainerMapper trainerMapper;
     private final UserService userService;
-    private final AuthenticationGuard authenticationGuard;
     private final AuthenticationService authenticationService;
     private final DtoValidator dtoValidator;
 
@@ -53,7 +52,7 @@ public class TraineeService {
     }
 
     public TraineeDto updateTrainee(Credentials auth, TraineeDto traineeDto) {
-        authenticationGuard.ensureAuthenticated(auth);
+        authenticationService.requireAuthenticated(auth);
 
         if (traineeDto == null) {
             throw new IllegalArgumentException("Trainee cannot be null");
@@ -73,7 +72,7 @@ public class TraineeService {
     }
 
     public void deleteTraineeByUsername(Credentials auth, String username) {
-        authenticationGuard.ensureAuthenticated(auth);
+        authenticationService.requireAuthenticated(auth);
 
         if (username == null || username.isBlank()) {
             throw new IllegalArgumentException("Trainee username cannot be null or empty");
@@ -101,7 +100,7 @@ public class TraineeService {
 
     @Transactional(readOnly = true)
     public TraineeDto getTraineeByUsername(Credentials auth, String username) {
-        authenticationGuard.ensureAuthenticated(auth);
+        authenticationService.requireAuthenticated(auth);
 
         TraineeEntity trainee = traineeRepository.findByUsername(username)
                 .orElseThrow(() -> new EntityNotFoundException("Trainee not found with username: " + username));
@@ -116,12 +115,12 @@ public class TraineeService {
     }
 
     public void toggleActivation(Credentials auth, String username) {
-        authenticationGuard.ensureAuthenticated(auth);
+        authenticationService.requireAuthenticated(auth);
         userService.toggleActivation(username);
     }
 
     public void updateTrainersList(Credentials auth, String traineeUsername, Set<String> trainerUsernames) {
-        authenticationGuard.ensureAuthenticated(auth);
+        authenticationService.requireAuthenticated(auth);
 
         if (traineeUsername == null || traineeUsername.isBlank()) {
             throw new IllegalArgumentException("Trainee username cannot be null or empty");
@@ -160,7 +159,7 @@ public class TraineeService {
 
     @Transactional(readOnly = true)
     public List<TrainerDto> getNotAssignedTrainers(Credentials auth, String traineeUsername) {
-        authenticationGuard.ensureAuthenticated(auth);
+        authenticationService.requireAuthenticated(auth);
 
         if (traineeUsername == null || traineeUsername.isBlank()) {
             throw new IllegalArgumentException("Trainee username cannot be null or empty");

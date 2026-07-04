@@ -10,8 +10,8 @@ import com.epam.gymcrm.repository.TraineeRepository;
 import com.epam.gymcrm.repository.TrainerRepository;
 import com.epam.gymcrm.repository.TrainingRepository;
 import com.epam.gymcrm.repository.TrainingTypeRepository;
-import com.epam.gymcrm.security.AuthenticationGuard;
 import com.epam.gymcrm.security.Credentials;
+import com.epam.gymcrm.service.AuthenticationService;
 import com.epam.gymcrm.util.DtoValidator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -32,13 +32,13 @@ public class TrainingService {
     private final TraineeRepository traineeRepository;
     private final TrainerRepository trainerRepository;
     private final TrainingMapper trainingMapper;
-    private final AuthenticationGuard authenticationGuard;
+    private final AuthenticationService authenticationService;
     private final DtoValidator dtoValidator;
 
     public TrainingDto createTraining(Credentials auth, TrainingDto trainingDto) {
-        authenticationGuard.ensureAuthenticated(auth);
+        authenticationService.requireAuthenticated(auth);
         dtoValidator.validate(trainingDto);
-        requireTrainingParticipantIds(trainingDto);
+        requireParticipantIds(trainingDto);
 
         TrainingEntity training = trainingMapper.toEntity(trainingDto);
         var trainee = traineeRepository.findById(trainingDto.getTrainee().getId())
@@ -99,7 +99,7 @@ public class TrainingService {
             String trainerUsername,
             String trainingTypeName) {
 
-        authenticationGuard.ensureAuthenticated(auth);
+        authenticationService.requireAuthenticated(auth);
 
         if (traineeUsername == null || traineeUsername.isBlank()) {
             throw new IllegalArgumentException("Trainee username is required");
@@ -127,7 +127,7 @@ public class TrainingService {
             LocalDate toDate,
             String traineeUsername) {
 
-        authenticationGuard.ensureAuthenticated(auth);
+        authenticationService.requireAuthenticated(auth);
 
         if (trainerUsername == null || trainerUsername.isBlank()) {
             throw new IllegalArgumentException("Trainer username is required");
@@ -146,11 +146,11 @@ public class TrainingService {
         return trainings;
     }
 
-    private void requireTrainingParticipantIds(TrainingDto trainingDto) {
+    private void requireParticipantIds(TrainingDto trainingDto) {
         if (trainingDto.getTrainee().getId() == null) {
             throw new IllegalArgumentException("Trainee id is required");
         }
-        if (trainingDto.getTrainer().getId() == null) {
+        if (trainingDto.getTrainer() == null || trainingDto.getTrainer().getId() == null) {
             throw new IllegalArgumentException("Trainer id is required");
         }
     }
