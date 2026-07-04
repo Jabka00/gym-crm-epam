@@ -36,6 +36,7 @@ public class TraineeService {
     private final TrainerMapper trainerMapper;
     private final UserService userService;
     private final AuthenticationGuard authenticationGuard;
+    private final AuthenticationService authenticationService;
     private final DtoValidator dtoValidator;
 
     public TraineeDto createTrainee(TraineeDto traineeDto) {
@@ -44,6 +45,11 @@ public class TraineeService {
         TraineeEntity trainee = traineeMapper.toEntity(traineeDto);
         TraineeEntity created = userInitializationUtil.createTrainee(trainee, traineeRepository::save);
         return traineeMapper.toDto(created);
+    }
+
+    @Transactional(readOnly = true)
+    public boolean verifyPassword(String username, String password) {
+        return authenticationService.authenticateTrainee(username, password);
     }
 
     public TraineeDto updateTrainee(Credentials auth, TraineeDto traineeDto) {
@@ -105,8 +111,7 @@ public class TraineeService {
         return traineeMapper.toDto(trainee);
     }
 
-    public void changePassword(Credentials auth, String username, String oldPassword, String newPassword) {
-        authenticationGuard.ensureAuthenticated(auth);
+    public void changePassword(String username, String oldPassword, String newPassword) {
         userService.changePassword(username, oldPassword, newPassword);
     }
 

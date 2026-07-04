@@ -20,6 +20,22 @@ public class AuthenticationService {
         return userAuthenticationRepository.authenticate(username, password);
     }
 
+    public boolean authenticateTrainee(String username, String password) {
+        Credentials.validate(username, password);
+        boolean authenticated = userAuthenticationRepository.authenticateTrainee(username, password);
+        log.info("Trainee password verification for username={}: {}",
+                username, authenticated ? "success" : "failed");
+        return authenticated;
+    }
+
+    public boolean authenticateTrainer(String username, String password) {
+        Credentials.validate(username, password);
+        boolean authenticated = userAuthenticationRepository.authenticateTrainer(username, password);
+        log.info("Trainer password verification for username={}: {}",
+                username, authenticated ? "success" : "failed");
+        return authenticated;
+    }
+
     public void requireAuthenticated(Credentials credentials) {
         if (!authenticate(credentials.username(), credentials.password())) {
             throw new AuthenticationException(

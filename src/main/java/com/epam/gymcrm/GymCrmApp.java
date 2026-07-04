@@ -63,7 +63,7 @@ public class GymCrmApp {
                     .build());
             Credentials pilatesAuth = credentialsOf(pilatesTrainer);
             log.info("Created trainer id={}, username={}", pilatesTrainer.getId(), pilatesTrainer.getUsername());
-            logAuthentication(authenticationService, pilatesAuth);
+            logTrainerAuthentication(authenticationService, pilatesAuth);
 
             TraineeDto kate = traineeService.createTrainee(TraineeDto.builder()
                     .firstName("Kate")
@@ -73,7 +73,7 @@ public class GymCrmApp {
                     .build());
             Credentials kateAuth = credentialsOf(kate);
             log.info("Created trainee id={}, username={}", kate.getId(), kate.getUsername());
-            logAuthentication(authenticationService, kateAuth);
+            logTraineeAuthentication(authenticationService, kateAuth);
 
             TrainingDto scheduledTraining = gymService.scheduleTraining(kateAuth, TrainingDto.builder()
                     .trainee(TraineeDto.builder().id(kate.getId()).build())
@@ -125,10 +125,10 @@ public class GymCrmApp {
             log.info("John.Smith trainings in 2024: {}", johnTrainings.size());
 
             String newPassword = "SecurePass1";
-            traineeService.changePassword(kateAuth, kate.getUsername(), kateAuth.password(), newPassword);
+            traineeService.changePassword(kate.getUsername(), kateAuth.password(), newPassword);
             kateAuth = new Credentials(kate.getUsername(), newPassword);
             log.info("Password changed for {}", kate.getUsername());
-            logAuthentication(authenticationService, kateAuth);
+            logTraineeAuthentication(authenticationService, kateAuth);
 
             traineeService.toggleActivation(kateAuth, kate.getUsername());
             log.info("Deactivated trainee {}", kate.getUsername());
@@ -140,7 +140,7 @@ public class GymCrmApp {
                 log.info("Inactive trainee correctly hidden: {}", e.getMessage());
             }
 
-            logAuthentication(authenticationService, kateAuth);
+            logTraineeAuthentication(authenticationService, kateAuth);
 
             TrainingDto fetchedScheduled = trainingService.getTraining(scheduledTraining.getId());
             TrainerDto fetchedTrainer = trainerService.getTrainerByUsername(pilatesAuth, pilatesTrainer.getUsername());
@@ -161,8 +161,15 @@ public class GymCrmApp {
         return new Credentials(trainer.getUsername(), trainer.getPassword());
     }
 
-    private static void logAuthentication(AuthenticationService authenticationService, Credentials credentials) {
-        boolean authenticated = authenticationService.authenticate(credentials.username(), credentials.password());
-        log.info("Authentication for {}: {}", credentials.username(), authenticated ? "success" : "failed");
+    private static void logTraineeAuthentication(AuthenticationService authenticationService, Credentials credentials) {
+        boolean authenticated = authenticationService.authenticateTrainee(
+                credentials.username(), credentials.password());
+        log.info("Trainee authentication for {}: {}", credentials.username(), authenticated ? "success" : "failed");
+    }
+
+    private static void logTrainerAuthentication(AuthenticationService authenticationService, Credentials credentials) {
+        boolean authenticated = authenticationService.authenticateTrainer(
+                credentials.username(), credentials.password());
+        log.info("Trainer authentication for {}: {}", credentials.username(), authenticated ? "success" : "failed");
     }
 }

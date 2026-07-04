@@ -12,28 +12,65 @@ import org.springframework.stereotype.Repository;
 @RequiredArgsConstructor
 public class UserAuthenticationRepository {
 
-    private static final String HQL_AUTHENTICATE_USER =
-            "SELECT COUNT(u) FROM UserEntity u "
-                    + "WHERE u.username = :username AND u.password = :password AND u.active = true";
+    private static final String HQL_AUTHENTICATE =
+            "SELECT COUNT(e) FROM %s e "
+                    + "WHERE e.username = :username AND e.password = :password AND e.active = true";
 
     private final SessionFactory sessionFactory;
     private final ManualTransactionSupport transactionSupport;
 
-    private Session currentSession() {
-        return sessionFactory.getCurrentSession();
+    public boolean authenticate(String username, String password) {
+        return authenticate(username, password, AuthenticationTarget.USER);
     }
 
-    public boolean authenticate(String username, String password) {
+    public boolean authenticateTrainee(String username, String password) {
+        return authenticate(username, password, AuthenticationTarget.TRAINEE);
+    }
+
+    public boolean authenticateTrainer(String username, String password) {
+        return authenticate(username, password, AuthenticationTarget.TRAINER);
+    }
+
+    private boolean authenticate(String username, String password, AuthenticationTarget target) {
         return transactionSupport.inReadOnlyTransaction(() -> {
             Long count = currentSession()
-                    .createQuery(HQL_AUTHENTICATE_USER, Long.class)
+                    .createQuery(target.hql(), Long.class)
                     .setParameter("username", username)
                     .setParameter("password", password)
                     .getSingleResult();
 
             boolean authenticated = count > 0;
-            log.debug("Authentication for username={}: {}", username, authenticated ? "success" : "failed");
+            logAuthentication(target, username, authenticated);
             return authenticated;
         });
+    }
+
+    private void logAuthentication(AuthenticationTarget target, String username, boolean authenticated) {
+        String outcome = authenticated ? "success" : "failed";
+        switch (target) {
+            case USER -> log.debug("Authentication for username={}: {}", username, outcome);
+            case TRAINEE -> log.debug("trainee authentication for username={}: {}", username, outcome);
+            case TRAINER -> log.debug("trainer authentication for username={}: {}", username, outcome);
+        }
+    }
+
+    private Session currentSession() {
+        return sessionFactory.getCurrentSession();
+    }
+
+    private enum AuthenticationTarget {
+        USER("UserEntity"),
+        TRAINEE("TraineeEntity"),
+        TRAINER("TrainerEntity");
+
+        private final String hql;
+
+        AuthenticationTarget(String entityName) {
+            this.hql = HQL_AUTHENTICATE.formatted(entityName);
+        }
+
+        String hql() {
+            return hql;
+        }
     }
 }

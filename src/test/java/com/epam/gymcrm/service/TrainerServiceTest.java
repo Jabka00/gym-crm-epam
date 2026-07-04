@@ -55,6 +55,9 @@ class TrainerServiceTest {
     @Mock
     private AuthenticationGuard authenticationGuard;
 
+    @Mock
+    private AuthenticationService authenticationService;
+
     @Spy
     private DtoValidator dtoValidator = new DtoValidator();
 
@@ -81,6 +84,25 @@ class TrainerServiceTest {
                 .hasMessageContaining("Specialization is required");
 
         verify(userInitializationUtil, never()).createTrainer(any(), any());
+    }
+
+    @Test
+    void shouldVerifyTrainerPassword() {
+        when(authenticationService.authenticateTrainer("John.Smith", "pass1234AB")).thenReturn(true);
+
+        assertThat(trainerService.verifyPassword("John.Smith", "pass1234AB")).isTrue();
+
+        verify(authenticationService, times(1)).authenticateTrainer("John.Smith", "pass1234AB");
+        verify(authenticationGuard, never()).ensureAuthenticated(any());
+    }
+
+    @Test
+    void shouldRejectInvalidTrainerPassword() {
+        when(authenticationService.authenticateTrainer("John.Smith", "wrong")).thenReturn(false);
+
+        assertThat(trainerService.verifyPassword("John.Smith", "wrong")).isFalse();
+
+        verify(authenticationService, times(1)).authenticateTrainer("John.Smith", "wrong");
     }
 
     @Test
@@ -250,23 +272,23 @@ class TrainerServiceTest {
 
     @Test
     void shouldDelegateChangePasswordToUserService() {
-        trainerService.changePassword(auth, "John.Smith", "oldPass1", "NewPass1!");
+        trainerService.changePassword("John.Smith", "oldPass1", "NewPass1!");
 
-        verify(authenticationGuard, times(1)).ensureAuthenticated(auth);
+        verify(authenticationGuard, never()).ensureAuthenticated(any());
         verify(userService, times(1)).changePassword("John.Smith", "oldPass1", "NewPass1!");
     }
 
     @Test
-    void shouldRejectUnauthenticatedChangePassword() {
+    void shouldPropagateAuthenticationFailureFromUserServiceOnChangePassword() {
         doThrow(new AuthenticationException("Invalid credentials for username: John.Smith"))
-                .when(authenticationGuard)
-                .ensureAuthenticated(auth);
+                .when(userService)
+                .changePassword("John.Smith", "wrong", "NewPass1!");
 
-        assertThatThrownBy(() -> trainerService.changePassword(auth, "John.Smith", "oldPass1", "NewPass1!"))
+        assertThatThrownBy(() -> trainerService.changePassword("John.Smith", "wrong", "NewPass1!"))
                 .isInstanceOf(AuthenticationException.class);
 
-        verify(authenticationGuard, times(1)).ensureAuthenticated(auth);
-        verify(userService, never()).changePassword(any(), any(), any());
+        verify(authenticationGuard, never()).ensureAuthenticated(any());
+        verify(userService, times(1)).changePassword("John.Smith", "wrong", "NewPass1!");
     }
 
     @Test

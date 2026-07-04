@@ -63,6 +63,9 @@ class TraineeServiceTest {
     @Mock
     private AuthenticationGuard authenticationGuard;
 
+    @Mock
+    private AuthenticationService authenticationService;
+
     @Spy
     private DtoValidator dtoValidator = new DtoValidator();
 
@@ -92,6 +95,25 @@ class TraineeServiceTest {
                 .hasMessageContaining("First name is required");
 
         verify(userInitializationUtil, never()).createTrainee(any(), any());
+    }
+
+    @Test
+    void shouldVerifyTraineePassword() {
+        when(authenticationService.authenticateTrainee("Kate.Doe", "secret1234")).thenReturn(true);
+
+        assertThat(traineeService.verifyPassword("Kate.Doe", "secret1234")).isTrue();
+
+        verify(authenticationService, times(1)).authenticateTrainee("Kate.Doe", "secret1234");
+        verify(authenticationGuard, never()).ensureAuthenticated(any());
+    }
+
+    @Test
+    void shouldRejectInvalidTraineePassword() {
+        when(authenticationService.authenticateTrainee("Kate.Doe", "wrong")).thenReturn(false);
+
+        assertThat(traineeService.verifyPassword("Kate.Doe", "wrong")).isFalse();
+
+        verify(authenticationService, times(1)).authenticateTrainee("Kate.Doe", "wrong");
     }
 
     @Test
@@ -367,23 +389,23 @@ class TraineeServiceTest {
 
     @Test
     void shouldDelegateChangePasswordToUserService() {
-        traineeService.changePassword(auth, "Alice.Walker", "oldPass1", "NewPass1!");
+        traineeService.changePassword("Alice.Walker", "oldPass1", "NewPass1!");
 
-        verify(authenticationGuard, times(1)).ensureAuthenticated(auth);
+        verify(authenticationGuard, never()).ensureAuthenticated(any());
         verify(userService, times(1)).changePassword("Alice.Walker", "oldPass1", "NewPass1!");
     }
 
     @Test
-    void shouldRejectUnauthenticatedChangePassword() {
+    void shouldPropagateAuthenticationFailureFromUserServiceOnChangePassword() {
         doThrow(new AuthenticationException("Invalid credentials for username: Alice.Walker"))
-                .when(authenticationGuard)
-                .ensureAuthenticated(auth);
+                .when(userService)
+                .changePassword("Alice.Walker", "wrong", "NewPass1!");
 
-        assertThatThrownBy(() -> traineeService.changePassword(auth, "Alice.Walker", "oldPass1", "NewPass1!"))
+        assertThatThrownBy(() -> traineeService.changePassword("Alice.Walker", "wrong", "NewPass1!"))
                 .isInstanceOf(AuthenticationException.class);
 
-        verify(authenticationGuard, times(1)).ensureAuthenticated(auth);
-        verify(userService, never()).changePassword(any(), any(), any());
+        verify(authenticationGuard, never()).ensureAuthenticated(any());
+        verify(userService, times(1)).changePassword("Alice.Walker", "wrong", "NewPass1!");
     }
 
     private static boolean matchesTraineeEntity(TraineeEntity actual, TraineeEntity expected) {

@@ -28,6 +28,7 @@ public class TrainerService {
     private final TrainerMapper trainerMapper;
     private final UserService userService;
     private final AuthenticationGuard authenticationGuard;
+    private final AuthenticationService authenticationService;
     private final DtoValidator dtoValidator;
 
     public TrainerDto createTrainer(TrainerDto trainerDto) {
@@ -36,6 +37,11 @@ public class TrainerService {
         TrainerEntity trainer = trainerMapper.toEntity(trainerDto);
         TrainerEntity created = userInitializationUtil.createTrainer(trainer, trainerRepository::save);
         return trainerMapper.toDto(created);
+    }
+
+    @Transactional(readOnly = true)
+    public boolean verifyPassword(String username, String password) {
+        return authenticationService.authenticateTrainer(username, password);
     }
 
     public TrainerDto updateTrainer(Credentials auth, TrainerDto trainerDto) {
@@ -81,8 +87,7 @@ public class TrainerService {
         return trainerMapper.toDto(trainer);
     }
 
-    public void changePassword(Credentials auth, String username, String oldPassword, String newPassword) {
-        authenticationGuard.ensureAuthenticated(auth);
+    public void changePassword(String username, String oldPassword, String newPassword) {
         userService.changePassword(username, oldPassword, newPassword);
     }
 
