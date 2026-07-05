@@ -125,7 +125,7 @@ public class GymCrmApp {
             log.info("John.Smith trainings in 2024: {}", johnTrainings.size());
 
             String newPassword = "SecurePass1";
-            traineeService.changePassword(kate.getUsername(), kateAuth.password(), newPassword);
+            traineeService.changePassword(kateAuth, kate.getUsername(), kateAuth.password(), newPassword);
             kateAuth = new Credentials(kate.getUsername(), newPassword);
             log.info("Password changed for {}", kate.getUsername());
             logTraineeAuthentication(authenticationService, kateAuth);

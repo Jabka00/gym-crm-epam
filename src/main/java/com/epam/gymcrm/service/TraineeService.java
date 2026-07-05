@@ -54,14 +54,7 @@ public class TraineeService {
     public TraineeDto updateTrainee(Credentials auth, TraineeDto traineeDto) {
         authenticationService.requireAuthenticated(auth);
 
-        if (traineeDto == null) {
-            throw new IllegalArgumentException("Trainee cannot be null");
-        }
-        if (traineeDto.getId() == null) {
-            throw new IllegalArgumentException("Trainee ID cannot be null");
-        }
-
-        dtoValidator.validate(traineeDto);
+        dtoValidator.validateForUpdate(traineeDto, TraineeDto::getId, "Trainee");
 
         traineeRepository.findById(traineeDto.getId())
                 .orElseThrow(() -> new EntityNotFoundException("Trainee not found with id: " + traineeDto.getId()));
@@ -110,7 +103,8 @@ public class TraineeService {
         return traineeMapper.toDto(trainee);
     }
 
-    public void changePassword(String username, String oldPassword, String newPassword) {
+    public void changePassword(Credentials auth, String username, String oldPassword, String newPassword) {
+        authenticationService.requireAuthenticated(auth);
         userService.changePassword(username, oldPassword, newPassword);
     }
 

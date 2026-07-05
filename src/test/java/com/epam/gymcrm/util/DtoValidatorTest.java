@@ -52,4 +52,13 @@ class DtoValidatorTest {
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("Training name is required");
     }
+
+    @Test
+    void shouldRejectUpdateWithoutId() {
+        TraineeDto dto = TestDataFactory.traineeDto();
+
+        assertThatThrownBy(() -> dtoValidator.validateForUpdate(dto, TraineeDto::getId, "Trainee"))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Trainee id is required");
+    }
 }

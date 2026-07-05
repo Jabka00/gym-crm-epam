@@ -384,10 +384,23 @@ class TraineeServiceTest {
 
     @Test
     void shouldDelegateChangePasswordToUserService() {
-        traineeService.changePassword("Alice.Walker", "oldPass1", "NewPass1!");
+        traineeService.changePassword(auth, "Alice.Walker", "oldPass1", "NewPass1!");
 
-        verifyNoInteractions(authenticationService);
+        verify(authenticationService, times(1)).requireAuthenticated(auth);
         verify(userService, times(1)).changePassword("Alice.Walker", "oldPass1", "NewPass1!");
+    }
+
+    @Test
+    void shouldRejectUnauthenticatedChangePassword() {
+        doThrow(new AuthenticationException("Invalid credentials for username: Alice.Walker"))
+                .when(authenticationService)
+                .requireAuthenticated(auth);
+
+        assertThatThrownBy(() -> traineeService.changePassword(auth, "Alice.Walker", "oldPass1", "NewPass1!"))
+                .isInstanceOf(AuthenticationException.class);
+
+        verify(authenticationService, times(1)).requireAuthenticated(auth);
+        verify(userService, never()).changePassword("Alice.Walker", "oldPass1", "NewPass1!");
     }
 
     @Test
@@ -396,10 +409,10 @@ class TraineeServiceTest {
                 .when(userService)
                 .changePassword("Alice.Walker", "wrong", "NewPass1!");
 
-        assertThatThrownBy(() -> traineeService.changePassword("Alice.Walker", "wrong", "NewPass1!"))
+        assertThatThrownBy(() -> traineeService.changePassword(auth, "Alice.Walker", "wrong", "NewPass1!"))
                 .isInstanceOf(AuthenticationException.class);
 
-        verifyNoInteractions(authenticationService);
+        verify(authenticationService, times(1)).requireAuthenticated(auth);
         verify(userService, times(1)).changePassword("Alice.Walker", "wrong", "NewPass1!");
     }
 

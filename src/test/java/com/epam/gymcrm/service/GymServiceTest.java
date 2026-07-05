@@ -18,6 +18,7 @@ import java.time.LocalDate;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -35,6 +36,9 @@ class GymServiceTest {
 
     @Mock
     private TrainingService trainingService;
+
+    @Mock
+    private AuthenticationService authenticationService;
 
     @InjectMocks
     private GymService gymService;
@@ -76,6 +80,7 @@ class GymServiceTest {
         TrainingDto actual = gymService.scheduleTraining(auth, request);
 
         assertThat(actual).usingRecursiveComparison().isEqualTo(scheduled);
+        verify(authenticationService, times(1)).requireAuthenticated(auth);
         verify(traineeService, times(1)).getActiveTrainee(1L);
         verify(trainerService, times(1)).getActiveTrainerForSpecialization(2L, "YOGA");
         verify(trainingService, times(1)).createTraining(auth, enriched);
@@ -117,6 +122,7 @@ class GymServiceTest {
         TrainingDto actual = gymService.autoScheduleTraining(auth, request);
 
         assertThat(actual).usingRecursiveComparison().isEqualTo(scheduled);
+        verify(authenticationService, times(1)).requireAuthenticated(auth);
         verify(traineeService, times(1)).getActiveTrainee(1L);
         verify(trainerService, times(1)).findActiveBySpecialization("YOGA");
         verify(trainingService, times(1)).createTraining(auth, enriched);
@@ -125,28 +131,17 @@ class GymServiceTest {
     @Test
     void shouldPropagateAuthenticationFailureWhenSchedulingTraining() {
         TrainingDto request = TestDataFactory.trainingDto(1L, 2L);
-        TraineeDto trainee = TestDataFactory.traineeDtoWithCredentials(1L, "Alice.Walker");
-        TrainerDto trainer = TestDataFactory.trainerDtoWithCredentials(2L, "John.Smith");
-        TrainingDto enriched = TrainingDto.builder()
-                .trainee(trainee)
-                .trainer(trainer)
-                .trainingName(request.getTrainingName())
-                .trainingType(trainer.getSpecialization())
-                .trainingDate(request.getTrainingDate())
-                .trainingDuration(request.getTrainingDuration())
-                .build();
-
-        when(traineeService.getActiveTrainee(1L)).thenReturn(trainee);
-        when(trainerService.getActiveTrainerForSpecialization(2L, "YOGA")).thenReturn(trainer);
-        when(trainingService.createTraining(auth, enriched))
-                .thenThrow(new AuthenticationException("Invalid credentials for username: Alice.Walker"));
+        doThrow(new AuthenticationException("Invalid credentials for username: Alice.Walker"))
+                .when(authenticationService)
+                .requireAuthenticated(auth);
 
         assertThatThrownBy(() -> gymService.scheduleTraining(auth, request))
                 .isInstanceOf(AuthenticationException.class);
 
-        verify(traineeService, times(1)).getActiveTrainee(1L);
-        verify(trainerService, times(1)).getActiveTrainerForSpecialization(2L, "YOGA");
-        verify(trainingService, times(1)).createTraining(auth, enriched);
+        verify(authenticationService, times(1)).requireAuthenticated(auth);
+        verifyNoInteractions(traineeService);
+        verifyNoInteractions(trainerService);
+        verifyNoInteractions(trainingService);
     }
 
     @Test
@@ -159,6 +154,7 @@ class GymServiceTest {
                 .isInstanceOf(InvalidOperationException.class)
                 .hasMessageContaining("inactive");
 
+        verify(authenticationService, times(1)).requireAuthenticated(auth);
         verify(traineeService, times(1)).getActiveTrainee(1L);
         verify(trainerService, never()).getActiveTrainerForSpecialization(2L, "YOGA");
         verifyNoInteractions(trainingService);
@@ -176,6 +172,7 @@ class GymServiceTest {
                 .isInstanceOf(InvalidOperationException.class)
                 .hasMessageContaining("inactive");
 
+        verify(authenticationService, times(1)).requireAuthenticated(auth);
         verify(traineeService, times(1)).getActiveTrainee(1L);
         verify(trainerService, times(1)).getActiveTrainerForSpecialization(2L, "YOGA");
         verifyNoInteractions(trainingService);

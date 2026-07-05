@@ -16,8 +16,11 @@ public class GymService {
     private final TrainerService trainerService;
     private final TraineeService traineeService;
     private final TrainingService trainingService;
+    private final AuthenticationService authenticationService;
 
     public TrainingDto scheduleTraining(Credentials auth, TrainingDto trainingDto) {
+        authenticationService.requireAuthenticated(auth);
+
         TraineeDto trainee = traineeService.getActiveTrainee(trainingDto.getTrainee().getId());
         String typeName = trainingDto.getTrainingType().getTypeName();
         TrainerDto trainer = trainerService.getActiveTrainerForSpecialization(
@@ -27,6 +30,8 @@ public class GymService {
     }
 
     public TrainingDto autoScheduleTraining(Credentials auth, TrainingDto trainingDto) {
+        authenticationService.requireAuthenticated(auth);
+
         TraineeDto trainee = traineeService.getActiveTrainee(trainingDto.getTrainee().getId());
         String typeName = trainingDto.getTrainingType().getTypeName();
         TrainerDto trainer = trainerService.findActiveBySpecialization(typeName);

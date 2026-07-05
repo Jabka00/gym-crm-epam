@@ -130,11 +130,16 @@ class TrainerRepositoryTest {
 
     @Test
     void shouldNotFindInactiveTrainerBySpecialization() {
+        trainerRepository.save(TestDataFactory.trainer("Active.Yoga.Only"));
+
         TrainerEntity inactive = TestDataFactory.trainer("Inactive.Yoga");
         inactive.setActive(false);
         trainerRepository.save(inactive);
 
-        assertThat(trainerRepository.findActiveBySpecialization("NON_EXISTENT_TYPE")).isEmpty();
+        TrainerEntity found = trainerRepository.findActiveBySpecialization("YOGA").orElseThrow();
+
+        assertThat(found.isActive()).isTrue();
+        assertThat(found.getUsername()).isNotEqualTo("Inactive.Yoga");
     }
 
     @Test
