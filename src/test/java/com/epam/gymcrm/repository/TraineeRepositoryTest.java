@@ -92,4 +92,39 @@ class TraineeRepositoryTest {
     void shouldReturnEmptyWhenTraineeNotFound() {
         assertThat(traineeRepository.findById(404L)).isEmpty();
     }
+
+    @Test
+    void shouldFindTraineeByUsername() {
+        TraineeEntity saved = traineeRepository.save(TestDataFactory.trainee("Find.User"));
+        TraineeEntity expected = TestDataFactory.trainee("Find.User");
+        expected.setId(saved.getId());
+
+        assertThat(traineeRepository.findByUsername("Find.User"))
+                .get()
+                .usingRecursiveComparison()
+                .ignoringFields("trainers", "trainings")
+                .isEqualTo(expected);
+    }
+
+    @Test
+    void shouldReturnEmptyWhenFindByUsernameMissing() {
+        assertThat(traineeRepository.findByUsername("No.Such.User")).isEmpty();
+    }
+
+    @Test
+    void shouldReturnAllTrainees() {
+        TraineeEntity saved = traineeRepository.save(TestDataFactory.trainee("All.User"));
+
+        assertThat(traineeRepository.findAll())
+                .extracting(TraineeEntity::getId)
+                .contains(saved.getId());
+    }
+
+    @Test
+    void shouldDetectExistingTraineeByUsername() {
+        traineeRepository.save(TestDataFactory.trainee("Exists.User"));
+
+        assertThat(traineeRepository.existsByUsername("Exists.User")).isTrue();
+        assertThat(traineeRepository.existsByUsername("Missing.User")).isFalse();
+    }
 }

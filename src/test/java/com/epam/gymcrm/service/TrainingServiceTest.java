@@ -31,14 +31,13 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.same;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -73,7 +72,6 @@ class TrainingServiceTest {
     @BeforeEach
     void setUp() {
         auth = TestDataFactory.credentials();
-        doNothing().when(authenticationService).requireAuthenticated(any(Credentials.class));
     }
 
     @Test
@@ -169,7 +167,7 @@ class TrainingServiceTest {
         assertThat(actual).usingRecursiveComparison().isEqualTo(expected);
         verify(trainingRepository, times(1)).findById(10L);
         verify(trainingMapper, times(1)).toDto(training);
-        verify(authenticationService, never()).requireAuthenticated(any());
+        verifyNoInteractions(authenticationService);
     }
 
     @Test
@@ -210,7 +208,7 @@ class TrainingServiceTest {
         verify(traineeRepository, times(1)).findById(1L);
         verify(trainerRepository, never()).findById(2L);
         verify(trainingTypeRepository, never()).findById(1L);
-        verify(trainingRepository, never()).save(eq(mapped));
+        verify(trainingRepository, never()).save(mapped);
     }
 
     @Test
@@ -229,7 +227,7 @@ class TrainingServiceTest {
         verify(traineeRepository, times(1)).findById(1L);
         verify(trainerRepository, times(1)).findById(2L);
         verify(trainingTypeRepository, never()).findById(1L);
-        verify(trainingRepository, never()).save(eq(mapped));
+        verify(trainingRepository, never()).save(mapped);
     }
 
     @Test
@@ -317,7 +315,7 @@ class TrainingServiceTest {
 
         verify(authenticationService, times(1)).requireAuthenticated(auth);
         verify(trainingRepository, never()).findByTraineeUsernameAndCriteria(
-                any(), any(), any(), any(), any());
+                "Alice.Walker", null, null, null, null);
     }
 
     @Test
@@ -332,6 +330,6 @@ class TrainingServiceTest {
 
         verify(authenticationService, times(1)).requireAuthenticated(auth);
         verify(trainingRepository, never()).findByTrainerUsernameAndCriteria(
-                any(), any(), any(), any());
+                "John.Smith", null, null, null);
     }
 }

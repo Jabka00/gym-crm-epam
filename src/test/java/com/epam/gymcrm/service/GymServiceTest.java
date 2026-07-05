@@ -18,7 +18,6 @@ import java.time.LocalDate;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -79,7 +78,7 @@ class GymServiceTest {
         assertThat(actual).usingRecursiveComparison().isEqualTo(scheduled);
         verify(traineeService, times(1)).getActiveTrainee(1L);
         verify(trainerService, times(1)).getActiveTrainerForSpecialization(2L, "YOGA");
-        verify(trainingService, times(1)).createTraining(auth, eq(enriched));
+        verify(trainingService, times(1)).createTraining(auth, enriched);
     }
 
     @Test
@@ -120,7 +119,7 @@ class GymServiceTest {
         assertThat(actual).usingRecursiveComparison().isEqualTo(scheduled);
         verify(traineeService, times(1)).getActiveTrainee(1L);
         verify(trainerService, times(1)).findActiveBySpecialization("YOGA");
-        verify(trainingService, times(1)).createTraining(auth, eq(enriched));
+        verify(trainingService, times(1)).createTraining(auth, enriched);
     }
 
     @Test
@@ -147,7 +146,7 @@ class GymServiceTest {
 
         verify(traineeService, times(1)).getActiveTrainee(1L);
         verify(trainerService, times(1)).getActiveTrainerForSpecialization(2L, "YOGA");
-        verify(trainingService, times(1)).createTraining(auth, eq(enriched));
+        verify(trainingService, times(1)).createTraining(auth, enriched);
     }
 
     @Test

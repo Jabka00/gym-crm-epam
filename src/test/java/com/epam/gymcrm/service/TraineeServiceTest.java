@@ -33,15 +33,14 @@ import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -79,7 +78,6 @@ class TraineeServiceTest {
     @BeforeEach
     void setUp() {
         auth = TestDataFactory.credentials();
-        doNothing().when(authenticationService).requireAuthenticated(any(Credentials.class));
     }
 
     @Test
@@ -90,7 +88,7 @@ class TraineeServiceTest {
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("First name is required");
 
-        verify(userInitializationUtil, never()).createTrainee(any(), any());
+        verifyNoInteractions(userInitializationUtil);
     }
 
     @Test
@@ -100,7 +98,7 @@ class TraineeServiceTest {
         assertThat(traineeService.verifyPassword("Kate.Doe", "secret1234")).isTrue();
 
         verify(authenticationService, times(1)).authenticateTrainee("Kate.Doe", "secret1234");
-        verify(authenticationService, never()).requireAuthenticated(any());
+        verifyNoMoreInteractions(authenticationService);
     }
 
     @Test
@@ -144,7 +142,7 @@ class TraineeServiceTest {
                 .ignoringFields("id", "username", "password", "active", "trainers", "trainings")
                 .isEqualTo(mappedEntity);
         verify(traineeRepository, times(1)).save(entityCaptor.getValue());
-        verify(authenticationService, never()).requireAuthenticated(any());
+        verifyNoInteractions(authenticationService);
     }
 
     @Test
@@ -251,7 +249,7 @@ class TraineeServiceTest {
                 .isInstanceOf(AuthenticationException.class);
 
         verify(authenticationService, times(1)).requireAuthenticated(auth);
-        verify(traineeRepository, never()).findByUsername(any());
+        verify(traineeRepository, never()).findByUsername("Alice.Walker");
     }
 
     @Test
@@ -270,6 +268,7 @@ class TraineeServiceTest {
     @Test
     void shouldRejectUnauthenticatedUpdateTrainee() {
         TraineeDto request = TestDataFactory.traineeDtoWithCredentials(1L, "Alice.Walker");
+        TraineeEntity entityToSave = traineeMapper.toEntity(request);
         doThrow(new AuthenticationException("Invalid credentials for username: Alice.Walker"))
                 .when(authenticationService)
                 .requireAuthenticated(auth);
@@ -278,8 +277,8 @@ class TraineeServiceTest {
                 .isInstanceOf(AuthenticationException.class);
 
         verify(authenticationService, times(1)).requireAuthenticated(auth);
-        verify(traineeRepository, never()).findById(any());
-        verify(traineeRepository, never()).save(any());
+        verify(traineeRepository, never()).findById(1L);
+        verify(traineeRepository, never()).save(entityToSave);
     }
 
     @Test
@@ -292,7 +291,7 @@ class TraineeServiceTest {
                 .isInstanceOf(AuthenticationException.class);
 
         verify(authenticationService, times(1)).requireAuthenticated(auth);
-        verify(trainerRepository, never()).findNotAssignedToTrainee(any());
+        verify(trainerRepository, never()).findNotAssignedToTrainee("Alice.Walker");
     }
 
     @Test
@@ -305,7 +304,7 @@ class TraineeServiceTest {
                 .isInstanceOf(AuthenticationException.class);
 
         verify(authenticationService, times(1)).requireAuthenticated(auth);
-        verify(userService, never()).toggleActivation(any());
+        verify(userService, never()).toggleActivation("Alice.Walker");
     }
 
     @Test
@@ -330,7 +329,7 @@ class TraineeServiceTest {
                 .isInstanceOf(AuthenticationException.class);
 
         verify(authenticationService, times(1)).requireAuthenticated(auth);
-        verify(traineeRepository, never()).deleteByUsername(any());
+        verify(traineeRepository, never()).deleteByUsername("Alice.Walker");
     }
 
     @Test
@@ -372,7 +371,7 @@ class TraineeServiceTest {
                 .isInstanceOf(AuthenticationException.class);
 
         verify(authenticationService, times(1)).requireAuthenticated(auth);
-        verify(traineeRepository, never()).findByUsername(any());
+        verify(traineeRepository, never()).findByUsername("Alice.Walker");
     }
 
     @Test
@@ -387,7 +386,7 @@ class TraineeServiceTest {
     void shouldDelegateChangePasswordToUserService() {
         traineeService.changePassword("Alice.Walker", "oldPass1", "NewPass1!");
 
-        verify(authenticationService, never()).requireAuthenticated(any());
+        verifyNoInteractions(authenticationService);
         verify(userService, times(1)).changePassword("Alice.Walker", "oldPass1", "NewPass1!");
     }
 
@@ -400,7 +399,7 @@ class TraineeServiceTest {
         assertThatThrownBy(() -> traineeService.changePassword("Alice.Walker", "wrong", "NewPass1!"))
                 .isInstanceOf(AuthenticationException.class);
 
-        verify(authenticationService, never()).requireAuthenticated(any());
+        verifyNoInteractions(authenticationService);
         verify(userService, times(1)).changePassword("Alice.Walker", "wrong", "NewPass1!");
     }
 

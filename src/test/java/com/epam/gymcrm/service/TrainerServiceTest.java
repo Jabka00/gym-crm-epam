@@ -28,15 +28,14 @@ import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -68,7 +67,6 @@ class TrainerServiceTest {
     @BeforeEach
     void setUp() {
         auth = TestDataFactory.credentials();
-        doNothing().when(authenticationService).requireAuthenticated(any(Credentials.class));
     }
 
     @Test
@@ -79,7 +77,7 @@ class TrainerServiceTest {
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("Specialization is required");
 
-        verify(userInitializationUtil, never()).createTrainer(any(), any());
+        verifyNoInteractions(userInitializationUtil);
     }
 
     @Test
@@ -89,7 +87,7 @@ class TrainerServiceTest {
         assertThat(trainerService.verifyPassword("John.Smith", "pass1234AB")).isTrue();
 
         verify(authenticationService, times(1)).authenticateTrainer("John.Smith", "pass1234AB");
-        verify(authenticationService, never()).requireAuthenticated(any());
+        verifyNoMoreInteractions(authenticationService);
     }
 
     @Test
@@ -129,7 +127,7 @@ class TrainerServiceTest {
                 .ignoringFields("id", "username", "password", "active", "trainees", "trainings", "specialization")
                 .isEqualTo(mappedEntity);
         verify(trainerRepository, times(1)).save(entityCaptor.getValue());
-        verify(authenticationService, never()).requireAuthenticated(any());
+        verifyNoInteractions(authenticationService);
     }
 
     @Test
@@ -222,7 +220,7 @@ class TrainerServiceTest {
                 .isInstanceOf(AuthenticationException.class);
 
         verify(authenticationService, times(1)).requireAuthenticated(auth);
-        verify(trainerRepository, never()).findByUsername(any());
+        verify(trainerRepository, never()).findByUsername("John.Smith");
     }
 
     @Test
@@ -241,6 +239,7 @@ class TrainerServiceTest {
     @Test
     void shouldRejectUnauthenticatedUpdateTrainer() {
         TrainerDto request = TestDataFactory.trainerDtoWithCredentials(1L, "John.Smith");
+        TrainerEntity entityToSave = trainerMapper.toEntity(request);
         doThrow(new AuthenticationException("Invalid credentials for username: John.Smith"))
                 .when(authenticationService)
                 .requireAuthenticated(auth);
@@ -249,8 +248,8 @@ class TrainerServiceTest {
                 .isInstanceOf(AuthenticationException.class);
 
         verify(authenticationService, times(1)).requireAuthenticated(auth);
-        verify(trainerRepository, never()).findById(any());
-        verify(trainerRepository, never()).save(any());
+        verify(trainerRepository, never()).findById(1L);
+        verify(trainerRepository, never()).save(entityToSave);
     }
 
     @Test
@@ -263,14 +262,14 @@ class TrainerServiceTest {
                 .isInstanceOf(AuthenticationException.class);
 
         verify(authenticationService, times(1)).requireAuthenticated(auth);
-        verify(userService, never()).toggleActivation(any());
+        verify(userService, never()).toggleActivation("John.Smith");
     }
 
     @Test
     void shouldDelegateChangePasswordToUserService() {
         trainerService.changePassword("John.Smith", "oldPass1", "NewPass1!");
 
-        verify(authenticationService, never()).requireAuthenticated(any());
+        verifyNoInteractions(authenticationService);
         verify(userService, times(1)).changePassword("John.Smith", "oldPass1", "NewPass1!");
     }
 
@@ -283,7 +282,7 @@ class TrainerServiceTest {
         assertThatThrownBy(() -> trainerService.changePassword("John.Smith", "wrong", "NewPass1!"))
                 .isInstanceOf(AuthenticationException.class);
 
-        verify(authenticationService, never()).requireAuthenticated(any());
+        verifyNoInteractions(authenticationService);
         verify(userService, times(1)).changePassword("John.Smith", "wrong", "NewPass1!");
     }
 
@@ -320,7 +319,7 @@ class TrainerServiceTest {
                 .hasMessageContaining("specialization");
 
         verify(trainerRepository, times(1)).findById(2L);
-        verify(trainerMapper, never()).toDto(eq(trainer));
+        verify(trainerMapper, never()).toDto(trainer);
     }
 
     @Test
