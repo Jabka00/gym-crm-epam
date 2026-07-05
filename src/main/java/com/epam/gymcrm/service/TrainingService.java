@@ -1,17 +1,17 @@
 package com.epam.gymcrm.service;
 
 import com.epam.gymcrm.dto.TrainingDto;
+import com.epam.gymcrm.entity.TraineeEntity;
+import com.epam.gymcrm.entity.TrainerEntity;
 import com.epam.gymcrm.entity.TrainingEntity;
 import com.epam.gymcrm.entity.TrainingTypeEntity;
 import com.epam.gymcrm.exception.EntityNotFoundException;
-import com.epam.gymcrm.exception.InvalidOperationException;
 import com.epam.gymcrm.mapper.TrainingMapper;
 import com.epam.gymcrm.repository.TraineeRepository;
 import com.epam.gymcrm.repository.TrainerRepository;
 import com.epam.gymcrm.repository.TrainingRepository;
 import com.epam.gymcrm.repository.TrainingTypeRepository;
 import com.epam.gymcrm.security.Credentials;
-import com.epam.gymcrm.service.AuthenticationService;
 import com.epam.gymcrm.util.DtoValidator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -41,20 +41,12 @@ public class TrainingService {
         requireParticipantIds(trainingDto);
 
         TrainingEntity training = trainingMapper.toEntity(trainingDto);
-        var trainee = traineeRepository.findById(trainingDto.getTrainee().getId())
-                .orElseThrow(() -> new EntityNotFoundException(
-                        "Trainee not found with id: " + trainingDto.getTrainee().getId()));
-        if (!trainee.isActive()) {
-            throw new InvalidOperationException(
-                    "Trainee is inactive: id=" + trainingDto.getTrainee().getId());
-        }
-        var trainer = trainerRepository.findById(trainingDto.getTrainer().getId())
-                .orElseThrow(() -> new EntityNotFoundException(
-                        "Trainer not found with id: " + trainingDto.getTrainer().getId()));
-        if (!trainer.isActive()) {
-            throw new InvalidOperationException(
-                    "Trainer is inactive: id=" + trainingDto.getTrainer().getId());
-        }
+        Long traineeId = trainingDto.getTrainee().getId();
+        Long trainerId = trainingDto.getTrainer().getId();
+        TraineeEntity trainee = traineeRepository.findById(traineeId)
+                .orElseThrow(() -> new EntityNotFoundException("Trainee not found with id: " + traineeId));
+        TrainerEntity trainer = trainerRepository.findById(trainerId)
+                .orElseThrow(() -> new EntityNotFoundException("Trainer not found with id: " + trainerId));
         training.setTrainee(trainee);
         training.setTrainer(trainer);
         training.setTrainingType(resolveTrainingType(trainingDto));

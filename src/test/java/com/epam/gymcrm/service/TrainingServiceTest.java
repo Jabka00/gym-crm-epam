@@ -7,7 +7,6 @@ import com.epam.gymcrm.entity.TrainingEntity;
 import com.epam.gymcrm.entity.TrainingTypeEntity;
 import com.epam.gymcrm.exception.AuthenticationException;
 import com.epam.gymcrm.exception.EntityNotFoundException;
-import com.epam.gymcrm.exception.InvalidOperationException;
 import com.epam.gymcrm.mapper.TrainingMapper;
 import com.epam.gymcrm.repository.TraineeRepository;
 import com.epam.gymcrm.repository.TrainerRepository;
@@ -85,6 +84,30 @@ class TrainingServiceTest {
         assertThatThrownBy(() -> trainingService.createTraining(auth, request))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("Training name is required");
+
+        verify(trainingMapper, never()).toEntity(request);
+    }
+
+    @Test
+    void shouldRejectCreateWithoutTrainerId() {
+        TrainingDto request = TestDataFactory.trainingDto(1L, 2L);
+        request.setTrainer(null);
+
+        assertThatThrownBy(() -> trainingService.createTraining(auth, request))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Trainer id is required");
+
+        verify(trainingMapper, never()).toEntity(request);
+    }
+
+    @Test
+    void shouldRejectCreateWithoutTraineeId() {
+        TrainingDto request = TestDataFactory.trainingDto(1L, 2L);
+        request.getTrainee().setId(null);
+
+        assertThatThrownBy(() -> trainingService.createTraining(auth, request))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Trainee id is required");
 
         verify(trainingMapper, never()).toEntity(request);
     }
@@ -206,45 +229,6 @@ class TrainingServiceTest {
         verify(traineeRepository, times(1)).findById(1L);
         verify(trainerRepository, times(1)).findById(2L);
         verify(trainingTypeRepository, never()).findById(1L);
-        verify(trainingRepository, never()).save(eq(mapped));
-    }
-
-    @Test
-    void shouldThrowWhenCreatingTrainingForInactiveTrainee() {
-        TrainingDto request = TestDataFactory.trainingDto(1L, 2L);
-        TrainingEntity mapped = new TrainingEntity();
-        TraineeEntity inactiveTrainee = TestDataFactory.traineeWithId(1L, "Inactive.User");
-        inactiveTrainee.setActive(false);
-        when(trainingMapper.toEntity(request)).thenReturn(mapped);
-        when(traineeRepository.findById(1L)).thenReturn(Optional.of(inactiveTrainee));
-
-        assertThatThrownBy(() -> trainingService.createTraining(auth, request))
-                .isInstanceOf(InvalidOperationException.class)
-                .hasMessageContaining("inactive");
-
-        verify(trainingMapper, times(1)).toEntity(request);
-        verify(traineeRepository, times(1)).findById(1L);
-        verify(trainerRepository, never()).findById(2L);
-        verify(trainingRepository, never()).save(eq(mapped));
-    }
-
-    @Test
-    void shouldThrowWhenCreatingTrainingForInactiveTrainer() {
-        TrainingDto request = TestDataFactory.trainingDto(1L, 2L);
-        TrainingEntity mapped = new TrainingEntity();
-        TrainerEntity inactiveTrainer = TestDataFactory.trainerWithId(2L, "Inactive.Trainer");
-        inactiveTrainer.setActive(false);
-        when(trainingMapper.toEntity(request)).thenReturn(mapped);
-        when(traineeRepository.findById(1L)).thenReturn(Optional.of(TestDataFactory.traineeWithId(1L, "Alice.Walker")));
-        when(trainerRepository.findById(2L)).thenReturn(Optional.of(inactiveTrainer));
-
-        assertThatThrownBy(() -> trainingService.createTraining(auth, request))
-                .isInstanceOf(InvalidOperationException.class)
-                .hasMessageContaining("inactive");
-
-        verify(trainingMapper, times(1)).toEntity(request);
-        verify(traineeRepository, times(1)).findById(1L);
-        verify(trainerRepository, times(1)).findById(2L);
         verify(trainingRepository, never()).save(eq(mapped));
     }
 

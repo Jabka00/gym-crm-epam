@@ -4,7 +4,6 @@ import com.epam.gymcrm.dto.TraineeDto;
 import com.epam.gymcrm.dto.TrainerDto;
 import com.epam.gymcrm.dto.TrainingDto;
 import com.epam.gymcrm.security.Credentials;
-import com.epam.gymcrm.util.DtoValidator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -17,13 +16,8 @@ public class GymService {
     private final TrainerService trainerService;
     private final TraineeService traineeService;
     private final TrainingService trainingService;
-    private final DtoValidator dtoValidator;
 
     public TrainingDto scheduleTraining(Credentials auth, TrainingDto trainingDto) {
-        dtoValidator.validate(trainingDto);
-        requireTraineeId(trainingDto);
-        requireTrainerId(trainingDto);
-
         TraineeDto trainee = traineeService.getActiveTrainee(trainingDto.getTrainee().getId());
         String typeName = trainingDto.getTrainingType().getTypeName();
         TrainerDto trainer = trainerService.getActiveTrainerForSpecialization(
@@ -33,9 +27,6 @@ public class GymService {
     }
 
     public TrainingDto autoScheduleTraining(Credentials auth, TrainingDto trainingDto) {
-        dtoValidator.validate(trainingDto);
-        requireTraineeId(trainingDto);
-
         TraineeDto trainee = traineeService.getActiveTrainee(trainingDto.getTrainee().getId());
         String typeName = trainingDto.getTrainingType().getTypeName();
         TrainerDto trainer = trainerService.findActiveBySpecialization(typeName);
@@ -59,17 +50,5 @@ public class GymService {
                 .trainingDate(source.getTrainingDate())
                 .trainingDuration(source.getTrainingDuration())
                 .build();
-    }
-
-    private void requireTraineeId(TrainingDto trainingDto) {
-        if (trainingDto.getTrainee().getId() == null) {
-            throw new IllegalArgumentException("Trainee id is required");
-        }
-    }
-
-    private void requireTrainerId(TrainingDto trainingDto) {
-        if (trainingDto.getTrainer() == null || trainingDto.getTrainer().getId() == null) {
-            throw new IllegalArgumentException("Trainer id is required");
-        }
     }
 }
