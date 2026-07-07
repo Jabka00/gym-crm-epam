@@ -1,8 +1,8 @@
 package com.epam.gymcrm.service;
 
-import com.epam.gymcrm.dto.TrainingTypeDto;
+import com.epam.gymcrm.dto.response.TrainingType;
 import com.epam.gymcrm.exception.EntityNotFoundException;
-import com.epam.gymcrm.mapper.TrainingTypeMapper;
+import com.epam.gymcrm.mapper.TrainerMapper;
 import com.epam.gymcrm.repository.TrainingTypeRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -15,12 +15,12 @@ import org.springframework.transaction.annotation.Transactional;
 public class TrainingTypeService {
 
     private final TrainingTypeRepository trainingTypeRepository;
-    private final TrainingTypeMapper trainingTypeMapper;
+    private final TrainerMapper trainerMapper;
 
     @Transactional(readOnly = true)
-    public TrainingTypeDto getTrainingTypeByName(String typeName) {
+    public TrainingType getTrainingTypeByName(String typeName) {
         return trainingTypeRepository.findByTypeName(typeName)
-                .map(trainingTypeMapper::toDto)
+                .map(trainerMapper::toTrainingTypeResponse)
                 .orElseThrow(() -> new EntityNotFoundException("Training type not found: " + typeName));
     }
 }

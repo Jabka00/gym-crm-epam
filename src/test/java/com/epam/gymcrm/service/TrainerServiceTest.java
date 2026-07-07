@@ -8,14 +8,11 @@ import com.epam.gymcrm.exception.InvalidOperationException;
 import com.epam.gymcrm.mapper.TrainerMapper;
 import com.epam.gymcrm.repository.TrainerRepository;
 import com.epam.gymcrm.security.Credentials;
-import com.epam.gymcrm.support.MapperTestSupport;
 import com.epam.gymcrm.support.TestDataFactory;
 import com.epam.gymcrm.util.DtoValidator;
-import com.epam.gymcrm.util.UserInitializationUtil;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Spy;
@@ -23,13 +20,10 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.List;
 import java.util.Optional;
-import java.util.function.UnaryOperator;
 import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.argThat;
-import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -45,9 +39,6 @@ class TrainerServiceTest {
     private TrainerRepository trainerRepository;
 
     @Mock
-    private UserInitializationUtil userInitializationUtil;
-
-    @Mock
     private UserService userService;
 
     @Mock
@@ -56,8 +47,8 @@ class TrainerServiceTest {
     @Spy
     private DtoValidator dtoValidator = new DtoValidator();
 
-    @Spy
-    private TrainerMapper trainerMapper = MapperTestSupport.trainerMapper();
+    @Mock
+    private TrainerMapper trainerMapper;
 
     @InjectMocks
     private TrainerService trainerService;
@@ -77,7 +68,8 @@ class TrainerServiceTest {
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("Specialization is required");
 
-        verifyNoInteractions(userInitializationUtil);
+        verifyNoInteractions(trainerMapper);
+        verify(trainerRepository, never()).save(org.mockito.ArgumentMatchers.any());
     }
 
     @Test
@@ -102,31 +94,20 @@ class TrainerServiceTest {
     @Test
     void shouldCreateTrainer() {
         TrainerDto request = TestDataFactory.trainerDto();
-        TrainerEntity mappedEntity = trainerMapper.toEntity(request);
+        TrainerEntity mappedEntity = TestDataFactory.createDefaultTrainer();
         TrainerEntity created = TestDataFactory.trainerWithId(1L, "John.Smith");
-        TrainerDto expected = trainerMapper.toDto(created);
+        TrainerDto expected = TestDataFactory.trainerDtoWithCredentials(1L, "John.Smith");
 
-        doAnswer(invocation -> {
-            TrainerEntity entity = invocation.getArgument(0);
-            UnaryOperator<TrainerEntity> saver = invocation.getArgument(1);
-            when(trainerRepository.save(entity)).thenReturn(created);
-            return saver.apply(entity);
-        }).when(userInitializationUtil).createTrainer(
-                argThat(entity -> matchesTrainerEntity(entity, mappedEntity)),
-                argThat(TrainerServiceTest::isUnaryOperator));
+        when(trainerMapper.toEntity(request)).thenReturn(mappedEntity);
+        when(trainerRepository.save(mappedEntity)).thenReturn(created);
+        when(trainerMapper.toDto(created)).thenReturn(expected);
 
         TrainerDto actual = trainerService.createTrainer(request);
 
         assertThat(actual).usingRecursiveComparison().isEqualTo(expected);
-
-        ArgumentCaptor<TrainerEntity> entityCaptor = ArgumentCaptor.forClass(TrainerEntity.class);
-        verify(userInitializationUtil, times(1))
-                .createTrainer(entityCaptor.capture(), argThat(TrainerServiceTest::isUnaryOperator));
-        assertThat(entityCaptor.getValue())
-                .usingRecursiveComparison()
-                .ignoringFields("id", "username", "password", "active", "trainees", "trainings", "specialization")
-                .isEqualTo(mappedEntity);
-        verify(trainerRepository, times(1)).save(entityCaptor.getValue());
+        verify(trainerMapper, times(1)).toEntity(request);
+        verify(trainerRepository, times(1)).save(mappedEntity);
+        verify(trainerMapper, times(1)).toDto(created);
         verifyNoInteractions(authenticationService);
     }
 
@@ -135,31 +116,30 @@ class TrainerServiceTest {
         TrainerDto request = TestDataFactory.trainerDtoWithCredentials(1L, "John.Smith");
         request.getSpecialization().setTypeName("BOXING");
         TrainerEntity existing = TestDataFactory.trainerWithId(1L, "John.Smith");
-        TrainerEntity entityToSave = trainerMapper.toEntity(request);
-        TrainerDto expected = trainerMapper.toDto(entityToSave);
+        TrainerEntity entityToSave = TestDataFactory.trainerWithId(1L, "John.Smith");
+        entityToSave.setSpecialization(TestDataFactory.trainingType("BOXING"));
+        TrainerDto expected = TestDataFactory.trainerDtoWithCredentials(1L, "John.Smith");
+        expected.getSpecialization().setTypeName("BOXING");
 
+        when(trainerMapper.toEntity(request)).thenReturn(entityToSave);
+        when(trainerMapper.toDto(entityToSave)).thenReturn(expected);
         when(trainerRepository.findById(1L)).thenReturn(Optional.of(existing));
-        when(trainerRepository.save(argThat(entity -> matchesTrainerEntity(entity, entityToSave))))
-                .thenAnswer(invocation -> invocation.getArgument(0));
+        when(trainerRepository.save(entityToSave)).thenReturn(entityToSave);
 
         TrainerDto actual = trainerService.updateTrainer(auth, request);
 
         assertThat(actual).usingRecursiveComparison().isEqualTo(expected);
         verify(trainerRepository, times(1)).findById(1L);
-
-        ArgumentCaptor<TrainerEntity> saveCaptor = ArgumentCaptor.forClass(TrainerEntity.class);
-        verify(trainerRepository, times(1)).save(saveCaptor.capture());
-        assertThat(saveCaptor.getValue()).usingRecursiveComparison()
-                .ignoringFields("trainees", "trainings")
-                .isEqualTo(entityToSave);
+        verify(trainerRepository, times(1)).save(entityToSave);
         verify(authenticationService, times(1)).requireAuthenticated(auth);
     }
 
     @Test
     void shouldGetTrainerById() {
         TrainerEntity trainer = TestDataFactory.trainerWithId(1L, "John.Smith");
-        TrainerDto expected = trainerMapper.toDto(trainer);
+        TrainerDto expected = TestDataFactory.trainerDtoWithCredentials(1L, "John.Smith");
         when(trainerRepository.findById(1L)).thenReturn(Optional.of(trainer));
+        when(trainerMapper.toDto(trainer)).thenReturn(expected);
 
         TrainerDto actual = trainerService.getTrainer(1L);
 
@@ -185,10 +165,12 @@ class TrainerServiceTest {
         TrainerEntity active = TestDataFactory.trainerWithId(1L, "Active.Trainer");
         TrainerEntity inactive = TestDataFactory.trainerWithId(2L, "Inactive.Trainer");
         inactive.setActive(false);
+        TrainerDto activeDto = TestDataFactory.trainerDtoWithCredentials(1L, "Active.Trainer");
         when(trainerRepository.findAll()).thenReturn(Stream.of(active, inactive));
+        when(trainerMapper.toDto(active)).thenReturn(activeDto);
 
         List<TrainerDto> actual = trainerService.getAllTrainers();
-        List<TrainerDto> expected = List.of(trainerMapper.toDto(active));
+        List<TrainerDto> expected = List.of(activeDto);
 
         assertThat(actual)
                 .usingRecursiveFieldByFieldElementComparator()
@@ -226,8 +208,9 @@ class TrainerServiceTest {
     @Test
     void shouldGetTrainerByUsernameWhenAuthenticated() {
         TrainerEntity trainer = TestDataFactory.trainerWithId(1L, "John.Smith");
-        TrainerDto expected = trainerMapper.toDto(trainer);
+        TrainerDto expected = TestDataFactory.trainerDtoWithCredentials(1L, "John.Smith");
         when(trainerRepository.findByUsername("John.Smith")).thenReturn(Optional.of(trainer));
+        when(trainerMapper.toDto(trainer)).thenReturn(expected);
 
         TrainerDto actual = trainerService.getTrainerByUsername(auth, "John.Smith");
 
@@ -239,7 +222,6 @@ class TrainerServiceTest {
     @Test
     void shouldRejectUnauthenticatedUpdateTrainer() {
         TrainerDto request = TestDataFactory.trainerDtoWithCredentials(1L, "John.Smith");
-        TrainerEntity entityToSave = trainerMapper.toEntity(request);
         doThrow(new AuthenticationException("Invalid credentials for username: John.Smith"))
                 .when(authenticationService)
                 .requireAuthenticated(auth);
@@ -249,7 +231,7 @@ class TrainerServiceTest {
 
         verify(authenticationService, times(1)).requireAuthenticated(auth);
         verify(trainerRepository, never()).findById(1L);
-        verify(trainerRepository, never()).save(entityToSave);
+        verify(trainerRepository, never()).save(org.mockito.ArgumentMatchers.any());
     }
 
     @Test
@@ -338,8 +320,9 @@ class TrainerServiceTest {
     @Test
     void shouldReturnActiveTrainerMatchingSpecialization() {
         TrainerEntity trainer = TestDataFactory.trainerWithId(2L, "John.Smith");
-        TrainerDto expected = trainerMapper.toDto(trainer);
+        TrainerDto expected = TestDataFactory.trainerDtoWithCredentials(2L, "John.Smith");
         when(trainerRepository.findById(2L)).thenReturn(Optional.of(trainer));
+        when(trainerMapper.toDto(trainer)).thenReturn(expected);
 
         TrainerDto actual = trainerService.getActiveTrainerForSpecialization(2L, "YOGA");
 
@@ -350,8 +333,9 @@ class TrainerServiceTest {
     @Test
     void shouldFindActiveTrainerBySpecialization() {
         TrainerEntity active = TestDataFactory.trainerWithId(5L, "John.Smith");
-        TrainerDto expected = trainerMapper.toDto(active);
+        TrainerDto expected = TestDataFactory.trainerDtoWithCredentials(5L, "John.Smith");
         when(trainerRepository.findActiveBySpecialization("YOGA")).thenReturn(Optional.of(active));
+        when(trainerMapper.toDto(active)).thenReturn(expected);
 
         TrainerDto actual = trainerService.findActiveBySpecialization("YOGA");
 
@@ -367,18 +351,5 @@ class TrainerServiceTest {
                 .isInstanceOf(EntityNotFoundException.class);
 
         verify(trainerRepository, times(1)).findActiveBySpecialization("YOGA");
-    }
-
-    private static boolean matchesTrainerEntity(TrainerEntity actual, TrainerEntity expected) {
-        try {
-            assertThat(actual).usingRecursiveComparison().isEqualTo(expected);
-            return true;
-        } catch (AssertionError error) {
-            return false;
-        }
-    }
-
-    private static boolean isUnaryOperator(Object value) {
-        return value instanceof UnaryOperator<?>;
     }
 }

@@ -1,7 +1,9 @@
 package com.epam.gymcrm.service;
 
-import com.epam.gymcrm.dto.TraineeDto;
-import com.epam.gymcrm.dto.TrainerDto;
+import com.epam.gymcrm.dto.request.CreateTraineeRequest;
+import com.epam.gymcrm.dto.request.UpdateTraineeRequest;
+import com.epam.gymcrm.dto.response.Trainee;
+import com.epam.gymcrm.dto.response.Trainer;
 import com.epam.gymcrm.entity.TraineeEntity;
 import com.epam.gymcrm.entity.TrainerEntity;
 import com.epam.gymcrm.exception.AuthenticationException;
@@ -14,12 +16,9 @@ import com.epam.gymcrm.repository.TrainerRepository;
 import com.epam.gymcrm.security.Credentials;
 import com.epam.gymcrm.support.TestDataFactory;
 import com.epam.gymcrm.util.DtoValidator;
-import com.epam.gymcrm.util.UserInitializationUtil;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mapstruct.factory.Mappers;
-import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Spy;
@@ -28,13 +27,11 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
-import java.util.function.UnaryOperator;
 import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.argThat;
-import static org.mockito.Mockito.doAnswer;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -53,9 +50,6 @@ class TraineeServiceTest {
     private TrainerRepository trainerRepository;
 
     @Mock
-    private UserInitializationUtil userInitializationUtil;
-
-    @Mock
     private UserService userService;
 
     @Mock
@@ -64,8 +58,8 @@ class TraineeServiceTest {
     @Spy
     private DtoValidator dtoValidator = new DtoValidator();
 
-    @Spy
-    private TraineeMapper traineeMapper = Mappers.getMapper(TraineeMapper.class);
+    @Mock
+    private TraineeMapper traineeMapper;
 
     @Mock
     private TrainerMapper trainerMapper;
@@ -82,13 +76,15 @@ class TraineeServiceTest {
 
     @Test
     void shouldRejectCreateWithBlankFirstName() {
-        TraineeDto request = TraineeDto.builder().firstName("").lastName("Doe").build();
+        CreateTraineeRequest request = TestDataFactory.createTraineeRequest();
+        request.setFirstName("");
 
         assertThatThrownBy(() -> traineeService.createTrainee(request))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("First name is required");
 
-        verifyNoInteractions(userInitializationUtil);
+        verifyNoInteractions(traineeMapper);
+        verify(traineeRepository, never()).save(any());
     }
 
     @Test
@@ -112,68 +108,57 @@ class TraineeServiceTest {
 
     @Test
     void shouldCreateTrainee() {
-        TraineeDto request = TestDataFactory.traineeDto();
-        TraineeEntity mappedEntity = traineeMapper.toEntity(request);
+        CreateTraineeRequest request = TestDataFactory.createTraineeRequest();
+        TraineeEntity mappedEntity = TestDataFactory.createDefaultTrainee();
         TraineeEntity created = TestDataFactory.traineeWithId(1L, "Jane.Doe");
-        created.setFirstName("Jane");
-        created.setLastName("Doe");
-        created.setDateOfBirth(request.getDateOfBirth());
-        created.setAddress(request.getAddress());
-        TraineeDto expected = traineeMapper.toDto(created);
+        Trainee expected = TestDataFactory.traineeResponse(1L, "Jane.Doe");
+        expected.setFirstName("Jane");
+        expected.setLastName("Doe");
+        expected.setDateOfBirth(request.getDateOfBirth());
+        expected.setAddress(request.getAddress());
 
-        doAnswer(invocation -> {
-            TraineeEntity entity = invocation.getArgument(0);
-            UnaryOperator<TraineeEntity> saver = invocation.getArgument(1);
-            when(traineeRepository.save(entity)).thenReturn(created);
-            return saver.apply(entity);
-        }).when(userInitializationUtil).createTrainee(
-                argThat(entity -> matchesTraineeEntity(entity, mappedEntity)),
-                argThat(TraineeServiceTest::isUnaryOperator));
+        when(traineeMapper.toEntity(request)).thenReturn(mappedEntity);
+        when(traineeRepository.save(mappedEntity)).thenReturn(created);
+        when(traineeMapper.toResponse(created)).thenReturn(expected);
 
-        TraineeDto actual = traineeService.createTrainee(request);
+        Trainee actual = traineeService.createTrainee(request);
 
         assertThat(actual).usingRecursiveComparison().isEqualTo(expected);
-
-        ArgumentCaptor<TraineeEntity> entityCaptor = ArgumentCaptor.forClass(TraineeEntity.class);
-        verify(userInitializationUtil, times(1))
-                .createTrainee(entityCaptor.capture(), argThat(TraineeServiceTest::isUnaryOperator));
-        assertThat(entityCaptor.getValue())
-                .usingRecursiveComparison()
-                .ignoringFields("id", "username", "password", "active", "trainers", "trainings")
-                .isEqualTo(mappedEntity);
-        verify(traineeRepository, times(1)).save(entityCaptor.getValue());
+        verify(traineeMapper, times(1)).toEntity(request);
+        verify(traineeRepository, times(1)).save(mappedEntity);
+        verify(traineeMapper, times(1)).toResponse(created);
         verifyNoInteractions(authenticationService);
     }
 
     @Test
     void shouldUpdateTrainee() {
-        TraineeDto request = TestDataFactory.traineeDtoWithCredentials(1L, "Alice.Walker");
+        UpdateTraineeRequest request = TestDataFactory.updateTraineeRequest(1L);
         request.setAddress("Odesa");
         TraineeEntity existing = TestDataFactory.traineeWithId(1L, "Alice.Walker");
-        TraineeEntity entityToSave = traineeMapper.toEntity(request);
-        TraineeDto expected = traineeMapper.toDto(entityToSave);
+        TraineeEntity entityToSave = TestDataFactory.traineeWithId(1L, "Alice.Walker");
+        entityToSave.setAddress("Odesa");
+        Trainee expected = TestDataFactory.traineeResponse(1L, "Alice.Walker");
+        expected.setAddress("Odesa");
 
         when(traineeRepository.findById(1L)).thenReturn(Optional.of(existing));
-        when(traineeRepository.save(argThat(entity -> matchesTraineeEntity(entity, entityToSave))))
-                .thenAnswer(invocation -> invocation.getArgument(0));
+        when(traineeMapper.toEntity(request, existing.getUsername(), existing.getPassword()))
+                .thenReturn(entityToSave);
+        when(traineeRepository.save(entityToSave)).thenReturn(entityToSave);
+        when(traineeMapper.toResponse(entityToSave)).thenReturn(expected);
 
-        TraineeDto actual = traineeService.updateTrainee(auth, request);
+        Trainee actual = traineeService.updateTrainee(auth, request);
 
         assertThat(actual).usingRecursiveComparison().isEqualTo(expected);
         verify(traineeRepository, times(1)).findById(1L);
-
-        ArgumentCaptor<TraineeEntity> saveCaptor = ArgumentCaptor.forClass(TraineeEntity.class);
-        verify(traineeRepository, times(1)).save(saveCaptor.capture());
-        assertThat(saveCaptor.getValue()).usingRecursiveComparison()
-                .ignoringFields("trainers", "trainings")
-                .isEqualTo(entityToSave);
+        verify(traineeMapper, times(1))
+                .toEntity(request, existing.getUsername(), existing.getPassword());
+        verify(traineeRepository, times(1)).save(entityToSave);
         verify(authenticationService, times(1)).requireAuthenticated(auth);
     }
 
     @Test
     void shouldThrowWhenUpdatingMissingTrainee() {
-        TraineeDto request = TestDataFactory.traineeDtoWithCredentials(99L, "Missing.User");
-        TraineeEntity entityToSave = traineeMapper.toEntity(request);
+        UpdateTraineeRequest request = TestDataFactory.updateTraineeRequest(99L);
         when(traineeRepository.findById(99L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> traineeService.updateTrainee(auth, request))
@@ -181,16 +166,17 @@ class TraineeServiceTest {
                 .hasMessageContaining("99");
 
         verify(traineeRepository, times(1)).findById(99L);
-        verify(traineeRepository, never()).save(argThat(entity -> matchesTraineeEntity(entity, entityToSave)));
+        verify(traineeRepository, never()).save(any());
     }
 
     @Test
     void shouldGetActiveTraineeById() {
         TraineeEntity trainee = TestDataFactory.traineeWithId(1L, "Alice.Walker");
-        TraineeDto expected = traineeMapper.toDto(trainee);
+        Trainee expected = TestDataFactory.traineeResponse(1L, "Alice.Walker");
         when(traineeRepository.findById(1L)).thenReturn(Optional.of(trainee));
+        when(traineeMapper.toResponse(trainee)).thenReturn(expected);
 
-        TraineeDto actual = traineeService.getActiveTrainee(1L);
+        Trainee actual = traineeService.getActiveTrainee(1L);
 
         assertThat(actual).usingRecursiveComparison().isEqualTo(expected);
         verify(traineeRepository, times(1)).findById(1L);
@@ -214,14 +200,13 @@ class TraineeServiceTest {
         TraineeEntity active = TestDataFactory.traineeWithId(1L, "Active.User");
         TraineeEntity inactive = TestDataFactory.traineeWithId(2L, "Inactive.User");
         inactive.setActive(false);
+        Trainee activeResponse = TestDataFactory.traineeResponse(1L, "Active.User");
         when(traineeRepository.findAll()).thenReturn(Stream.of(active, inactive));
+        when(traineeMapper.toResponse(active)).thenReturn(activeResponse);
 
-        List<TraineeDto> actual = traineeService.getAllTrainees();
-        List<TraineeDto> expected = List.of(traineeMapper.toDto(active));
+        List<Trainee> actual = traineeService.getAllTrainees();
 
-        assertThat(actual)
-                .usingRecursiveFieldByFieldElementComparator()
-                .containsExactlyElementsOf(expected);
+        assertThat(actual).containsExactly(activeResponse);
         verify(traineeRepository, times(1)).findAll();
     }
 
@@ -255,10 +240,11 @@ class TraineeServiceTest {
     @Test
     void shouldGetTraineeByUsernameWhenAuthenticated() {
         TraineeEntity trainee = TestDataFactory.traineeWithId(1L, "Alice.Walker");
-        TraineeDto expected = traineeMapper.toDto(trainee);
+        Trainee expected = TestDataFactory.traineeResponse(1L, "Alice.Walker");
         when(traineeRepository.findByUsername("Alice.Walker")).thenReturn(Optional.of(trainee));
+        when(traineeMapper.toResponse(trainee)).thenReturn(expected);
 
-        TraineeDto actual = traineeService.getTraineeByUsername(auth, "Alice.Walker");
+        Trainee actual = traineeService.getTraineeByUsername(auth, "Alice.Walker");
 
         assertThat(actual).usingRecursiveComparison().isEqualTo(expected);
         verify(authenticationService, times(1)).requireAuthenticated(auth);
@@ -267,8 +253,7 @@ class TraineeServiceTest {
 
     @Test
     void shouldRejectUnauthenticatedUpdateTrainee() {
-        TraineeDto request = TestDataFactory.traineeDtoWithCredentials(1L, "Alice.Walker");
-        TraineeEntity entityToSave = traineeMapper.toEntity(request);
+        UpdateTraineeRequest request = TestDataFactory.updateTraineeRequest(1L);
         doThrow(new AuthenticationException("Invalid credentials for username: Alice.Walker"))
                 .when(authenticationService)
                 .requireAuthenticated(auth);
@@ -278,7 +263,7 @@ class TraineeServiceTest {
 
         verify(authenticationService, times(1)).requireAuthenticated(auth);
         verify(traineeRepository, never()).findById(1L);
-        verify(traineeRepository, never()).save(entityToSave);
+        verify(traineeRepository, never()).save(any());
     }
 
     @Test
@@ -335,13 +320,13 @@ class TraineeServiceTest {
     @Test
     void shouldGetNotAssignedTrainers() {
         TrainerEntity trainer = TestDataFactory.trainerWithId(3L, "Anna.Jones");
-        TrainerDto trainerDto = TestDataFactory.trainerDtoWithCredentials(3L, "Anna.Jones");
+        Trainer trainerResponse = TestDataFactory.trainerResponse(3L, "Anna.Jones");
         when(trainerRepository.findNotAssignedToTrainee("Alice.Walker")).thenReturn(List.of(trainer));
-        when(trainerMapper.toDto(trainer)).thenReturn(trainerDto);
+        when(trainerMapper.toResponse(trainer)).thenReturn(trainerResponse);
 
-        List<TrainerDto> actual = traineeService.getNotAssignedTrainers(auth, "Alice.Walker");
+        List<Trainer> actual = traineeService.getNotAssignedTrainers(auth, "Alice.Walker");
 
-        assertThat(actual).containsExactly(trainerDto);
+        assertThat(actual).containsExactly(trainerResponse);
         verify(authenticationService, times(1)).requireAuthenticated(auth);
         verify(trainerRepository, times(1)).findNotAssignedToTrainee("Alice.Walker");
     }
@@ -414,18 +399,5 @@ class TraineeServiceTest {
 
         verify(authenticationService, times(1)).requireAuthenticated(auth);
         verify(userService, times(1)).changePassword("Alice.Walker", "wrong", "NewPass1!");
-    }
-
-    private static boolean matchesTraineeEntity(TraineeEntity actual, TraineeEntity expected) {
-        try {
-            assertThat(actual).usingRecursiveComparison().isEqualTo(expected);
-            return true;
-        } catch (AssertionError error) {
-            return false;
-        }
-    }
-
-    private static boolean isUnaryOperator(Object value) {
-        return value instanceof UnaryOperator<?>;
     }
 }

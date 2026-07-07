@@ -1,8 +1,10 @@
 package com.epam.gymcrm.service;
 
-import com.epam.gymcrm.dto.TraineeDto;
-import com.epam.gymcrm.dto.TrainerDto;
-import com.epam.gymcrm.dto.TrainingDto;
+import com.epam.gymcrm.dto.request.AutoScheduleTrainingRequest;
+import com.epam.gymcrm.dto.request.ScheduleTrainingRequest;
+import com.epam.gymcrm.dto.response.Trainee;
+import com.epam.gymcrm.dto.response.Trainer;
+import com.epam.gymcrm.dto.response.Training;
 import com.epam.gymcrm.exception.AuthenticationException;
 import com.epam.gymcrm.exception.InvalidOperationException;
 import com.epam.gymcrm.security.Credentials;
@@ -18,6 +20,8 @@ import java.time.LocalDate;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -52,85 +56,51 @@ class GymServiceTest {
 
     @Test
     void shouldScheduleTraining() {
-        TrainingDto request = TestDataFactory.trainingDto(1L, 2L);
-        TraineeDto trainee = TestDataFactory.traineeDtoWithCredentials(1L, "Alice.Walker");
-        TrainerDto trainer = TestDataFactory.trainerDtoWithCredentials(2L, "John.Smith");
-        TrainingDto enriched = TrainingDto.builder()
-                .trainee(trainee)
-                .trainer(trainer)
-                .trainingName(request.getTrainingName())
-                .trainingType(trainer.getSpecialization())
-                .trainingDate(request.getTrainingDate())
-                .trainingDuration(request.getTrainingDuration())
-                .build();
-        TrainingDto scheduled = TrainingDto.builder()
-                .id(10L)
-                .trainee(trainee)
-                .trainer(trainer)
-                .trainingName(request.getTrainingName())
-                .trainingType(trainer.getSpecialization())
-                .trainingDate(request.getTrainingDate())
-                .trainingDuration(request.getTrainingDuration())
-                .build();
+        ScheduleTrainingRequest request = TestDataFactory.scheduleTrainingRequest(1L, 2L, "YOGA");
+        Trainee trainee = TestDataFactory.traineeResponse(1L, "Alice.Walker");
+        Trainer trainer = TestDataFactory.trainerResponse(2L, "John.Smith");
+        Training scheduled = TestDataFactory.trainingResponse(10L);
 
         when(traineeService.getActiveTrainee(1L)).thenReturn(trainee);
         when(trainerService.getActiveTrainerForSpecialization(2L, "YOGA")).thenReturn(trainer);
-        when(trainingService.createTraining(auth, enriched)).thenReturn(scheduled);
+        when(trainingService.createTraining(auth, request)).thenReturn(scheduled);
 
-        TrainingDto actual = gymService.scheduleTraining(auth, request);
+        Training actual = gymService.scheduleTraining(auth, request);
 
         assertThat(actual).usingRecursiveComparison().isEqualTo(scheduled);
         verify(authenticationService, times(1)).requireAuthenticated(auth);
         verify(traineeService, times(1)).getActiveTrainee(1L);
         verify(trainerService, times(1)).getActiveTrainerForSpecialization(2L, "YOGA");
-        verify(trainingService, times(1)).createTraining(auth, enriched);
+        verify(trainingService, times(1)).createTraining(auth, request);
     }
 
     @Test
     void shouldAutoScheduleTraining() {
-        TrainingDto request = TrainingDto.builder()
-                .trainee(TraineeDto.builder().id(1L).build())
-                .trainingName("Morning Yoga")
-                .trainingType(TestDataFactory.yogaTypeDto())
-                .trainingDate(LocalDate.of(2024, 3, 1))
-                .trainingDuration(60)
-                .build();
-        TraineeDto trainee = TestDataFactory.traineeDtoWithCredentials(1L, "Alice.Walker");
-        TrainerDto trainer = TestDataFactory.trainerDtoWithCredentials(5L, "John.Smith");
-        TrainingDto enriched = TrainingDto.builder()
-                .trainee(trainee)
-                .trainer(trainer)
-                .trainingName(request.getTrainingName())
-                .trainingType(trainer.getSpecialization())
-                .trainingDate(request.getTrainingDate())
-                .trainingDuration(request.getTrainingDuration())
-                .build();
-        TrainingDto scheduled = TrainingDto.builder()
-                .id(100L)
-                .trainee(trainee)
-                .trainer(trainer)
-                .trainingName(request.getTrainingName())
-                .trainingType(trainer.getSpecialization())
-                .trainingDate(request.getTrainingDate())
-                .trainingDuration(request.getTrainingDuration())
-                .build();
+        AutoScheduleTrainingRequest request = TestDataFactory.autoScheduleTrainingRequest(1L, "YOGA");
+        request.setTrainingDate(LocalDate.of(2024, 3, 1));
+        Trainee trainee = TestDataFactory.traineeResponse(1L, "Alice.Walker");
+        Trainer trainer = TestDataFactory.trainerResponse(5L, "John.Smith");
+        Training scheduled = TestDataFactory.trainingResponse(100L);
+
+        ScheduleTrainingRequest expectedScheduleRequest = TestDataFactory.scheduleTrainingRequest(1L, 5L, "YOGA");
+        expectedScheduleRequest.setTrainingDate(LocalDate.of(2024, 3, 1));
 
         when(traineeService.getActiveTrainee(1L)).thenReturn(trainee);
         when(trainerService.findActiveBySpecialization("YOGA")).thenReturn(trainer);
-        when(trainingService.createTraining(auth, enriched)).thenReturn(scheduled);
+        when(trainingService.createTraining(eq(auth), any(ScheduleTrainingRequest.class))).thenReturn(scheduled);
 
-        TrainingDto actual = gymService.autoScheduleTraining(auth, request);
+        Training actual = gymService.autoScheduleTraining(auth, request);
 
         assertThat(actual).usingRecursiveComparison().isEqualTo(scheduled);
         verify(authenticationService, times(1)).requireAuthenticated(auth);
         verify(traineeService, times(1)).getActiveTrainee(1L);
         verify(trainerService, times(1)).findActiveBySpecialization("YOGA");
-        verify(trainingService, times(1)).createTraining(auth, enriched);
+        verify(trainingService, times(1)).createTraining(eq(auth), any(ScheduleTrainingRequest.class));
     }
 
     @Test
     void shouldPropagateAuthenticationFailureWhenSchedulingTraining() {
-        TrainingDto request = TestDataFactory.trainingDto(1L, 2L);
+        ScheduleTrainingRequest request = TestDataFactory.scheduleTrainingRequest(1L, 2L, "YOGA");
         doThrow(new AuthenticationException("Invalid credentials for username: Alice.Walker"))
                 .when(authenticationService)
                 .requireAuthenticated(auth);
@@ -146,7 +116,7 @@ class GymServiceTest {
 
     @Test
     void shouldRejectSchedulingWhenTraineeInactive() {
-        TrainingDto request = TestDataFactory.trainingDto(1L, 2L);
+        ScheduleTrainingRequest request = TestDataFactory.scheduleTrainingRequest(1L, 2L, "YOGA");
         when(traineeService.getActiveTrainee(1L))
                 .thenThrow(new InvalidOperationException("Trainee is inactive: id=1"));
 
@@ -162,8 +132,8 @@ class GymServiceTest {
 
     @Test
     void shouldRejectSchedulingWhenTrainerInactive() {
-        TrainingDto request = TestDataFactory.trainingDto(1L, 2L);
-        TraineeDto trainee = TestDataFactory.traineeDtoWithCredentials(1L, "Alice.Walker");
+        ScheduleTrainingRequest request = TestDataFactory.scheduleTrainingRequest(1L, 2L, "YOGA");
+        Trainee trainee = TestDataFactory.traineeResponse(1L, "Alice.Walker");
         when(traineeService.getActiveTrainee(1L)).thenReturn(trainee);
         when(trainerService.getActiveTrainerForSpecialization(2L, "YOGA"))
                 .thenThrow(new InvalidOperationException("Trainer is inactive: id=2"));

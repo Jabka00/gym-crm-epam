@@ -4,6 +4,15 @@ import com.epam.gymcrm.dto.TraineeDto;
 import com.epam.gymcrm.dto.TrainerDto;
 import com.epam.gymcrm.dto.TrainingDto;
 import com.epam.gymcrm.dto.TrainingTypeDto;
+import com.epam.gymcrm.dto.request.AutoScheduleTrainingRequest;
+import com.epam.gymcrm.dto.request.CreateTraineeRequest;
+import com.epam.gymcrm.dto.request.CreateTrainerRequest;
+import com.epam.gymcrm.dto.request.ScheduleTrainingRequest;
+import com.epam.gymcrm.dto.request.UpdateTraineeRequest;
+import com.epam.gymcrm.dto.response.Trainee;
+import com.epam.gymcrm.dto.response.Trainer;
+import com.epam.gymcrm.dto.response.Training;
+import com.epam.gymcrm.dto.response.TrainingType;
 import com.epam.gymcrm.entity.TraineeEntity;
 import com.epam.gymcrm.entity.TrainerEntity;
 import com.epam.gymcrm.entity.TrainingEntity;
@@ -161,6 +170,98 @@ public final class TestDataFactory {
                 .dateOfBirth(LocalDate.of(1995, 4, 12))
                 .address("Kyiv")
                 .build();
+    }
+
+    public static CreateTraineeRequest createTraineeRequest() {
+        CreateTraineeRequest request = new CreateTraineeRequest();
+        request.setFirstName("Jane");
+        request.setLastName("Doe");
+        request.setDateOfBirth(LocalDate.of(1998, 5, 20));
+        request.setAddress("Kyiv");
+        return request;
+    }
+
+    public static UpdateTraineeRequest updateTraineeRequest(long id) {
+        UpdateTraineeRequest request = new UpdateTraineeRequest();
+        request.setId(id);
+        request.setFirstName("Alice");
+        request.setLastName("Walker");
+        request.setActive(true);
+        request.setDateOfBirth(LocalDate.of(1995, 4, 12));
+        request.setAddress("Kyiv");
+        return request;
+    }
+
+    public static Trainee traineeResponse(long id, String username) {
+        Trainee trainee = new Trainee();
+        trainee.setId(id);
+        trainee.setFirstName("Alice");
+        trainee.setLastName("Walker");
+        trainee.setUsername(username);
+        trainee.setPassword("secret1234");
+        trainee.setActive(true);
+        trainee.setDateOfBirth(LocalDate.of(1995, 4, 12));
+        trainee.setAddress("Kyiv");
+        return trainee;
+    }
+
+    public static Trainer trainerResponse(long id, String username) {
+        Trainer trainer = new Trainer();
+        trainer.setId(id);
+        trainer.setFirstName("John");
+        trainer.setLastName("Smith");
+        trainer.setUsername(username);
+        trainer.setPassword("secret1234");
+        trainer.setActive(true);
+        return trainer;
+    }
+
+    public static CreateTrainerRequest createTrainerRequest(String specialization) {
+        CreateTrainerRequest request = new CreateTrainerRequest();
+        request.setFirstName("John");
+        request.setLastName("Smith");
+        request.setSpecialization(specialization);
+        return request;
+    }
+
+    public static TrainingType trainingTypeResponse(long id, String typeName) {
+        TrainingType trainingType = new TrainingType();
+        trainingType.setId(id);
+        trainingType.setTypeName(typeName);
+        return trainingType;
+    }
+
+    public static ScheduleTrainingRequest scheduleTrainingRequest(long traineeId, long trainerId, String trainingType) {
+        ScheduleTrainingRequest request = new ScheduleTrainingRequest();
+        request.setTraineeId(traineeId);
+        request.setTrainerId(trainerId);
+        request.setTrainingName("Morning Yoga");
+        request.setTrainingType(trainingType);
+        request.setTrainingDate(LocalDate.of(2024, 3, 1));
+        request.setTrainingDuration(60);
+        return request;
+    }
+
+    public static AutoScheduleTrainingRequest autoScheduleTrainingRequest(long traineeId, String trainingType) {
+        AutoScheduleTrainingRequest request = new AutoScheduleTrainingRequest();
+        request.setTraineeId(traineeId);
+        request.setTrainingName("Morning Yoga");
+        request.setTrainingType(trainingType);
+        request.setTrainingDate(LocalDate.of(2024, 3, 1));
+        request.setTrainingDuration(60);
+        return request;
+    }
+
+    public static Training trainingResponse(long id) {
+        Training training = new Training();
+        training.setId(id);
+        training.setTrainee(traineeResponse(1L, "Alice.Walker"));
+        training.setTrainer(trainerResponse(2L, "John.Smith"));
+        training.setTrainingName("Morning Yoga");
+        training.setTrainingType(trainingTypeResponse(1L, "YOGA"));
+        training.setTrainingDate(LocalDate.of(2024, 3, 1));
+        training.setTrainingDuration(60);
+        return training;
     }
 
     public static TrainerDto trainerDto() {

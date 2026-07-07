@@ -1,6 +1,7 @@
 package com.epam.gymcrm.service;
 
-import com.epam.gymcrm.dto.TrainingDto;
+import com.epam.gymcrm.dto.request.ScheduleTrainingRequest;
+import com.epam.gymcrm.dto.response.Training;
 import com.epam.gymcrm.entity.TraineeEntity;
 import com.epam.gymcrm.entity.TrainerEntity;
 import com.epam.gymcrm.entity.TrainingEntity;
@@ -35,38 +36,37 @@ public class TrainingService {
     private final AuthenticationService authenticationService;
     private final DtoValidator dtoValidator;
 
-    public TrainingDto createTraining(Credentials auth, TrainingDto trainingDto) {
+    public Training createTraining(Credentials auth, ScheduleTrainingRequest request) {
         authenticationService.requireAuthenticated(auth);
-        dtoValidator.validate(trainingDto);
-        requireParticipantIds(trainingDto);
+        dtoValidator.validate(request);
 
-        TrainingEntity training = trainingMapper.toEntity(trainingDto);
-        Long traineeId = trainingDto.getTrainee().getId();
-        Long trainerId = trainingDto.getTrainer().getId();
-        TraineeEntity trainee = traineeRepository.findById(traineeId)
-                .orElseThrow(() -> new EntityNotFoundException("Trainee not found with id: " + traineeId));
-        TrainerEntity trainer = trainerRepository.findById(trainerId)
-                .orElseThrow(() -> new EntityNotFoundException("Trainer not found with id: " + trainerId));
-        training.setTrainee(trainee);
-        training.setTrainer(trainer);
-        training.setTrainingType(resolveTrainingType(trainingDto));
+        TraineeEntity trainee = traineeRepository.findById(request.getTraineeId())
+                .orElseThrow(() -> new EntityNotFoundException(
+                        "Trainee not found with id: " + request.getTraineeId()));
+        TrainerEntity trainer = trainerRepository.findById(request.getTrainerId())
+                .orElseThrow(() -> new EntityNotFoundException(
+                        "Trainer not found with id: " + request.getTrainerId()));
+        TrainingTypeEntity trainingType = trainingTypeRepository.findByTypeName(request.getTrainingType())
+                .orElseThrow(() -> new EntityNotFoundException(
+                        "Training type not found: " + request.getTrainingType()));
 
+        TrainingEntity training = trainingMapper.toEntity(request, trainee, trainer, trainingType);
         TrainingEntity created = trainingRepository.save(training);
         log.info("Created training with ID: {}", created.getId());
-        return trainingMapper.toDto(created);
+        return trainingMapper.toResponse(created);
     }
 
     @Transactional(readOnly = true)
-    public TrainingDto getTraining(Long id) {
+    public Training getTraining(Long id) {
         TrainingEntity training = trainingRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Training not found with id: " + id));
-        return trainingMapper.toDto(training);
+        return trainingMapper.toResponse(training);
     }
 
     @Transactional(readOnly = true)
-    public List<TrainingDto> getAllTrainings() {
+    public List<Training> getAllTrainings() {
         return trainingRepository.findAll()
-                .map(trainingMapper::toDto)
+                .map(trainingMapper::toResponse)
                 .toList();
     }
 
@@ -83,7 +83,7 @@ public class TrainingService {
     }
 
     @Transactional(readOnly = true)
-    public List<TrainingDto> getTraineeTrainings(
+    public List<Training> getTraineeTrainings(
             Credentials auth,
             String traineeUsername,
             LocalDate fromDate,
@@ -100,11 +100,11 @@ public class TrainingService {
         log.info("Fetching trainings for trainee: {}, fromDate: {}, toDate: {}, trainer: {}, typeName: {}",
                 traineeUsername, fromDate, toDate, trainerUsername, trainingTypeName);
 
-        List<TrainingDto> trainings = trainingRepository
+        List<Training> trainings = trainingRepository
                 .findByTraineeUsernameAndCriteria(
                         traineeUsername, fromDate, toDate, trainerUsername, trainingTypeName)
                 .stream()
-                .map(trainingMapper::toDto)
+                .map(trainingMapper::toResponse)
                 .toList();
 
         log.info("Found {} trainings for trainee: {}", trainings.size(), traineeUsername);
@@ -112,7 +112,7 @@ public class TrainingService {
     }
 
     @Transactional(readOnly = true)
-    public List<TrainingDto> getTrainerTrainings(
+    public List<Training> getTrainerTrainings(
             Credentials auth,
             String trainerUsername,
             LocalDate fromDate,
@@ -128,33 +128,13 @@ public class TrainingService {
         log.info("Fetching trainings for trainer: {}, fromDate: {}, toDate: {}, trainee: {}",
                 trainerUsername, fromDate, toDate, traineeUsername);
 
-        List<TrainingDto> trainings = trainingRepository
+        List<Training> trainings = trainingRepository
                 .findByTrainerUsernameAndCriteria(trainerUsername, fromDate, toDate, traineeUsername)
                 .stream()
-                .map(trainingMapper::toDto)
+                .map(trainingMapper::toResponse)
                 .toList();
 
         log.info("Found {} trainings for trainer: {}", trainings.size(), trainerUsername);
         return trainings;
-    }
-
-    private void requireParticipantIds(TrainingDto trainingDto) {
-        if (trainingDto.getTrainee().getId() == null) {
-            throw new IllegalArgumentException("Trainee id is required");
-        }
-        if (trainingDto.getTrainer() == null || trainingDto.getTrainer().getId() == null) {
-            throw new IllegalArgumentException("Trainer id is required");
-        }
-    }
-
-    private TrainingTypeEntity resolveTrainingType(TrainingDto trainingDto) {
-        if (trainingDto.getTrainingType().getId() != null) {
-            return trainingTypeRepository.findById(trainingDto.getTrainingType().getId())
-                    .orElseThrow(() -> new EntityNotFoundException(
-                            "Training type not found with id: " + trainingDto.getTrainingType().getId()));
-        }
-        return trainingTypeRepository.findByTypeName(trainingDto.getTrainingType().getTypeName())
-                .orElseThrow(() -> new EntityNotFoundException(
-                        "Training type not found with name: " + trainingDto.getTrainingType().getTypeName()));
     }
 }

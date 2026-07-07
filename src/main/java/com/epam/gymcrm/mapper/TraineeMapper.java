@@ -4,10 +4,15 @@ import com.epam.gymcrm.dto.request.CreateTraineeRequest;
 import com.epam.gymcrm.dto.request.UpdateTraineeRequest;
 import com.epam.gymcrm.dto.response.Trainee;
 import com.epam.gymcrm.entity.TraineeEntity;
+import com.epam.gymcrm.service.UserCredentialService;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 @Component
+@RequiredArgsConstructor
 public class TraineeMapper {
+
+    private final UserCredentialService userCredentialService;
 
     public Trainee toResponse(TraineeEntity entity) {
         Trainee response = new Trainee();
@@ -28,6 +33,10 @@ public class TraineeMapper {
         entity.setLastName(request.getLastName());
         entity.setDateOfBirth(request.getDateOfBirth());
         entity.setAddress(request.getAddress());
+        entity.setUsername(userCredentialService.generateUniqueUsername(
+                request.getFirstName(), request.getLastName()));
+        entity.setPassword(userCredentialService.generatePassword());
+        entity.setActive(true);
         return entity;
     }
 

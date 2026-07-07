@@ -1,15 +1,18 @@
 package com.epam.gymcrm.service;
 
-import com.epam.gymcrm.dto.TrainerDto;
+import com.epam.gymcrm.dto.request.CreateTrainerRequest;
+import com.epam.gymcrm.dto.request.UpdateTrainerRequest;
+import com.epam.gymcrm.dto.response.Trainer;
 import com.epam.gymcrm.entity.TrainerEntity;
+import com.epam.gymcrm.entity.TrainingTypeEntity;
 import com.epam.gymcrm.exception.EntityNotFoundException;
 import com.epam.gymcrm.exception.InvalidOperationException;
 import com.epam.gymcrm.mapper.TrainerMapper;
 import com.epam.gymcrm.repository.TrainerRepository;
+import com.epam.gymcrm.repository.TrainingTypeRepository;
 
 import com.epam.gymcrm.security.Credentials;
 import com.epam.gymcrm.util.DtoValidator;
-import com.epam.gymcrm.util.UserInitializationUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -24,18 +27,22 @@ import java.util.List;
 public class TrainerService {
 
     private final TrainerRepository trainerRepository;
-    private final UserInitializationUtil userInitializationUtil;
+    private final TrainingTypeRepository trainingTypeRepository;
     private final TrainerMapper trainerMapper;
     private final UserService userService;
     private final AuthenticationService authenticationService;
     private final DtoValidator dtoValidator;
 
-    public TrainerDto createTrainer(TrainerDto trainerDto) {
-        dtoValidator.validate(trainerDto);
+    public Trainer createTrainer(CreateTrainerRequest request) {
+        dtoValidator.validate(request);
 
-        TrainerEntity trainer = trainerMapper.toEntity(trainerDto);
-        TrainerEntity created = userInitializationUtil.createTrainer(trainer, trainerRepository::save);
-        return trainerMapper.toDto(created);
+        TrainingTypeEntity specialization = trainingTypeRepository.findByTypeName(request.getSpecialization())
+                .orElseThrow(() -> new EntityNotFoundException(
+                        "Training type not found: " + request.getSpecialization()));
+
+        TrainerEntity trainer = trainerMapper.toEntity(request, specialization);
+        TrainerEntity created = trainerRepository.save(trainer);
+        return trainerMapper.toResponse(created);
     }
 
     @Transactional(readOnly = true)
@@ -43,35 +50,40 @@ public class TrainerService {
         return authenticationService.authenticateTrainer(username, password);
     }
 
-    public TrainerDto updateTrainer(Credentials auth, TrainerDto trainerDto) {
+    public Trainer updateTrainer(Credentials auth, UpdateTrainerRequest request) {
         authenticationService.requireAuthenticated(auth);
 
-        dtoValidator.validateForUpdate(trainerDto, TrainerDto::getId, "Trainer");
+        dtoValidator.validateForUpdate(request, UpdateTrainerRequest::getId, "Trainer");
 
-        trainerRepository.findById(trainerDto.getId())
-                .orElseThrow(() -> new EntityNotFoundException("Trainer not found with id: " + trainerDto.getId()));
+        TrainerEntity existing = trainerRepository.findById(request.getId())
+                .orElseThrow(() -> new EntityNotFoundException("Trainer not found with id: " + request.getId()));
 
-        TrainerEntity trainer = trainerMapper.toEntity(trainerDto);
+        TrainingTypeEntity specialization = trainingTypeRepository.findByTypeName(request.getSpecialization())
+                .orElseThrow(() -> new EntityNotFoundException(
+                        "Training type not found: " + request.getSpecialization()));
+
+        TrainerEntity trainer = trainerMapper.toEntity(
+                request, specialization, existing.getUsername(), existing.getPassword());
         TrainerEntity updated = trainerRepository.save(trainer);
-        log.info("Trainer profile updated successfully: {}", trainerDto.getId());
-        return trainerMapper.toDto(updated);
+        log.info("Trainer profile updated successfully: {}", request.getId());
+        return trainerMapper.toResponse(updated);
     }
 
     @Transactional(readOnly = true)
-    public TrainerDto getTrainer(Long id) {
-        return trainerMapper.toDto(getActiveEntity(id));
+    public Trainer getTrainer(Long id) {
+        return trainerMapper.toResponse(getActiveEntity(id));
     }
 
     @Transactional(readOnly = true)
-    public List<TrainerDto> getAllTrainers() {
+    public List<Trainer> getAllTrainers() {
         return trainerRepository.findAll()
                 .filter(TrainerEntity::isActive)
-                .map(trainerMapper::toDto)
+                .map(trainerMapper::toResponse)
                 .toList();
     }
 
     @Transactional(readOnly = true)
-    public TrainerDto getTrainerByUsername(Credentials auth, String username) {
+    public Trainer getTrainerByUsername(Credentials auth, String username) {
         authenticationService.requireAuthenticated(auth);
 
         TrainerEntity trainer = trainerRepository.findByUsername(username)
@@ -79,7 +91,7 @@ public class TrainerService {
         if (!trainer.isActive()) {
             throw new InvalidOperationException("Trainer is inactive: username=" + username);
         }
-        return trainerMapper.toDto(trainer);
+        return trainerMapper.toResponse(trainer);
     }
 
     public void changePassword(Credentials auth, String username, String oldPassword, String newPassword) {
@@ -93,21 +105,21 @@ public class TrainerService {
     }
 
     @Transactional(readOnly = true)
-    public TrainerDto getActiveTrainerForSpecialization(Long id, String typeName) {
+    public Trainer getActiveTrainerForSpecialization(Long id, String typeName) {
         TrainerEntity trainer = getActiveEntity(id);
         if (!trainer.matchesSpecialization(typeName)) {
             throw new InvalidOperationException(
                     "Trainer specialization does not match training type: " + typeName);
         }
-        return trainerMapper.toDto(trainer);
+        return trainerMapper.toResponse(trainer);
     }
 
     @Transactional(readOnly = true)
-    public TrainerDto findActiveBySpecialization(String typeName) {
+    public Trainer findActiveBySpecialization(String typeName) {
         TrainerEntity trainer = trainerRepository.findActiveBySpecialization(typeName)
                 .orElseThrow(() -> new EntityNotFoundException(
                         "No active trainer found for type: " + typeName));
-        return trainerMapper.toDto(trainer);
+        return trainerMapper.toResponse(trainer);
     }
 
     private TrainerEntity getActiveEntity(Long id) {

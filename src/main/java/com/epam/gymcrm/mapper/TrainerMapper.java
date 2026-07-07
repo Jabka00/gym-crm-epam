@@ -6,10 +6,15 @@ import com.epam.gymcrm.dto.response.Trainer;
 import com.epam.gymcrm.dto.response.TrainingType;
 import com.epam.gymcrm.entity.TrainerEntity;
 import com.epam.gymcrm.entity.TrainingTypeEntity;
+import com.epam.gymcrm.service.UserCredentialService;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 @Component
+@RequiredArgsConstructor
 public class TrainerMapper {
+
+    private final UserCredentialService userCredentialService;
 
     public Trainer toResponse(TrainerEntity entity) {
         Trainer response = new Trainer();
@@ -35,6 +40,10 @@ public class TrainerMapper {
         entity.setFirstName(request.getFirstName());
         entity.setLastName(request.getLastName());
         entity.setSpecialization(specialization);
+        entity.setUsername(userCredentialService.generateUniqueUsername(
+                request.getFirstName(), request.getLastName()));
+        entity.setPassword(userCredentialService.generatePassword());
+        entity.setActive(true);
         return entity;
     }
 

@@ -1,8 +1,9 @@
 package com.epam.gymcrm.service;
 
-import com.epam.gymcrm.dto.TraineeDto;
-import com.epam.gymcrm.dto.TrainerDto;
-import com.epam.gymcrm.dto.TrainingDto;
+import com.epam.gymcrm.dto.request.AutoScheduleTrainingRequest;
+import com.epam.gymcrm.dto.request.ScheduleTrainingRequest;
+import com.epam.gymcrm.dto.response.Trainer;
+import com.epam.gymcrm.dto.response.Training;
 import com.epam.gymcrm.security.Credentials;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -18,27 +19,24 @@ public class GymService {
     private final TrainingService trainingService;
     private final AuthenticationService authenticationService;
 
-    public TrainingDto scheduleTraining(Credentials auth, TrainingDto trainingDto) {
+    public Training scheduleTraining(Credentials auth, ScheduleTrainingRequest request) {
         authenticationService.requireAuthenticated(auth);
 
-        TraineeDto trainee = traineeService.getActiveTrainee(trainingDto.getTrainee().getId());
-        String typeName = trainingDto.getTrainingType().getTypeName();
-        TrainerDto trainer = trainerService.getActiveTrainerForSpecialization(
-                trainingDto.getTrainer().getId(), typeName);
+        traineeService.getActiveTrainee(request.getTraineeId());
+        trainerService.getActiveTrainerForSpecialization(request.getTrainerId(), request.getTrainingType());
 
-        return trainingService.createTraining(auth, enrichTraining(trainingDto, trainee, trainer));
+        return trainingService.createTraining(auth, request);
     }
 
-    public TrainingDto autoScheduleTraining(Credentials auth, TrainingDto trainingDto) {
+    public Training autoScheduleTraining(Credentials auth, AutoScheduleTrainingRequest request) {
         authenticationService.requireAuthenticated(auth);
 
-        TraineeDto trainee = traineeService.getActiveTrainee(trainingDto.getTrainee().getId());
-        String typeName = trainingDto.getTrainingType().getTypeName();
-        TrainerDto trainer = trainerService.findActiveBySpecialization(typeName);
+        traineeService.getActiveTrainee(request.getTraineeId());
+        Trainer trainer = trainerService.findActiveBySpecialization(request.getTrainingType());
 
-        log.info("Auto-assigned trainer id={} for training '{}'", trainer.getId(), trainingDto.getTrainingName());
+        log.info("Auto-assigned trainer id={} for training '{}'", trainer.getId(), request.getTrainingName());
 
-        return trainingService.createTraining(auth, enrichTraining(trainingDto, trainee, trainer));
+        return trainingService.createTraining(auth, toScheduleRequest(request, trainer.getId()));
     }
 
     public void removeTraineeProfile(Credentials auth, String username) {
@@ -46,14 +44,14 @@ public class GymService {
         log.info("Removed trainee profile username={}", username);
     }
 
-    private TrainingDto enrichTraining(TrainingDto source, TraineeDto trainee, TrainerDto trainer) {
-        return TrainingDto.builder()
-                .trainee(trainee)
-                .trainer(trainer)
-                .trainingName(source.getTrainingName())
-                .trainingType(trainer.getSpecialization())
-                .trainingDate(source.getTrainingDate())
-                .trainingDuration(source.getTrainingDuration())
-                .build();
+    private ScheduleTrainingRequest toScheduleRequest(AutoScheduleTrainingRequest request, Long trainerId) {
+        ScheduleTrainingRequest scheduleRequest = new ScheduleTrainingRequest();
+        scheduleRequest.setTraineeId(request.getTraineeId());
+        scheduleRequest.setTrainerId(trainerId);
+        scheduleRequest.setTrainingName(request.getTrainingName());
+        scheduleRequest.setTrainingType(request.getTrainingType());
+        scheduleRequest.setTrainingDate(request.getTrainingDate());
+        scheduleRequest.setTrainingDuration(request.getTrainingDuration());
+        return scheduleRequest;
     }
 }

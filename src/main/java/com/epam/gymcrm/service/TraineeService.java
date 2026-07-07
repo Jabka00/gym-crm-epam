@@ -1,7 +1,9 @@
 package com.epam.gymcrm.service;
 
-import com.epam.gymcrm.dto.TraineeDto;
-import com.epam.gymcrm.dto.TrainerDto;
+import com.epam.gymcrm.dto.request.CreateTraineeRequest;
+import com.epam.gymcrm.dto.request.UpdateTraineeRequest;
+import com.epam.gymcrm.dto.response.Trainee;
+import com.epam.gymcrm.dto.response.Trainer;
 import com.epam.gymcrm.entity.TraineeEntity;
 import com.epam.gymcrm.entity.TrainerEntity;
 import com.epam.gymcrm.exception.EntityNotFoundException;
@@ -13,7 +15,6 @@ import com.epam.gymcrm.repository.TrainerRepository;
 
 import com.epam.gymcrm.security.Credentials;
 import com.epam.gymcrm.util.DtoValidator;
-import com.epam.gymcrm.util.UserInitializationUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -31,19 +32,18 @@ public class TraineeService {
 
     private final TraineeRepository traineeRepository;
     private final TrainerRepository trainerRepository;
-    private final UserInitializationUtil userInitializationUtil;
     private final TraineeMapper traineeMapper;
     private final TrainerMapper trainerMapper;
     private final UserService userService;
     private final AuthenticationService authenticationService;
     private final DtoValidator dtoValidator;
 
-    public TraineeDto createTrainee(TraineeDto traineeDto) {
-        dtoValidator.validate(traineeDto);
+    public Trainee createTrainee(CreateTraineeRequest request) {
+        dtoValidator.validate(request);
 
-        TraineeEntity trainee = traineeMapper.toEntity(traineeDto);
-        TraineeEntity created = userInitializationUtil.createTrainee(trainee, traineeRepository::save);
-        return traineeMapper.toDto(created);
+        TraineeEntity trainee = traineeMapper.toEntity(request);
+        TraineeEntity created = traineeRepository.save(trainee);
+        return traineeMapper.toResponse(created);
     }
 
     @Transactional(readOnly = true)
@@ -51,17 +51,18 @@ public class TraineeService {
         return authenticationService.authenticateTrainee(username, password);
     }
 
-    public TraineeDto updateTrainee(Credentials auth, TraineeDto traineeDto) {
+    public Trainee updateTrainee(Credentials auth, UpdateTraineeRequest request) {
         authenticationService.requireAuthenticated(auth);
 
-        dtoValidator.validateForUpdate(traineeDto, TraineeDto::getId, "Trainee");
+        dtoValidator.validateForUpdate(request, UpdateTraineeRequest::getId, "Trainee");
 
-        traineeRepository.findById(traineeDto.getId())
-                .orElseThrow(() -> new EntityNotFoundException("Trainee not found with id: " + traineeDto.getId()));
+        TraineeEntity existing = traineeRepository.findById(request.getId())
+                .orElseThrow(() -> new EntityNotFoundException("Trainee not found with id: " + request.getId()));
 
-        TraineeEntity trainee = traineeMapper.toEntity(traineeDto);
+        TraineeEntity trainee = traineeMapper.toEntity(
+                request, existing.getUsername(), existing.getPassword());
         TraineeEntity updated = traineeRepository.save(trainee);
-        return traineeMapper.toDto(updated);
+        return traineeMapper.toResponse(updated);
     }
 
     public void deleteTraineeByUsername(Credentials auth, String username) {
@@ -79,20 +80,20 @@ public class TraineeService {
     }
 
     @Transactional(readOnly = true)
-    public TraineeDto getActiveTrainee(Long id) {
-        return traineeMapper.toDto(requireActiveTrainee(id));
+    public Trainee getActiveTrainee(Long id) {
+        return traineeMapper.toResponse(requireActiveTrainee(id));
     }
 
     @Transactional(readOnly = true)
-    public List<TraineeDto> getAllTrainees() {
+    public List<Trainee> getAllTrainees() {
         return traineeRepository.findAll()
                 .filter(TraineeEntity::isActive)
-                .map(traineeMapper::toDto)
+                .map(traineeMapper::toResponse)
                 .toList();
     }
 
     @Transactional(readOnly = true)
-    public TraineeDto getTraineeByUsername(Credentials auth, String username) {
+    public Trainee getTraineeByUsername(Credentials auth, String username) {
         authenticationService.requireAuthenticated(auth);
 
         TraineeEntity trainee = traineeRepository.findByUsername(username)
@@ -100,7 +101,7 @@ public class TraineeService {
         if (!trainee.isActive()) {
             throw new InvalidOperationException("Trainee is inactive: username=" + username);
         }
-        return traineeMapper.toDto(trainee);
+        return traineeMapper.toResponse(trainee);
     }
 
     public void changePassword(Credentials auth, String username, String oldPassword, String newPassword) {
@@ -152,7 +153,7 @@ public class TraineeService {
     }
 
     @Transactional(readOnly = true)
-    public List<TrainerDto> getNotAssignedTrainers(Credentials auth, String traineeUsername) {
+    public List<Trainer> getNotAssignedTrainers(Credentials auth, String traineeUsername) {
         authenticationService.requireAuthenticated(auth);
 
         if (traineeUsername == null || traineeUsername.isBlank()) {
@@ -160,7 +161,7 @@ public class TraineeService {
         }
 
         return trainerRepository.findNotAssignedToTrainee(traineeUsername).stream()
-                .map(trainerMapper::toDto)
+                .map(trainerMapper::toResponse)
                 .toList();
     }
 

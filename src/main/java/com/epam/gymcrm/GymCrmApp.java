@@ -1,10 +1,13 @@
 package com.epam.gymcrm;
 
 import com.epam.gymcrm.config.AppConfig;
-import com.epam.gymcrm.dto.TraineeDto;
-import com.epam.gymcrm.dto.TrainerDto;
-import com.epam.gymcrm.dto.TrainingDto;
-import com.epam.gymcrm.dto.TrainingTypeDto;
+import com.epam.gymcrm.dto.request.AutoScheduleTrainingRequest;
+import com.epam.gymcrm.dto.request.CreateTraineeRequest;
+import com.epam.gymcrm.dto.request.CreateTrainerRequest;
+import com.epam.gymcrm.dto.request.ScheduleTrainingRequest;
+import com.epam.gymcrm.dto.response.Trainee;
+import com.epam.gymcrm.dto.response.Trainer;
+import com.epam.gymcrm.dto.response.Training;
 import com.epam.gymcrm.exception.InvalidOperationException;
 import com.epam.gymcrm.security.Credentials;
 import com.epam.gymcrm.service.AuthenticationService;
@@ -41,73 +44,73 @@ public class GymCrmApp {
             log.info("Loaded trainees: {}", traineeService.getAllTrainees().size());
             log.info("Loaded trainings: {}", trainingService.getAllTrainings().size());
 
-            TraineeDto disposableTrainee = traineeService.createTrainee(TraineeDto.builder()
-                    .firstName("Jane")
-                    .lastName("Doe")
-                    .dateOfBirth(LocalDate.of(1998, 5, 20))
-                    .address("Kyiv")
-                    .build());
+            CreateTraineeRequest disposableRequest = new CreateTraineeRequest();
+            disposableRequest.setFirstName("Jane");
+            disposableRequest.setLastName("Doe");
+            disposableRequest.setDateOfBirth(LocalDate.of(1998, 5, 20));
+            disposableRequest.setAddress("Kyiv");
+            Trainee disposableTrainee = traineeService.createTrainee(disposableRequest);
             log.info("Created trainee id={}, username={}", disposableTrainee.getId(), disposableTrainee.getUsername());
 
             Credentials disposableAuth = credentialsOf(disposableTrainee);
             gymService.removeTraineeProfile(disposableAuth, disposableTrainee.getUsername());
             log.info("Removed trainee username={}", disposableTrainee.getUsername());
 
-            TrainingTypeDto pilatesType = trainingTypeService.getTrainingTypeByName("PILATES");
-            TrainingTypeDto yogaType = trainingTypeService.getTrainingTypeByName("YOGA");
+            trainingTypeService.getTrainingTypeByName("PILATES");
+            trainingTypeService.getTrainingTypeByName("YOGA");
 
-            TrainerDto pilatesTrainer = trainerService.createTrainer(TrainerDto.builder()
-                    .firstName("Emma")
-                    .lastName("Pilates")
-                    .specialization(pilatesType)
-                    .build());
+            CreateTrainerRequest pilatesTrainerRequest = new CreateTrainerRequest();
+            pilatesTrainerRequest.setFirstName("Emma");
+            pilatesTrainerRequest.setLastName("Pilates");
+            pilatesTrainerRequest.setSpecialization("PILATES");
+            Trainer pilatesTrainer = trainerService.createTrainer(pilatesTrainerRequest);
             Credentials pilatesAuth = credentialsOf(pilatesTrainer);
             log.info("Created trainer id={}, username={}", pilatesTrainer.getId(), pilatesTrainer.getUsername());
             logTrainerAuthentication(authenticationService, pilatesAuth);
 
-            TraineeDto kate = traineeService.createTrainee(TraineeDto.builder()
-                    .firstName("Kate")
-                    .lastName("Doe")
-                    .dateOfBirth(LocalDate.of(1999, 3, 10))
-                    .address("Lviv")
-                    .build());
+            CreateTraineeRequest kateRequest = new CreateTraineeRequest();
+            kateRequest.setFirstName("Kate");
+            kateRequest.setLastName("Doe");
+            kateRequest.setDateOfBirth(LocalDate.of(1999, 3, 10));
+            kateRequest.setAddress("Lviv");
+            Trainee kate = traineeService.createTrainee(kateRequest);
             Credentials kateAuth = credentialsOf(kate);
             log.info("Created trainee id={}, username={}", kate.getId(), kate.getUsername());
             logTraineeAuthentication(authenticationService, kateAuth);
 
-            TrainingDto scheduledTraining = gymService.scheduleTraining(kateAuth, TrainingDto.builder()
-                    .trainee(TraineeDto.builder().id(kate.getId()).build())
-                    .trainer(TrainerDto.builder().id(pilatesTrainer.getId()).build())
-                    .trainingName("Evening Pilates")
-                    .trainingType(pilatesType)
-                    .trainingDate(LocalDate.now())
-                    .trainingDuration(60)
-                    .build());
+            ScheduleTrainingRequest scheduleRequest = new ScheduleTrainingRequest();
+            scheduleRequest.setTraineeId(kate.getId());
+            scheduleRequest.setTrainerId(pilatesTrainer.getId());
+            scheduleRequest.setTrainingName("Evening Pilates");
+            scheduleRequest.setTrainingType("PILATES");
+            scheduleRequest.setTrainingDate(LocalDate.now());
+            scheduleRequest.setTrainingDuration(60);
+            Training scheduledTraining = gymService.scheduleTraining(kateAuth, scheduleRequest);
             log.info("Scheduled training id={}, name={}", scheduledTraining.getId(), scheduledTraining.getTrainingName());
 
-            TrainingDto autoScheduledTraining = gymService.autoScheduleTraining(kateAuth, TrainingDto.builder()
-                    .trainee(TraineeDto.builder().id(kate.getId()).build())
-                    .trainingName("Morning Yoga")
-                    .trainingType(yogaType)
-                    .trainingDate(LocalDate.now().plusDays(1))
-                    .trainingDuration(45)
-                    .build());
+            AutoScheduleTrainingRequest autoScheduleRequest = new AutoScheduleTrainingRequest();
+            autoScheduleRequest.setTraineeId(kate.getId());
+            autoScheduleRequest.setTrainingName("Morning Yoga");
+            autoScheduleRequest.setTrainingType("YOGA");
+            autoScheduleRequest.setTrainingDate(LocalDate.now().plusDays(1));
+            autoScheduleRequest.setTrainingDuration(45);
+            Training autoScheduledTraining = gymService.autoScheduleTraining(kateAuth, autoScheduleRequest);
             log.info("Auto-scheduled training id={}, trainer={}",
                     autoScheduledTraining.getId(), autoScheduledTraining.getTrainer().getUsername());
 
-            List<TrainerDto> unassignedTrainers = traineeService.getNotAssignedTrainers(kateAuth, kate.getUsername());
+            List<Trainer> unassignedTrainers = traineeService.getNotAssignedTrainers(kateAuth, kate.getUsername());
             log.info("Unassigned active trainers for {}: {}", kate.getUsername(), unassignedTrainers.size());
 
             traineeService.updateTrainersList(kateAuth, kate.getUsername(), Set.of("John.Smith", "Anna.Jones"));
             log.info("Assigned seed trainers to {}", kate.getUsername());
 
-            List<TrainerDto> unassignedAfterUpdate = traineeService.getNotAssignedTrainers(kateAuth, kate.getUsername());
+            List<Trainer> unassignedAfterUpdate = traineeService.getNotAssignedTrainers(kateAuth, kate.getUsername());
             log.info("Unassigned trainers after update: {}", unassignedAfterUpdate.size());
 
             Credentials aliceAuth = new Credentials("Alice.Walker", "qW3eRt5yUi");
             Credentials johnAuth = new Credentials("John.Smith", "pass1234AB");
 
-            List<TrainingDto> aliceTrainings = trainingService.getTraineeTrainings(
+            List<Training> aliceTrainings = trainingService.getTraineeTrainings(
                     aliceAuth,
                     "Alice.Walker",
                     LocalDate.of(2024, 3, 1),
@@ -116,7 +119,7 @@ public class GymCrmApp {
                     "YOGA");
             log.info("Alice.Walker YOGA trainings with John.Smith in March 2024: {}", aliceTrainings.size());
 
-            List<TrainingDto> johnTrainings = trainingService.getTrainerTrainings(
+            List<Training> johnTrainings = trainingService.getTrainerTrainings(
                     johnAuth,
                     "John.Smith",
                     LocalDate.of(2024, 1, 1),
@@ -142,8 +145,8 @@ public class GymCrmApp {
 
             logTraineeAuthentication(authenticationService, kateAuth);
 
-            TrainingDto fetchedScheduled = trainingService.getTraining(scheduledTraining.getId());
-            TrainerDto fetchedTrainer = trainerService.getTrainerByUsername(pilatesAuth, pilatesTrainer.getUsername());
+            Training fetchedScheduled = trainingService.getTraining(scheduledTraining.getId());
+            Trainer fetchedTrainer = trainerService.getTrainerByUsername(pilatesAuth, pilatesTrainer.getUsername());
             log.info("Fetched training: {}", fetchedScheduled.getTrainingName());
             log.info("Fetched trainer: {}", fetchedTrainer.getUsername());
 
@@ -153,11 +156,11 @@ public class GymCrmApp {
         }
     }
 
-    private static Credentials credentialsOf(TraineeDto trainee) {
+    private static Credentials credentialsOf(Trainee trainee) {
         return new Credentials(trainee.getUsername(), trainee.getPassword());
     }
 
-    private static Credentials credentialsOf(TrainerDto trainer) {
+    private static Credentials credentialsOf(Trainer trainer) {
         return new Credentials(trainer.getUsername(), trainer.getPassword());
     }
 
