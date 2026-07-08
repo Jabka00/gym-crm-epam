@@ -19,6 +19,7 @@ import com.epam.gymcrm.entity.TrainingEntity;
 import com.epam.gymcrm.entity.TrainingTypeEntity;
 import com.epam.gymcrm.security.Credentials;
 
+import java.time.Duration;
 import java.time.LocalDate;
 
 public final class TestDataFactory {
@@ -225,10 +226,7 @@ public final class TestDataFactory {
     }
 
     public static TrainingType trainingTypeResponse(long id, String typeName) {
-        TrainingType trainingType = new TrainingType();
-        trainingType.setId(id);
-        trainingType.setTypeName(typeName);
-        return trainingType;
+        return new TrainingType(id, typeName);
     }
 
     public static ScheduleTrainingRequest scheduleTrainingRequest(long traineeId, long trainerId, String trainingType) {
@@ -253,15 +251,15 @@ public final class TestDataFactory {
     }
 
     public static Training trainingResponse(long id) {
-        Training training = new Training();
-        training.setId(id);
-        training.setTrainee(traineeResponse(1L, "Alice.Walker"));
-        training.setTrainer(trainerResponse(2L, "John.Smith"));
-        training.setTrainingName("Morning Yoga");
-        training.setTrainingType(trainingTypeResponse(1L, "YOGA"));
-        training.setTrainingDate(LocalDate.of(2024, 3, 1));
-        training.setTrainingDuration(60);
-        return training;
+        return new Training(
+                id,
+                "Morning Yoga",
+                trainingTypeResponse(1L, "YOGA"),
+                LocalDate.of(2024, 3, 1),
+                Duration.ofMinutes(60),
+                1L,
+                2L
+        );
     }
 
     public static TrainerDto trainerDto() {

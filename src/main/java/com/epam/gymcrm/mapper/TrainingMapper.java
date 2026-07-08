@@ -10,6 +10,7 @@ import com.epam.gymcrm.entity.TrainingTypeEntity;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
+import java.time.Duration;
 import java.time.LocalDate;
 
 @Component
@@ -24,7 +25,7 @@ public class TrainingMapper {
                 entity.getTrainingName(),
                 trainerMapper.toTrainingTypeResponse(entity.getTrainingType()),
                 entity.getTrainingDate(),
-                entity.getTrainingDuration(),
+                Duration.ofMinutes(entity.getTrainingDuration()),
                 entity.getTrainee().getId(),
                 entity.getTrainer().getId()
         );

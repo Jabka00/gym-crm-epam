@@ -1,9 +1,11 @@
 package com.epam.gymcrm.service;
 
 import com.epam.gymcrm.repository.UserAuthenticationRepository;
+import com.epam.gymcrm.util.DtoValidator;
+import jakarta.validation.Validation;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -21,8 +23,14 @@ class AuthenticationServiceTest {
     @Mock
     private UserAuthenticationRepository userAuthenticationRepository;
 
-    @InjectMocks
+    private DtoValidator dtoValidator;
     private AuthenticationService authenticationService;
+
+    @BeforeEach
+    void setUp() {
+        dtoValidator = new DtoValidator(Validation.buildDefaultValidatorFactory().getValidator());
+        authenticationService = new AuthenticationService(userAuthenticationRepository, dtoValidator);
+    }
 
     @Test
     void shouldAuthenticateActiveUser() {
