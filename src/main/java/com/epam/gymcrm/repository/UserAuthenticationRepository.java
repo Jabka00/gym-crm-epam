@@ -1,11 +1,11 @@
 package com.epam.gymcrm.repository;
 
-import com.epam.gymcrm.util.ManualTransactionSupport;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
 @Slf4j
 @Repository
@@ -17,32 +17,32 @@ public class UserAuthenticationRepository {
                     + "WHERE e.username = :username AND e.password = :password AND e.active = true";
 
     private final SessionFactory sessionFactory;
-    private final ManualTransactionSupport transactionSupport;
 
+    @Transactional(readOnly = true)
     public boolean authenticate(String username, String password) {
         return authenticate(username, password, AuthenticationTarget.USER);
     }
 
+    @Transactional(readOnly = true)
     public boolean authenticateTrainee(String username, String password) {
         return authenticate(username, password, AuthenticationTarget.TRAINEE);
     }
 
+    @Transactional(readOnly = true)
     public boolean authenticateTrainer(String username, String password) {
         return authenticate(username, password, AuthenticationTarget.TRAINER);
     }
 
     private boolean authenticate(String username, String password, AuthenticationTarget target) {
-        return transactionSupport.inReadOnlyTransaction(() -> {
-            Long count = currentSession()
-                    .createQuery(target.hql(), Long.class)
-                    .setParameter("username", username)
-                    .setParameter("password", password)
-                    .getSingleResult();
+        Long count = currentSession()
+                .createQuery(target.hql(), Long.class)
+                .setParameter("username", username)
+                .setParameter("password", password)
+                .getSingleResult();
 
-            boolean authenticated = count > 0;
-            logAuthentication(target, username, authenticated);
-            return authenticated;
-        });
+        boolean authenticated = count > 0;
+        logAuthentication(target, username, authenticated);
+        return authenticated;
     }
 
     private void logAuthentication(AuthenticationTarget target, String username, boolean authenticated) {
