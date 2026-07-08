@@ -229,25 +229,33 @@ public final class TestDataFactory {
         return new TrainingType(id, typeName);
     }
 
-    public static ScheduleTrainingRequest scheduleTrainingRequest(long traineeId, long trainerId, String trainingType) {
-        ScheduleTrainingRequest request = new ScheduleTrainingRequest();
-        request.setTraineeId(traineeId);
-        request.setTrainerId(trainerId);
-        request.setTrainingName("Morning Yoga");
-        request.setTrainingType(trainingType);
-        request.setTrainingDate(LocalDate.of(2024, 3, 1));
-        request.setTrainingDuration(60);
-        return request;
+    public static ScheduleTrainingRequest scheduleTrainingRequest(long traineeId, long trainerId, String type) {
+        return scheduleTrainingRequest(traineeId, trainerId, type, LocalDate.of(2024, 3, 1));
     }
 
-    public static AutoScheduleTrainingRequest autoScheduleTrainingRequest(long traineeId, String trainingType) {
-        AutoScheduleTrainingRequest request = new AutoScheduleTrainingRequest();
-        request.setTraineeId(traineeId);
-        request.setTrainingName("Morning Yoga");
-        request.setTrainingType(trainingType);
-        request.setTrainingDate(LocalDate.of(2024, 3, 1));
-        request.setTrainingDuration(60);
-        return request;
+    public static ScheduleTrainingRequest scheduleTrainingRequest(
+            long traineeId, long trainerId, String type, LocalDate date) {
+        return new ScheduleTrainingRequest(
+                traineeId,
+                trainerId,
+                "Morning Yoga",
+                type,
+                date,
+                Duration.ofMinutes(60));
+    }
+
+    public static AutoScheduleTrainingRequest autoScheduleTrainingRequest(long traineeId, String type) {
+        return autoScheduleTrainingRequest(traineeId, type, LocalDate.of(2024, 3, 1));
+    }
+
+    public static AutoScheduleTrainingRequest autoScheduleTrainingRequest(
+            long traineeId, String type, LocalDate date) {
+        return new AutoScheduleTrainingRequest(
+                traineeId,
+                "Morning Yoga",
+                type,
+                date,
+                Duration.ofMinutes(60));
     }
 
     public static Training trainingResponse(long id) {
@@ -289,7 +297,7 @@ public final class TestDataFactory {
                 .trainingName("Morning Yoga")
                 .trainingType(yogaTypeDto())
                 .trainingDate(LocalDate.of(2024, 3, 1))
-                .trainingDuration(60)
+                .durationMinutes(60)
                 .build();
     }
 
@@ -307,7 +315,7 @@ public final class TestDataFactory {
         training.setTrainingName("Morning Yoga");
         training.setTrainingType(yogaTypeEntity());
         training.setTrainingDate(LocalDate.of(2024, 3, 1));
-        training.setTrainingDuration(60);
+        training.setDurationMinutes(60);
         return training;
     }
 

@@ -24,6 +24,7 @@ import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.time.Duration;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
@@ -74,20 +75,20 @@ class TrainingServiceTest {
 
     @Test
     void shouldRejectCreateWithMissingTrainingName() {
-        ScheduleTrainingRequest request = TestDataFactory.scheduleTrainingRequest(1L, 2L, "YOGA");
-        request.setTrainingName(null);
+        ScheduleTrainingRequest request = new ScheduleTrainingRequest(
+                1L, 2L, null, "YOGA", LocalDate.of(2024, 3, 1), Duration.ofMinutes(60));
 
         assertThatThrownBy(() -> trainingService.createTraining(auth, request))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("Training name is required");
+                .hasMessageContaining("Name is required");
 
         verify(trainingMapper, never()).toEntity(any(), any(), any(), any());
     }
 
     @Test
     void shouldRejectCreateWithoutTrainerId() {
-        ScheduleTrainingRequest request = TestDataFactory.scheduleTrainingRequest(1L, 2L, "YOGA");
-        request.setTrainerId(null);
+        ScheduleTrainingRequest request = new ScheduleTrainingRequest(
+                1L, null, "Morning Yoga", "YOGA", LocalDate.of(2024, 3, 1), Duration.ofMinutes(60));
 
         assertThatThrownBy(() -> trainingService.createTraining(auth, request))
                 .isInstanceOf(IllegalArgumentException.class)
@@ -98,8 +99,8 @@ class TrainingServiceTest {
 
     @Test
     void shouldRejectCreateWithoutTraineeId() {
-        ScheduleTrainingRequest request = TestDataFactory.scheduleTrainingRequest(1L, 2L, "YOGA");
-        request.setTraineeId(null);
+        ScheduleTrainingRequest request = new ScheduleTrainingRequest(
+                null, 2L, "Morning Yoga", "YOGA", LocalDate.of(2024, 3, 1), Duration.ofMinutes(60));
 
         assertThatThrownBy(() -> trainingService.createTraining(auth, request))
                 .isInstanceOf(IllegalArgumentException.class)

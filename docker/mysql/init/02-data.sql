@@ -84,7 +84,7 @@ ON DUPLICATE KEY UPDATE trainee_id = VALUES(trainee_id);
 INSERT INTO trainee_trainer (trainee_id, trainer_id) VALUES (5, 2)
 ON DUPLICATE KEY UPDATE trainee_id = VALUES(trainee_id);
 
-INSERT INTO trainings (id, trainee_id, trainer_id, training_name, training_type_id, training_date, training_duration)
+INSERT INTO trainings (id, trainee_id, trainer_id, training_name, training_type_id, training_date, duration_minutes)
 VALUES (1, 4, 1, 'Morning Yoga', 1, '2024-03-01', 60)
 ON DUPLICATE KEY UPDATE
     trainee_id = VALUES(trainee_id),
@@ -92,8 +92,8 @@ ON DUPLICATE KEY UPDATE
     training_name = VALUES(training_name),
     training_type_id = VALUES(training_type_id),
     training_date = VALUES(training_date),
-    training_duration = VALUES(training_duration);
-INSERT INTO trainings (id, trainee_id, trainer_id, training_name, training_type_id, training_date, training_duration)
+    duration_minutes = VALUES(duration_minutes);
+INSERT INTO trainings (id, trainee_id, trainer_id, training_name, training_type_id, training_date, duration_minutes)
 VALUES (2, 5, 2, 'CrossFit Intro', 2, '2024-03-02', 90)
 ON DUPLICATE KEY UPDATE
     trainee_id = VALUES(trainee_id),
@@ -101,8 +101,8 @@ ON DUPLICATE KEY UPDATE
     training_name = VALUES(training_name),
     training_type_id = VALUES(training_type_id),
     training_date = VALUES(training_date),
-    training_duration = VALUES(training_duration);
-INSERT INTO trainings (id, trainee_id, trainer_id, training_name, training_type_id, training_date, training_duration)
+    duration_minutes = VALUES(duration_minutes);
+INSERT INTO trainings (id, trainee_id, trainer_id, training_name, training_type_id, training_date, duration_minutes)
 VALUES (3, 4, 3, 'Boxing Basics', 3, '2024-03-03', 45)
 ON DUPLICATE KEY UPDATE
     trainee_id = VALUES(trainee_id),
@@ -110,7 +110,7 @@ ON DUPLICATE KEY UPDATE
     training_name = VALUES(training_name),
     training_type_id = VALUES(training_type_id),
     training_date = VALUES(training_date),
-    training_duration = VALUES(training_duration);
+    duration_minutes = VALUES(duration_minutes);
 
 ALTER TABLE users AUTO_INCREMENT = 7;
 ALTER TABLE training_types AUTO_INCREMENT = 5;

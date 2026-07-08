@@ -23,7 +23,7 @@ public class GymService {
         authenticationService.requireAuthenticated(auth);
 
         traineeService.getActiveTrainee(request.traineeId());
-        trainerService.getActiveTrainerForSpecialization(request.trainerId(), request.trainingType());
+        trainerService.getActiveTrainerForSpecialization(request.trainerId(), request.type());
 
         return trainingService.createTraining(auth, request);
     }
@@ -32,9 +32,9 @@ public class GymService {
         authenticationService.requireAuthenticated(auth);
 
         traineeService.getActiveTrainee(request.traineeId());
-        Trainer trainer = trainerService.findActiveBySpecialization(request.trainingType());
+        Trainer trainer = trainerService.findActiveBySpecialization(request.type());
 
-        log.info("Auto-assigned trainer id={} for training '{}'", trainer.userId(), request.trainingName());
+        log.info("Auto-assigned trainer id={} for training '{}'", trainer.userId(), request.name());
 
         return trainingService.createTraining(auth, toScheduleRequest(request, trainer.userId()));
     }
@@ -48,10 +48,10 @@ public class GymService {
         return new ScheduleTrainingRequest(
                 request.traineeId(),
                 trainerId,
-                request.trainingName(),
-                request.trainingType(),
-                request.trainingDate(),
-                request.trainingDuration()
+                request.name(),
+                request.type(),
+                request.date(),
+                request.duration()
         );
     }
 }

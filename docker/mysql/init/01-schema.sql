@@ -41,7 +41,7 @@ CREATE TABLE IF NOT EXISTS trainings (
     training_name       VARCHAR(200) NOT NULL,
     training_type_id    BIGINT       NOT NULL,
     training_date       DATE         NOT NULL,
-    training_duration   INT          NOT NULL,
+    duration_minutes    INT          NOT NULL,
     CONSTRAINT fk_trainings_trainee FOREIGN KEY (trainee_id) REFERENCES trainees (id),
     CONSTRAINT fk_trainings_trainer FOREIGN KEY (trainer_id) REFERENCES trainers (id),
     CONSTRAINT fk_trainings_training_type FOREIGN KEY (training_type_id) REFERENCES training_types (id)

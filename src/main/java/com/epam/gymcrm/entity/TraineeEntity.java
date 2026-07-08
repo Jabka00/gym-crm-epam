@@ -11,7 +11,6 @@ import jakarta.persistence.OneToMany;
 import jakarta.persistence.PrimaryKeyJoinColumn;
 import jakarta.persistence.Table;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.time.LocalDate;
@@ -23,7 +22,6 @@ import java.util.Set;
 @PrimaryKeyJoinColumn(name = "id")
 @Getter
 @Setter
-@NoArgsConstructor
 public class TraineeEntity extends UserEntity {
 
     @Column(name = "date_of_birth")

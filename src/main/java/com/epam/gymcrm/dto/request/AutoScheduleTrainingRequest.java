@@ -1,29 +1,33 @@
 package com.epam.gymcrm.dto.request;
 
-import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
+import java.time.Duration;
 import java.time.LocalDate;
 
 public record AutoScheduleTrainingRequest(
         @NotNull(message = "Trainee id is required")
         Long traineeId,
 
-        @NotBlank(message = "Training name is required")
-        @Size(max = 200, message = "Training name must not exceed 200 characters")
-        String trainingName,
+        @NotBlank(message = "Name is required")
+        @Size(max = 200, message = "Name must not exceed 200 characters")
+        String name,
 
-        @NotBlank(message = "Training type is required")
-        @Size(max = 50, message = "Training type must not exceed 50 characters")
-        String trainingType,
+        @NotBlank(message = "Type is required")
+        @Size(max = 50, message = "Type must not exceed 50 characters")
+        String type,
 
-        @NotNull(message = "Training date is required")
-        LocalDate trainingDate,
+        @NotNull(message = "Date is required")
+        LocalDate date,
 
-        @NotNull(message = "Training duration is required")
-        @Min(value = 1, message = "Training duration must be at least 1 minute")
-        Integer trainingDuration
+        @NotNull(message = "Duration is required")
+        Duration duration
 ) {
+    @AssertTrue(message = "Duration must be at least 1 minute")
+    private boolean isDurationValid() {
+        return duration == null || duration.compareTo(Duration.ofMinutes(1)) >= 0;
+    }
 }

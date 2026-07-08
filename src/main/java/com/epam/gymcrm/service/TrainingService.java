@@ -46,9 +46,9 @@ public class TrainingService {
         TrainerEntity trainer = trainerRepository.findById(request.trainerId())
                 .orElseThrow(() -> new EntityNotFoundException(
                         "Trainer not found with id: " + request.trainerId()));
-        TrainingTypeEntity trainingType = trainingTypeRepository.findByTypeName(request.trainingType())
+        TrainingTypeEntity trainingType = trainingTypeRepository.findByTypeName(request.type())
                 .orElseThrow(() -> new EntityNotFoundException(
-                        "Training type not found: " + request.trainingType()));
+                        "Training type not found: " + request.type()));
 
         TrainingEntity training = trainingMapper.toEntity(request, trainee, trainer, trainingType);
         TrainingEntity created = trainingRepository.save(training);

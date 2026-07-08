@@ -23,6 +23,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 
+import java.time.Duration;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Set;
@@ -89,7 +90,7 @@ public class GymCrmApp {
                     "Evening Pilates",
                     "PILATES",
                     LocalDate.now(),
-                    60
+                    Duration.ofMinutes(60)
             );
             Training scheduledTraining = gymService.scheduleTraining(kateAuth, scheduleRequest);
             log.info("Scheduled training id={}, name={}", scheduledTraining.id(), scheduledTraining.name());
@@ -99,7 +100,7 @@ public class GymCrmApp {
                     "Morning Yoga",
                     "YOGA",
                     LocalDate.now().plusDays(1),
-                    45
+                    Duration.ofMinutes(45)
             );
             Training autoScheduledTraining = gymService.autoScheduleTraining(kateAuth, autoScheduleRequest);
             log.info("Auto-scheduled training id={}, trainerId={}",

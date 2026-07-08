@@ -25,7 +25,7 @@ public class TrainingMapper {
                 entity.getTrainingName(),
                 trainerMapper.toTrainingTypeResponse(entity.getTrainingType()),
                 entity.getTrainingDate(),
-                Duration.ofMinutes(entity.getTrainingDuration()),
+                Duration.ofMinutes(entity.getDurationMinutes()),
                 entity.getTrainee().getId(),
                 entity.getTrainer().getId()
         );
@@ -37,7 +37,7 @@ public class TrainingMapper {
             TrainerEntity trainer,
             TrainingTypeEntity trainingType) {
         return buildEntity(trainee, trainer, trainingType,
-                request.trainingName(), request.trainingDate(), request.trainingDuration());
+                request.name(), request.date(), request.duration());
     }
 
     public TrainingEntity toEntity(
@@ -46,23 +46,23 @@ public class TrainingMapper {
             TrainerEntity trainer,
             TrainingTypeEntity trainingType) {
         return buildEntity(trainee, trainer, trainingType,
-                request.trainingName(), request.trainingDate(), request.trainingDuration());
+                request.name(), request.date(), request.duration());
     }
 
     private static TrainingEntity buildEntity(
             TraineeEntity trainee,
             TrainerEntity trainer,
             TrainingTypeEntity trainingType,
-            String trainingName,
-            LocalDate trainingDate,
-            Integer trainingDuration) {
+            String name,
+            LocalDate date,
+            Duration duration) {
         TrainingEntity entity = new TrainingEntity();
         entity.setTrainee(trainee);
         entity.setTrainer(trainer);
-        entity.setTrainingName(trainingName);
+        entity.setTrainingName(name);
         entity.setTrainingType(trainingType);
-        entity.setTrainingDate(trainingDate);
-        entity.setTrainingDuration(trainingDuration);
+        entity.setTrainingDate(date);
+        entity.setDurationMinutes(Math.toIntExact(duration.toMinutes()));
         return entity;
     }
 }

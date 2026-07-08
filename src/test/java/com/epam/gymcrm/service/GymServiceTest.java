@@ -76,14 +76,11 @@ class GymServiceTest {
 
     @Test
     void shouldAutoScheduleTraining() {
-        AutoScheduleTrainingRequest request = TestDataFactory.autoScheduleTrainingRequest(1L, "YOGA");
-        request.setTrainingDate(LocalDate.of(2024, 3, 1));
+        AutoScheduleTrainingRequest request = TestDataFactory.autoScheduleTrainingRequest(
+                1L, "YOGA", LocalDate.of(2024, 3, 1));
         Trainee trainee = TestDataFactory.traineeResponse(1L, "Alice.Walker");
         Trainer trainer = TestDataFactory.trainerResponse(5L, "John.Smith");
         Training scheduled = TestDataFactory.trainingResponse(100L);
-
-        ScheduleTrainingRequest expectedScheduleRequest = TestDataFactory.scheduleTrainingRequest(1L, 5L, "YOGA");
-        expectedScheduleRequest.setTrainingDate(LocalDate.of(2024, 3, 1));
 
         when(traineeService.getActiveTrainee(1L)).thenReturn(trainee);
         when(trainerService.findActiveBySpecialization("YOGA")).thenReturn(trainer);

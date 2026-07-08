@@ -9,7 +9,6 @@ import jakarta.persistence.OneToMany;
 import jakarta.persistence.PrimaryKeyJoinColumn;
 import jakarta.persistence.Table;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.util.HashSet;
@@ -20,7 +19,6 @@ import java.util.Set;
 @PrimaryKeyJoinColumn(name = "id")
 @Getter
 @Setter
-@NoArgsConstructor
 public class TrainerEntity extends UserEntity {
 
     @ManyToOne(fetch = FetchType.EAGER, optional = false)
