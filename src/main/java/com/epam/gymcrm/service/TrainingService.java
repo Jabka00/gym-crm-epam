@@ -40,15 +40,15 @@ public class TrainingService {
         authenticationService.requireAuthenticated(auth);
         dtoValidator.validate(request);
 
-        TraineeEntity trainee = traineeRepository.findById(request.getTraineeId())
+        TraineeEntity trainee = traineeRepository.findById(request.traineeId())
                 .orElseThrow(() -> new EntityNotFoundException(
-                        "Trainee not found with id: " + request.getTraineeId()));
-        TrainerEntity trainer = trainerRepository.findById(request.getTrainerId())
+                        "Trainee not found with id: " + request.traineeId()));
+        TrainerEntity trainer = trainerRepository.findById(request.trainerId())
                 .orElseThrow(() -> new EntityNotFoundException(
-                        "Trainer not found with id: " + request.getTrainerId()));
-        TrainingTypeEntity trainingType = trainingTypeRepository.findByTypeName(request.getTrainingType())
+                        "Trainer not found with id: " + request.trainerId()));
+        TrainingTypeEntity trainingType = trainingTypeRepository.findByTypeName(request.trainingType())
                 .orElseThrow(() -> new EntityNotFoundException(
-                        "Training type not found: " + request.getTrainingType()));
+                        "Training type not found: " + request.trainingType()));
 
         TrainingEntity training = trainingMapper.toEntity(request, trainee, trainer, trainingType);
         TrainingEntity created = trainingRepository.save(training);

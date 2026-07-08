@@ -54,10 +54,10 @@ public class TraineeService {
     public Trainee updateTrainee(Credentials auth, UpdateTraineeRequest request) {
         authenticationService.requireAuthenticated(auth);
 
-        dtoValidator.validateForUpdate(request, UpdateTraineeRequest::getId, "Trainee");
+        dtoValidator.validateForUpdate(request, UpdateTraineeRequest::id, "Trainee");
 
-        TraineeEntity existing = traineeRepository.findById(request.getId())
-                .orElseThrow(() -> new EntityNotFoundException("Trainee not found with id: " + request.getId()));
+        TraineeEntity existing = traineeRepository.findById(request.id())
+                .orElseThrow(() -> new EntityNotFoundException("Trainee not found with id: " + request.id()));
 
         TraineeEntity trainee = traineeMapper.toEntity(
                 request, existing.getUsername(), existing.getPassword());

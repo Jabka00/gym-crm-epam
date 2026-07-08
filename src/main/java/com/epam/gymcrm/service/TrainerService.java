@@ -36,9 +36,9 @@ public class TrainerService {
     public Trainer createTrainer(CreateTrainerRequest request) {
         dtoValidator.validate(request);
 
-        TrainingTypeEntity specialization = trainingTypeRepository.findByTypeName(request.getSpecialization())
+        TrainingTypeEntity specialization = trainingTypeRepository.findByTypeName(request.specialization())
                 .orElseThrow(() -> new EntityNotFoundException(
-                        "Training type not found: " + request.getSpecialization()));
+                        "Training type not found: " + request.specialization()));
 
         TrainerEntity trainer = trainerMapper.toEntity(request, specialization);
         TrainerEntity created = trainerRepository.save(trainer);
@@ -53,19 +53,19 @@ public class TrainerService {
     public Trainer updateTrainer(Credentials auth, UpdateTrainerRequest request) {
         authenticationService.requireAuthenticated(auth);
 
-        dtoValidator.validateForUpdate(request, UpdateTrainerRequest::getId, "Trainer");
+        dtoValidator.validateForUpdate(request, UpdateTrainerRequest::id, "Trainer");
 
-        TrainerEntity existing = trainerRepository.findById(request.getId())
-                .orElseThrow(() -> new EntityNotFoundException("Trainer not found with id: " + request.getId()));
+        TrainerEntity existing = trainerRepository.findById(request.id())
+                .orElseThrow(() -> new EntityNotFoundException("Trainer not found with id: " + request.id()));
 
-        TrainingTypeEntity specialization = trainingTypeRepository.findByTypeName(request.getSpecialization())
+        TrainingTypeEntity specialization = trainingTypeRepository.findByTypeName(request.specialization())
                 .orElseThrow(() -> new EntityNotFoundException(
-                        "Training type not found: " + request.getSpecialization()));
+                        "Training type not found: " + request.specialization()));
 
         TrainerEntity trainer = trainerMapper.toEntity(
                 request, specialization, existing.getUsername(), existing.getPassword());
         TrainerEntity updated = trainerRepository.save(trainer);
-        log.info("Trainer profile updated successfully: {}", request.getId());
+        log.info("Trainer profile updated successfully: {}", request.id());
         return trainerMapper.toResponse(updated);
     }
 

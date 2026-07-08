@@ -14,8 +14,8 @@ public class PasswordValidator {
     private final String validationMessage;
 
     public PasswordValidator(
-            @Value("${password.validation.pattern:^(?=.*[A-Z])(?=.*[a-z])(?=.*\\d).{8,}$}") String pattern,
-            @Value("${password.validation.message:Password must be at least 8 characters and contain uppercase, lowercase, and digit}") String message) {
+            @Value("${password.validation.pattern}") String pattern,
+            @Value("${password.validation.message}") String message) {
         this.passwordPattern = Pattern.compile(pattern);
         this.validationMessage = message;
     }

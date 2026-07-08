@@ -22,8 +22,8 @@ public class GymService {
     public Training scheduleTraining(Credentials auth, ScheduleTrainingRequest request) {
         authenticationService.requireAuthenticated(auth);
 
-        traineeService.getActiveTrainee(request.getTraineeId());
-        trainerService.getActiveTrainerForSpecialization(request.getTrainerId(), request.getTrainingType());
+        traineeService.getActiveTrainee(request.traineeId());
+        trainerService.getActiveTrainerForSpecialization(request.trainerId(), request.trainingType());
 
         return trainingService.createTraining(auth, request);
     }
@@ -31,12 +31,12 @@ public class GymService {
     public Training autoScheduleTraining(Credentials auth, AutoScheduleTrainingRequest request) {
         authenticationService.requireAuthenticated(auth);
 
-        traineeService.getActiveTrainee(request.getTraineeId());
-        Trainer trainer = trainerService.findActiveBySpecialization(request.getTrainingType());
+        traineeService.getActiveTrainee(request.traineeId());
+        Trainer trainer = trainerService.findActiveBySpecialization(request.trainingType());
 
-        log.info("Auto-assigned trainer id={} for training '{}'", trainer.getId(), request.getTrainingName());
+        log.info("Auto-assigned trainer id={} for training '{}'", trainer.userId(), request.trainingName());
 
-        return trainingService.createTraining(auth, toScheduleRequest(request, trainer.getId()));
+        return trainingService.createTraining(auth, toScheduleRequest(request, trainer.userId()));
     }
 
     public void removeTraineeProfile(Credentials auth, String username) {
@@ -45,13 +45,13 @@ public class GymService {
     }
 
     private ScheduleTrainingRequest toScheduleRequest(AutoScheduleTrainingRequest request, Long trainerId) {
-        ScheduleTrainingRequest scheduleRequest = new ScheduleTrainingRequest();
-        scheduleRequest.setTraineeId(request.getTraineeId());
-        scheduleRequest.setTrainerId(trainerId);
-        scheduleRequest.setTrainingName(request.getTrainingName());
-        scheduleRequest.setTrainingType(request.getTrainingType());
-        scheduleRequest.setTrainingDate(request.getTrainingDate());
-        scheduleRequest.setTrainingDuration(request.getTrainingDuration());
-        return scheduleRequest;
+        return new ScheduleTrainingRequest(
+                request.traineeId(),
+                trainerId,
+                request.trainingName(),
+                request.trainingType(),
+                request.trainingDate(),
+                request.trainingDuration()
+        );
     }
 }

@@ -15,26 +15,23 @@ public class TraineeMapper {
     private final UserCredentialService userCredentialService;
 
     public Trainee toResponse(TraineeEntity entity) {
-        Trainee response = new Trainee();
-        response.setId(entity.getId());
-        response.setFirstName(entity.getFirstName());
-        response.setLastName(entity.getLastName());
-        response.setUsername(entity.getUsername());
-        response.setPassword(entity.getPassword());
-        response.setActive(entity.isActive());
-        response.setDateOfBirth(entity.getDateOfBirth());
-        response.setAddress(entity.getAddress());
-        return response;
+        return new Trainee(
+                entity.getId(),
+                toFullName(entity.getFirstName(), entity.getLastName()),
+                entity.getUsername(),
+                entity.getDateOfBirth(),
+                entity.getAddress()
+        );
     }
 
     public TraineeEntity toEntity(CreateTraineeRequest request) {
         TraineeEntity entity = new TraineeEntity();
-        entity.setFirstName(request.getFirstName());
-        entity.setLastName(request.getLastName());
-        entity.setDateOfBirth(request.getDateOfBirth());
-        entity.setAddress(request.getAddress());
+        entity.setFirstName(request.user().firstName());
+        entity.setLastName(request.user().lastName());
+        entity.setDateOfBirth(request.dateOfBirth());
+        entity.setAddress(request.address());
         entity.setUsername(userCredentialService.generateUniqueUsername(
-                request.getFirstName(), request.getLastName()));
+                request.user().firstName(), request.user().lastName()));
         entity.setPassword(userCredentialService.generatePassword());
         entity.setActive(true);
         return entity;
@@ -42,14 +39,18 @@ public class TraineeMapper {
 
     public TraineeEntity toEntity(UpdateTraineeRequest request, String username, String password) {
         TraineeEntity entity = new TraineeEntity();
-        entity.setId(request.getId());
-        entity.setFirstName(request.getFirstName());
-        entity.setLastName(request.getLastName());
+        entity.setId(request.id());
+        entity.setFirstName(request.user().firstName());
+        entity.setLastName(request.user().lastName());
         entity.setUsername(username);
         entity.setPassword(password);
-        entity.setActive(request.isActive());
-        entity.setDateOfBirth(request.getDateOfBirth());
-        entity.setAddress(request.getAddress());
+        entity.setActive(request.active());
+        entity.setDateOfBirth(request.dateOfBirth());
+        entity.setAddress(request.address());
         return entity;
+    }
+
+    private static String toFullName(String firstName, String lastName) {
+        return firstName + " " + lastName;
     }
 }

@@ -17,31 +17,25 @@ public class TrainerMapper {
     private final UserCredentialService userCredentialService;
 
     public Trainer toResponse(TrainerEntity entity) {
-        Trainer response = new Trainer();
-        response.setId(entity.getId());
-        response.setFirstName(entity.getFirstName());
-        response.setLastName(entity.getLastName());
-        response.setUsername(entity.getUsername());
-        response.setPassword(entity.getPassword());
-        response.setActive(entity.isActive());
-        response.setSpecialization(toTrainingTypeResponse(entity.getSpecialization()));
-        return response;
+        return new Trainer(
+                entity.getId(),
+                toFullName(entity.getFirstName(), entity.getLastName()),
+                entity.getUsername(),
+                toTrainingTypeResponse(entity.getSpecialization())
+        );
     }
 
     public TrainingType toTrainingTypeResponse(TrainingTypeEntity entity) {
-        TrainingType response = new TrainingType();
-        response.setId(entity.getId());
-        response.setTypeName(entity.getTypeName());
-        return response;
+        return new TrainingType(entity.getId(), entity.getTypeName());
     }
 
     public TrainerEntity toEntity(CreateTrainerRequest request, TrainingTypeEntity specialization) {
         TrainerEntity entity = new TrainerEntity();
-        entity.setFirstName(request.getFirstName());
-        entity.setLastName(request.getLastName());
+        entity.setFirstName(request.user().firstName());
+        entity.setLastName(request.user().lastName());
         entity.setSpecialization(specialization);
         entity.setUsername(userCredentialService.generateUniqueUsername(
-                request.getFirstName(), request.getLastName()));
+                request.user().firstName(), request.user().lastName()));
         entity.setPassword(userCredentialService.generatePassword());
         entity.setActive(true);
         return entity;
@@ -53,13 +47,17 @@ public class TrainerMapper {
             String username,
             String password) {
         TrainerEntity entity = new TrainerEntity();
-        entity.setId(request.getId());
-        entity.setFirstName(request.getFirstName());
-        entity.setLastName(request.getLastName());
+        entity.setId(request.id());
+        entity.setFirstName(request.user().firstName());
+        entity.setLastName(request.user().lastName());
         entity.setUsername(username);
         entity.setPassword(password);
-        entity.setActive(request.isActive());
+        entity.setActive(request.active());
         entity.setSpecialization(specialization);
         return entity;
+    }
+
+    private static String toFullName(String firstName, String lastName) {
+        return firstName + " " + lastName;
     }
 }

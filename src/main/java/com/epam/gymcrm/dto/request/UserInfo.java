@@ -1,14 +1,15 @@
 package com.epam.gymcrm.dto.request;
 
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 
-@Getter
-@Setter
-@NoArgsConstructor
-public class UserInfo {
+public record UserInfo(
+        @NotBlank(message = "First name is required")
+        @Size(max = 100, message = "First name must not exceed 100 characters")
+        String firstName,
 
-    private Long id;
-    private String username;
+        @NotBlank(message = "Last name is required")
+        @Size(max = 100, message = "Last name must not exceed 100 characters")
+        String lastName
+) {
 }

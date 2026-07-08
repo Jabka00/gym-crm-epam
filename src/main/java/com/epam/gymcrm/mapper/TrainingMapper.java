@@ -10,23 +10,24 @@ import com.epam.gymcrm.entity.TrainingTypeEntity;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
+import java.time.LocalDate;
+
 @Component
 @RequiredArgsConstructor
 public class TrainingMapper {
 
-    private final TraineeMapper traineeMapper;
     private final TrainerMapper trainerMapper;
 
     public Training toResponse(TrainingEntity entity) {
-        Training response = new Training();
-        response.setId(entity.getId());
-        response.setTrainee(traineeMapper.toResponse(entity.getTrainee()));
-        response.setTrainer(trainerMapper.toResponse(entity.getTrainer()));
-        response.setTrainingName(entity.getTrainingName());
-        response.setTrainingType(trainerMapper.toTrainingTypeResponse(entity.getTrainingType()));
-        response.setTrainingDate(entity.getTrainingDate());
-        response.setTrainingDuration(entity.getTrainingDuration());
-        return response;
+        return new Training(
+                entity.getId(),
+                entity.getTrainingName(),
+                trainerMapper.toTrainingTypeResponse(entity.getTrainingType()),
+                entity.getTrainingDate(),
+                entity.getTrainingDuration(),
+                entity.getTrainee().getId(),
+                entity.getTrainer().getId()
+        );
     }
 
     public TrainingEntity toEntity(
@@ -34,14 +35,8 @@ public class TrainingMapper {
             TraineeEntity trainee,
             TrainerEntity trainer,
             TrainingTypeEntity trainingType) {
-        TrainingEntity entity = new TrainingEntity();
-        entity.setTrainee(trainee);
-        entity.setTrainer(trainer);
-        entity.setTrainingName(request.getTrainingName());
-        entity.setTrainingType(trainingType);
-        entity.setTrainingDate(request.getTrainingDate());
-        entity.setTrainingDuration(request.getTrainingDuration());
-        return entity;
+        return buildEntity(trainee, trainer, trainingType,
+                request.trainingName(), request.trainingDate(), request.trainingDuration());
     }
 
     public TrainingEntity toEntity(
@@ -49,13 +44,24 @@ public class TrainingMapper {
             TraineeEntity trainee,
             TrainerEntity trainer,
             TrainingTypeEntity trainingType) {
+        return buildEntity(trainee, trainer, trainingType,
+                request.trainingName(), request.trainingDate(), request.trainingDuration());
+    }
+
+    private static TrainingEntity buildEntity(
+            TraineeEntity trainee,
+            TrainerEntity trainer,
+            TrainingTypeEntity trainingType,
+            String trainingName,
+            LocalDate trainingDate,
+            Integer trainingDuration) {
         TrainingEntity entity = new TrainingEntity();
         entity.setTrainee(trainee);
         entity.setTrainer(trainer);
-        entity.setTrainingName(request.getTrainingName());
+        entity.setTrainingName(trainingName);
         entity.setTrainingType(trainingType);
-        entity.setTrainingDate(request.getTrainingDate());
-        entity.setTrainingDuration(request.getTrainingDuration());
+        entity.setTrainingDate(trainingDate);
+        entity.setTrainingDuration(trainingDuration);
         return entity;
     }
 }
