@@ -82,7 +82,8 @@ class TrainingServiceTest {
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("Name is required");
 
-        verify(trainingMapper, never()).toEntity(any(), any(), any(), any());
+        verify(trainingMapper, never()).toEntity(
+                any(ScheduleTrainingRequest.class), any(), any(), any());
     }
 
     @Test
@@ -94,7 +95,8 @@ class TrainingServiceTest {
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("Trainer id is required");
 
-        verify(trainingMapper, never()).toEntity(any(), any(), any(), any());
+        verify(trainingMapper, never()).toEntity(
+                any(ScheduleTrainingRequest.class), any(), any(), any());
     }
 
     @Test
@@ -106,7 +108,8 @@ class TrainingServiceTest {
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("Trainee id is required");
 
-        verify(trainingMapper, never()).toEntity(any(), any(), any(), any());
+        verify(trainingMapper, never()).toEntity(
+                any(ScheduleTrainingRequest.class), any(), any(), any());
     }
 
     @Test
@@ -218,7 +221,8 @@ class TrainingServiceTest {
                 .isInstanceOf(AuthenticationException.class);
 
         verify(authenticationService, times(1)).requireAuthenticated(auth);
-        verify(trainingMapper, never()).toEntity(any(), any(), any(), any());
+        verify(trainingMapper, never()).toEntity(
+                any(ScheduleTrainingRequest.class), any(), any(), any());
     }
 
     @Test

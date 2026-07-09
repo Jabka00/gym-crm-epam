@@ -114,14 +114,6 @@ public class TrainerService {
         return trainerMapper.toResponse(trainer);
     }
 
-    @Transactional(readOnly = true)
-    public Trainer findActiveBySpecialization(String typeName) {
-        TrainerEntity trainer = trainerRepository.findActiveBySpecialization(typeName)
-                .orElseThrow(() -> new EntityNotFoundException(
-                        "No active trainer found for type: " + typeName));
-        return trainerMapper.toResponse(trainer);
-    }
-
     private TrainerEntity getActiveEntity(Long id) {
         TrainerEntity trainer = trainerRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Trainer not found with id: " + id));

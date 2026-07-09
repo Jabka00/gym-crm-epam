@@ -1,12 +1,17 @@
 package com.epam.gymcrm.service;
 
-import com.epam.gymcrm.dto.TrainerDto;
+import com.epam.gymcrm.dto.request.CreateTrainerRequest;
+import com.epam.gymcrm.dto.request.UpdateTrainerRequest;
+import com.epam.gymcrm.dto.request.UserInfo;
+import com.epam.gymcrm.dto.response.Trainer;
 import com.epam.gymcrm.entity.TrainerEntity;
+import com.epam.gymcrm.entity.TrainingTypeEntity;
 import com.epam.gymcrm.exception.AuthenticationException;
 import com.epam.gymcrm.exception.EntityNotFoundException;
 import com.epam.gymcrm.exception.InvalidOperationException;
 import com.epam.gymcrm.mapper.TrainerMapper;
 import com.epam.gymcrm.repository.TrainerRepository;
+import com.epam.gymcrm.repository.TrainingTypeRepository;
 import com.epam.gymcrm.security.Credentials;
 import com.epam.gymcrm.support.TestDataFactory;
 import com.epam.gymcrm.util.DtoValidator;
@@ -24,6 +29,7 @@ import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -37,6 +43,9 @@ class TrainerServiceTest {
 
     @Mock
     private TrainerRepository trainerRepository;
+
+    @Mock
+    private TrainingTypeRepository trainingTypeRepository;
 
     @Mock
     private UserService userService;
@@ -62,14 +71,14 @@ class TrainerServiceTest {
 
     @Test
     void shouldRejectCreateWithoutSpecialization() {
-        TrainerDto request = TrainerDto.builder().firstName("John").lastName("Smith").build();
+        CreateTrainerRequest request = new CreateTrainerRequest(new UserInfo("John", "Smith"), null);
 
         assertThatThrownBy(() -> trainerService.createTrainer(request))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("Specialization is required");
 
-        verifyNoInteractions(trainerMapper);
-        verify(trainerRepository, never()).save(org.mockito.ArgumentMatchers.any());
+        verifyNoInteractions(trainerMapper, trainingTypeRepository);
+        verify(trainerRepository, never()).save(any());
     }
 
     @Test
@@ -93,55 +102,66 @@ class TrainerServiceTest {
 
     @Test
     void shouldCreateTrainer() {
-        TrainerDto request = TestDataFactory.trainerDto();
+        CreateTrainerRequest request = TestDataFactory.createTrainerRequest("YOGA");
+        TrainingTypeEntity specialization = TestDataFactory.yogaTypeEntity();
         TrainerEntity mappedEntity = TestDataFactory.createDefaultTrainer();
         TrainerEntity created = TestDataFactory.trainerWithId(1L, "John.Smith");
-        TrainerDto expected = TestDataFactory.trainerDtoWithCredentials(1L, "John.Smith");
+        Trainer expected = TestDataFactory.trainerResponse(1L, "John.Smith");
 
-        when(trainerMapper.toEntity(request)).thenReturn(mappedEntity);
+        when(trainingTypeRepository.findByTypeName("YOGA")).thenReturn(Optional.of(specialization));
+        when(trainerMapper.toEntity(request, specialization)).thenReturn(mappedEntity);
         when(trainerRepository.save(mappedEntity)).thenReturn(created);
-        when(trainerMapper.toDto(created)).thenReturn(expected);
+        when(trainerMapper.toResponse(created)).thenReturn(expected);
 
-        TrainerDto actual = trainerService.createTrainer(request);
+        Trainer actual = trainerService.createTrainer(request);
 
         assertThat(actual).usingRecursiveComparison().isEqualTo(expected);
-        verify(trainerMapper, times(1)).toEntity(request);
+        verify(trainingTypeRepository, times(1)).findByTypeName("YOGA");
+        verify(trainerMapper, times(1)).toEntity(request, specialization);
         verify(trainerRepository, times(1)).save(mappedEntity);
-        verify(trainerMapper, times(1)).toDto(created);
+        verify(trainerMapper, times(1)).toResponse(created);
         verifyNoInteractions(authenticationService);
     }
 
     @Test
     void shouldUpdateTrainer() {
-        TrainerDto request = TestDataFactory.trainerDtoWithCredentials(1L, "John.Smith");
-        request.getSpecialization().setTypeName("BOXING");
+        UpdateTrainerRequest request = TestDataFactory.updateTrainerRequest(1L, "BOXING");
+        TrainingTypeEntity specialization = TestDataFactory.boxingTypeEntity();
         TrainerEntity existing = TestDataFactory.trainerWithId(1L, "John.Smith");
         TrainerEntity entityToSave = TestDataFactory.trainerWithId(1L, "John.Smith");
-        entityToSave.setSpecialization(TestDataFactory.trainingType("BOXING"));
-        TrainerDto expected = TestDataFactory.trainerDtoWithCredentials(1L, "John.Smith");
-        expected.getSpecialization().setTypeName("BOXING");
+        entityToSave.setSpecialization(specialization);
+        Trainer expected = new Trainer(
+                1L,
+                "John Smith",
+                "John.Smith",
+                TestDataFactory.trainingTypeResponse(3L, "BOXING"));
 
-        when(trainerMapper.toEntity(request)).thenReturn(entityToSave);
-        when(trainerMapper.toDto(entityToSave)).thenReturn(expected);
+        when(trainingTypeRepository.findByTypeName("BOXING")).thenReturn(Optional.of(specialization));
         when(trainerRepository.findById(1L)).thenReturn(Optional.of(existing));
+        when(trainerMapper.toEntity(request, specialization, existing.getUsername(), existing.getPassword()))
+                .thenReturn(entityToSave);
         when(trainerRepository.save(entityToSave)).thenReturn(entityToSave);
+        when(trainerMapper.toResponse(entityToSave)).thenReturn(expected);
 
-        TrainerDto actual = trainerService.updateTrainer(auth, request);
+        Trainer actual = trainerService.updateTrainer(auth, request);
 
         assertThat(actual).usingRecursiveComparison().isEqualTo(expected);
-        verify(trainerRepository, times(1)).findById(1L);
-        verify(trainerRepository, times(1)).save(entityToSave);
         verify(authenticationService, times(1)).requireAuthenticated(auth);
+        verify(trainingTypeRepository, times(1)).findByTypeName("BOXING");
+        verify(trainerRepository, times(1)).findById(1L);
+        verify(trainerMapper, times(1))
+                .toEntity(request, specialization, existing.getUsername(), existing.getPassword());
+        verify(trainerRepository, times(1)).save(entityToSave);
     }
 
     @Test
     void shouldGetTrainerById() {
         TrainerEntity trainer = TestDataFactory.trainerWithId(1L, "John.Smith");
-        TrainerDto expected = TestDataFactory.trainerDtoWithCredentials(1L, "John.Smith");
+        Trainer expected = TestDataFactory.trainerResponse(1L, "John.Smith");
         when(trainerRepository.findById(1L)).thenReturn(Optional.of(trainer));
-        when(trainerMapper.toDto(trainer)).thenReturn(expected);
+        when(trainerMapper.toResponse(trainer)).thenReturn(expected);
 
-        TrainerDto actual = trainerService.getTrainer(1L);
+        Trainer actual = trainerService.getTrainer(1L);
 
         assertThat(actual).usingRecursiveComparison().isEqualTo(expected);
         verify(trainerRepository, times(1)).findById(1L);
@@ -158,6 +178,7 @@ class TrainerServiceTest {
                 .hasMessageContaining("inactive");
 
         verify(trainerRepository, times(1)).findById(2L);
+        verify(trainerMapper, never()).toResponse(trainer);
     }
 
     @Test
@@ -165,16 +186,15 @@ class TrainerServiceTest {
         TrainerEntity active = TestDataFactory.trainerWithId(1L, "Active.Trainer");
         TrainerEntity inactive = TestDataFactory.trainerWithId(2L, "Inactive.Trainer");
         inactive.setActive(false);
-        TrainerDto activeDto = TestDataFactory.trainerDtoWithCredentials(1L, "Active.Trainer");
+        Trainer activeResponse = TestDataFactory.trainerResponse(1L, "Active.Trainer");
         when(trainerRepository.findAll()).thenReturn(Stream.of(active, inactive));
-        when(trainerMapper.toDto(active)).thenReturn(activeDto);
+        when(trainerMapper.toResponse(active)).thenReturn(activeResponse);
 
-        List<TrainerDto> actual = trainerService.getAllTrainers();
-        List<TrainerDto> expected = List.of(activeDto);
+        List<Trainer> actual = trainerService.getAllTrainers();
 
         assertThat(actual)
                 .usingRecursiveFieldByFieldElementComparator()
-                .containsExactlyElementsOf(expected);
+                .containsExactly(activeResponse);
         verify(trainerRepository, times(1)).findAll();
     }
 
@@ -188,8 +208,9 @@ class TrainerServiceTest {
                 .isInstanceOf(InvalidOperationException.class)
                 .hasMessageContaining("inactive");
 
-        verify(trainerRepository, times(1)).findByUsername("Inactive.Trainer");
         verify(authenticationService, times(1)).requireAuthenticated(auth);
+        verify(trainerRepository, times(1)).findByUsername("Inactive.Trainer");
+        verify(trainerMapper, never()).toResponse(trainer);
     }
 
     @Test
@@ -208,11 +229,11 @@ class TrainerServiceTest {
     @Test
     void shouldGetTrainerByUsernameWhenAuthenticated() {
         TrainerEntity trainer = TestDataFactory.trainerWithId(1L, "John.Smith");
-        TrainerDto expected = TestDataFactory.trainerDtoWithCredentials(1L, "John.Smith");
+        Trainer expected = TestDataFactory.trainerResponse(1L, "John.Smith");
         when(trainerRepository.findByUsername("John.Smith")).thenReturn(Optional.of(trainer));
-        when(trainerMapper.toDto(trainer)).thenReturn(expected);
+        when(trainerMapper.toResponse(trainer)).thenReturn(expected);
 
-        TrainerDto actual = trainerService.getTrainerByUsername(auth, "John.Smith");
+        Trainer actual = trainerService.getTrainerByUsername(auth, "John.Smith");
 
         assertThat(actual).usingRecursiveComparison().isEqualTo(expected);
         verify(authenticationService, times(1)).requireAuthenticated(auth);
@@ -221,7 +242,7 @@ class TrainerServiceTest {
 
     @Test
     void shouldRejectUnauthenticatedUpdateTrainer() {
-        TrainerDto request = TestDataFactory.trainerDtoWithCredentials(1L, "John.Smith");
+        UpdateTrainerRequest request = TestDataFactory.updateTrainerRequest(1L, "YOGA");
         doThrow(new AuthenticationException("Invalid credentials for username: John.Smith"))
                 .when(authenticationService)
                 .requireAuthenticated(auth);
@@ -231,7 +252,7 @@ class TrainerServiceTest {
 
         verify(authenticationService, times(1)).requireAuthenticated(auth);
         verify(trainerRepository, never()).findById(1L);
-        verify(trainerRepository, never()).save(org.mockito.ArgumentMatchers.any());
+        verify(trainerRepository, never()).save(any());
     }
 
     @Test
@@ -300,6 +321,7 @@ class TrainerServiceTest {
                 .hasMessageContaining("inactive");
 
         verify(trainerRepository, times(1)).findById(2L);
+        verify(trainerMapper, never()).toResponse(trainer);
     }
 
     @Test
@@ -314,42 +336,20 @@ class TrainerServiceTest {
                 .hasMessageContaining("specialization");
 
         verify(trainerRepository, times(1)).findById(2L);
-        verify(trainerMapper, never()).toDto(trainer);
+        verify(trainerMapper, never()).toResponse(trainer);
     }
 
     @Test
     void shouldReturnActiveTrainerMatchingSpecialization() {
         TrainerEntity trainer = TestDataFactory.trainerWithId(2L, "John.Smith");
-        TrainerDto expected = TestDataFactory.trainerDtoWithCredentials(2L, "John.Smith");
+        Trainer expected = TestDataFactory.trainerResponse(2L, "John.Smith");
         when(trainerRepository.findById(2L)).thenReturn(Optional.of(trainer));
-        when(trainerMapper.toDto(trainer)).thenReturn(expected);
+        when(trainerMapper.toResponse(trainer)).thenReturn(expected);
 
-        TrainerDto actual = trainerService.getActiveTrainerForSpecialization(2L, "YOGA");
+        Trainer actual = trainerService.getActiveTrainerForSpecialization(2L, "YOGA");
 
         assertThat(actual).usingRecursiveComparison().isEqualTo(expected);
         verify(trainerRepository, times(1)).findById(2L);
-    }
-
-    @Test
-    void shouldFindActiveTrainerBySpecialization() {
-        TrainerEntity active = TestDataFactory.trainerWithId(5L, "John.Smith");
-        TrainerDto expected = TestDataFactory.trainerDtoWithCredentials(5L, "John.Smith");
-        when(trainerRepository.findActiveBySpecialization("YOGA")).thenReturn(Optional.of(active));
-        when(trainerMapper.toDto(active)).thenReturn(expected);
-
-        TrainerDto actual = trainerService.findActiveBySpecialization("YOGA");
-
-        assertThat(actual).usingRecursiveComparison().isEqualTo(expected);
-        verify(trainerRepository, times(1)).findActiveBySpecialization("YOGA");
-    }
-
-    @Test
-    void shouldThrowWhenNoActiveTrainerForSpecialization() {
-        when(trainerRepository.findActiveBySpecialization("YOGA")).thenReturn(Optional.empty());
-
-        assertThatThrownBy(() -> trainerService.findActiveBySpecialization("YOGA"))
-                .isInstanceOf(EntityNotFoundException.class);
-
-        verify(trainerRepository, times(1)).findActiveBySpecialization("YOGA");
+        verify(trainerMapper, times(1)).toResponse(trainer);
     }
 }

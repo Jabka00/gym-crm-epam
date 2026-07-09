@@ -2,6 +2,7 @@ package com.epam.gymcrm.service;
 
 import com.epam.gymcrm.dto.request.CreateTraineeRequest;
 import com.epam.gymcrm.dto.request.UpdateTraineeRequest;
+import com.epam.gymcrm.dto.request.UserInfo;
 import com.epam.gymcrm.dto.response.Trainee;
 import com.epam.gymcrm.dto.response.Trainer;
 import com.epam.gymcrm.entity.TraineeEntity;
@@ -28,6 +29,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Stream;
+
+import java.time.LocalDate;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -76,8 +79,7 @@ class TraineeServiceTest {
 
     @Test
     void shouldRejectCreateWithBlankFirstName() {
-        CreateTraineeRequest request = TestDataFactory.createTraineeRequest();
-        request.setFirstName("");
+        CreateTraineeRequest request = TestDataFactory.createTraineeRequest("", "Doe");
 
         assertThatThrownBy(() -> traineeService.createTrainee(request))
                 .isInstanceOf(IllegalArgumentException.class)
@@ -111,11 +113,12 @@ class TraineeServiceTest {
         CreateTraineeRequest request = TestDataFactory.createTraineeRequest();
         TraineeEntity mappedEntity = TestDataFactory.createDefaultTrainee();
         TraineeEntity created = TestDataFactory.traineeWithId(1L, "Jane.Doe");
-        Trainee expected = TestDataFactory.traineeResponse(1L, "Jane.Doe");
-        expected.setFirstName("Jane");
-        expected.setLastName("Doe");
-        expected.setDateOfBirth(request.getDateOfBirth());
-        expected.setAddress(request.getAddress());
+        Trainee expected = new Trainee(
+                1L,
+                "Jane Doe",
+                "Jane.Doe",
+                LocalDate.of(1998, 5, 20),
+                "Kyiv");
 
         when(traineeMapper.toEntity(request)).thenReturn(mappedEntity);
         when(traineeRepository.save(mappedEntity)).thenReturn(created);
@@ -132,13 +135,21 @@ class TraineeServiceTest {
 
     @Test
     void shouldUpdateTrainee() {
-        UpdateTraineeRequest request = TestDataFactory.updateTraineeRequest(1L);
-        request.setAddress("Odesa");
+        UpdateTraineeRequest request = new UpdateTraineeRequest(
+                1L,
+                new UserInfo("Alice", "Walker"),
+                true,
+                LocalDate.of(1995, 4, 12),
+                "Odesa");
         TraineeEntity existing = TestDataFactory.traineeWithId(1L, "Alice.Walker");
         TraineeEntity entityToSave = TestDataFactory.traineeWithId(1L, "Alice.Walker");
         entityToSave.setAddress("Odesa");
-        Trainee expected = TestDataFactory.traineeResponse(1L, "Alice.Walker");
-        expected.setAddress("Odesa");
+        Trainee expected = new Trainee(
+                1L,
+                "Alice Walker",
+                "Alice.Walker",
+                LocalDate.of(1995, 4, 12),
+                "Odesa");
 
         when(traineeRepository.findById(1L)).thenReturn(Optional.of(existing));
         when(traineeMapper.toEntity(request, existing.getUsername(), existing.getPassword()))

@@ -1,14 +1,12 @@
 package com.epam.gymcrm.support;
 
-import com.epam.gymcrm.dto.TraineeDto;
-import com.epam.gymcrm.dto.TrainerDto;
-import com.epam.gymcrm.dto.TrainingDto;
-import com.epam.gymcrm.dto.TrainingTypeDto;
 import com.epam.gymcrm.dto.request.AutoScheduleTrainingRequest;
 import com.epam.gymcrm.dto.request.CreateTraineeRequest;
 import com.epam.gymcrm.dto.request.CreateTrainerRequest;
 import com.epam.gymcrm.dto.request.ScheduleTrainingRequest;
 import com.epam.gymcrm.dto.request.UpdateTraineeRequest;
+import com.epam.gymcrm.dto.request.UpdateTrainerRequest;
+import com.epam.gymcrm.dto.request.UserInfo;
 import com.epam.gymcrm.dto.response.Trainee;
 import com.epam.gymcrm.dto.response.Trainer;
 import com.epam.gymcrm.dto.response.Training;
@@ -25,10 +23,6 @@ import java.time.LocalDate;
 public final class TestDataFactory {
 
     private TestDataFactory() {
-    }
-
-    public static TrainingTypeDto yogaTypeDto() {
-        return TrainingTypeDto.builder().id(1L).typeName("YOGA").build();
     }
 
     public static TrainingTypeEntity trainingType(String typeName) {
@@ -151,78 +145,52 @@ public final class TestDataFactory {
         return trainee;
     }
 
-    public static TraineeDto traineeDto() {
-        return TraineeDto.builder()
-                .firstName("Jane")
-                .lastName("Doe")
-                .dateOfBirth(LocalDate.of(1998, 5, 20))
-                .address("Kyiv")
-                .build();
-    }
-
-    public static TraineeDto traineeDtoWithCredentials(long id, String username) {
-        return TraineeDto.builder()
-                .id(id)
-                .firstName("Alice")
-                .lastName("Walker")
-                .username(username)
-                .password("secret1234")
-                .active(true)
-                .dateOfBirth(LocalDate.of(1995, 4, 12))
-                .address("Kyiv")
-                .build();
-    }
-
     public static CreateTraineeRequest createTraineeRequest() {
-        CreateTraineeRequest request = new CreateTraineeRequest();
-        request.setFirstName("Jane");
-        request.setLastName("Doe");
-        request.setDateOfBirth(LocalDate.of(1998, 5, 20));
-        request.setAddress("Kyiv");
-        return request;
+        return new CreateTraineeRequest(
+                new UserInfo("Jane", "Doe"),
+                LocalDate.of(1998, 5, 20),
+                "Kyiv");
+    }
+
+    public static CreateTraineeRequest createTraineeRequest(String firstName, String lastName) {
+        return new CreateTraineeRequest(
+                new UserInfo(firstName, lastName),
+                LocalDate.of(1998, 5, 20),
+                "Kyiv");
     }
 
     public static UpdateTraineeRequest updateTraineeRequest(long id) {
-        UpdateTraineeRequest request = new UpdateTraineeRequest();
-        request.setId(id);
-        request.setFirstName("Alice");
-        request.setLastName("Walker");
-        request.setActive(true);
-        request.setDateOfBirth(LocalDate.of(1995, 4, 12));
-        request.setAddress("Kyiv");
-        return request;
+        return new UpdateTraineeRequest(
+                id,
+                new UserInfo("Alice", "Walker"),
+                true,
+                LocalDate.of(1995, 4, 12),
+                "Kyiv");
     }
 
     public static Trainee traineeResponse(long id, String username) {
-        Trainee trainee = new Trainee();
-        trainee.setId(id);
-        trainee.setFirstName("Alice");
-        trainee.setLastName("Walker");
-        trainee.setUsername(username);
-        trainee.setPassword("secret1234");
-        trainee.setActive(true);
-        trainee.setDateOfBirth(LocalDate.of(1995, 4, 12));
-        trainee.setAddress("Kyiv");
-        return trainee;
+        return new Trainee(
+                id,
+                "Alice Walker",
+                username,
+                LocalDate.of(1995, 4, 12),
+                "Kyiv");
     }
 
     public static Trainer trainerResponse(long id, String username) {
-        Trainer trainer = new Trainer();
-        trainer.setId(id);
-        trainer.setFirstName("John");
-        trainer.setLastName("Smith");
-        trainer.setUsername(username);
-        trainer.setPassword("secret1234");
-        trainer.setActive(true);
-        return trainer;
+        return new Trainer(
+                id,
+                "John Smith",
+                username,
+                trainingTypeResponse(1L, "YOGA"));
     }
 
     public static CreateTrainerRequest createTrainerRequest(String specialization) {
-        CreateTrainerRequest request = new CreateTrainerRequest();
-        request.setFirstName("John");
-        request.setLastName("Smith");
-        request.setSpecialization(specialization);
-        return request;
+        return new CreateTrainerRequest(new UserInfo("John", "Smith"), specialization);
+    }
+
+    public static UpdateTrainerRequest updateTrainerRequest(long id, String specialization) {
+        return new UpdateTrainerRequest(id, new UserInfo("John", "Smith"), true, specialization);
     }
 
     public static TrainingType trainingTypeResponse(long id, String typeName) {
@@ -270,35 +238,23 @@ public final class TestDataFactory {
         );
     }
 
-    public static TrainerDto trainerDto() {
-        return TrainerDto.builder()
-                .firstName("John")
-                .lastName("Smith")
-                .specialization(yogaTypeDto())
-                .build();
+    public static ScheduleTrainingRequest scheduleTrainingRequestWithoutName(long traineeId, long trainerId) {
+        return new ScheduleTrainingRequest(
+                traineeId,
+                trainerId,
+                null,
+                "YOGA",
+                LocalDate.of(2024, 3, 1),
+                Duration.ofMinutes(60));
     }
 
-    public static TrainerDto trainerDtoWithCredentials(long id, String username) {
-        return TrainerDto.builder()
-                .id(id)
-                .firstName("John")
-                .lastName("Smith")
-                .username(username)
-                .password("secret1234")
-                .active(true)
-                .specialization(yogaTypeDto())
-                .build();
-    }
-
-    public static TrainingDto trainingDto(long traineeId, long trainerId) {
-        return TrainingDto.builder()
-                .trainee(TraineeDto.builder().id(traineeId).build())
-                .trainer(TrainerDto.builder().id(trainerId).build())
-                .trainingName("Morning Yoga")
-                .trainingType(yogaTypeDto())
-                .trainingDate(LocalDate.of(2024, 3, 1))
-                .durationMinutes(60)
-                .build();
+    public static UpdateTraineeRequest updateTraineeRequestWithoutId() {
+        return new UpdateTraineeRequest(
+                null,
+                new UserInfo("Jane", "Doe"),
+                true,
+                LocalDate.of(1998, 5, 20),
+                "Kyiv");
     }
 
     public static TrainingEntity createDefaultTraining(Long traineeId, Long trainerId) {
@@ -331,14 +287,6 @@ public final class TestDataFactory {
 
     public static Credentials credentials(String username, String password) {
         return new Credentials(username, password);
-    }
-
-    public static Credentials credentialsOf(TraineeDto trainee) {
-        return new Credentials(trainee.getUsername(), trainee.getPassword());
-    }
-
-    public static Credentials credentialsOf(TrainerDto trainer) {
-        return new Credentials(trainer.getUsername(), trainer.getPassword());
     }
 
     public static Credentials aliceCredentials() {

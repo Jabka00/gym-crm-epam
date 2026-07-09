@@ -30,6 +30,19 @@ mvn test
 
 Integration tests use the same MySQL instance as the app (`gymdb` on port `3306`). Seed data from `docker/mysql/init/` must be present.
 
+If schema validation fails (for example, `missing column [duration_minutes]`), reset the database volume and recreate it:
+
+```bash
+docker compose down -v
+docker compose up -d
+```
+
+Or apply the migration manually:
+
+```bash
+docker exec -i gym-crm-mysql mysql -ugym_user -pgym_password gymdb < docker/mysql/init/03-migration-duration-minutes.sql
+```
+
 ## Database
 
 MySQL runs in Docker on port `3306`. Schema and seed data are applied on first container start from `docker/mysql/init/`.

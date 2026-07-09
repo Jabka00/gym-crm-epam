@@ -1,8 +1,9 @@
 package com.epam.gymcrm.util;
 
-import com.epam.gymcrm.dto.TraineeDto;
-import com.epam.gymcrm.dto.TrainerDto;
-import com.epam.gymcrm.dto.TrainingDto;
+import com.epam.gymcrm.dto.request.CreateTraineeRequest;
+import com.epam.gymcrm.dto.request.CreateTrainerRequest;
+import com.epam.gymcrm.dto.request.UpdateTraineeRequest;
+import com.epam.gymcrm.dto.request.UserInfo;
 import com.epam.gymcrm.support.TestDataFactory;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -27,7 +28,7 @@ class DtoValidatorTest {
 
     @Test
     void shouldRejectTraineeWithoutFirstName() {
-        TraineeDto dto = TraineeDto.builder().lastName("Doe").build();
+        CreateTraineeRequest dto = TestDataFactory.createTraineeRequest("", "Doe");
 
         assertThatThrownBy(() -> dtoValidator.validate(dto))
                 .isInstanceOf(IllegalArgumentException.class)
@@ -36,7 +37,7 @@ class DtoValidatorTest {
 
     @Test
     void shouldRejectTrainerWithoutSpecialization() {
-        TrainerDto dto = TrainerDto.builder().firstName("John").lastName("Smith").build();
+        CreateTrainerRequest dto = new CreateTrainerRequest(new UserInfo("John", "Smith"), null);
 
         assertThatThrownBy(() -> dtoValidator.validate(dto))
                 .isInstanceOf(IllegalArgumentException.class)
@@ -45,19 +46,17 @@ class DtoValidatorTest {
 
     @Test
     void shouldRejectTrainingWithoutName() {
-        TrainingDto dto = TestDataFactory.trainingDto(1L, 2L);
-        dto.setTrainingName(null);
-
-        assertThatThrownBy(() -> dtoValidator.validate(dto))
+        assertThatThrownBy(() -> dtoValidator.validate(
+                        TestDataFactory.scheduleTrainingRequestWithoutName(1L, 2L)))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("Training name is required");
+                .hasMessageContaining("Name is required");
     }
 
     @Test
     void shouldRejectUpdateWithoutId() {
-        TraineeDto dto = TestDataFactory.traineeDto();
+        UpdateTraineeRequest dto = TestDataFactory.updateTraineeRequestWithoutId();
 
-        assertThatThrownBy(() -> dtoValidator.validateForUpdate(dto, TraineeDto::getId, "Trainee"))
+        assertThatThrownBy(() -> dtoValidator.validateForUpdate(dto, UpdateTraineeRequest::id, "Trainee"))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("Trainee id is required");
     }
