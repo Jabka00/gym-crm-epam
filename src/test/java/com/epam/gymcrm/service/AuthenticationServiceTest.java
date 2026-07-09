@@ -94,4 +94,13 @@ class AuthenticationServiceTest {
 
         verify(userAuthenticationRepository, never()).authenticateTrainer(any(), any());
     }
+
+    @Test
+    void shouldRejectBlankUsernameForAuthentication() {
+        assertThatThrownBy(() -> authenticationService.authenticate("", "secret1234"))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Username cannot be null or empty");
+
+        verify(userAuthenticationRepository, never()).authenticate(any(), any());
+    }
 }

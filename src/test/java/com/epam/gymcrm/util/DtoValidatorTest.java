@@ -2,12 +2,19 @@ package com.epam.gymcrm.util;
 
 import com.epam.gymcrm.dto.request.CreateTraineeRequest;
 import com.epam.gymcrm.dto.request.CreateTrainerRequest;
+import com.epam.gymcrm.dto.request.ScheduleTrainingRequest;
 import com.epam.gymcrm.dto.request.UpdateTraineeRequest;
+import com.epam.gymcrm.dto.request.UpdateTrainerRequest;
 import com.epam.gymcrm.dto.request.UserInfo;
+import com.epam.gymcrm.security.Credentials;
 import com.epam.gymcrm.support.TestDataFactory;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.time.Duration;
+import java.time.LocalDate;
+
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class DtoValidatorTest {
@@ -59,5 +66,57 @@ class DtoValidatorTest {
         assertThatThrownBy(() -> dtoValidator.validateForUpdate(dto, UpdateTraineeRequest::id, "Trainee"))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("Trainee id is required");
+    }
+
+    @Test
+    void shouldAcceptValidCreateTraineeRequest() {
+        assertThatCode(() -> dtoValidator.validate(TestDataFactory.createTraineeRequest()))
+                .doesNotThrowAnyException();
+    }
+
+    @Test
+    void shouldRejectFutureDateOfBirth() {
+        CreateTraineeRequest dto = new CreateTraineeRequest(
+                new UserInfo("Jane", "Doe"),
+                LocalDate.now().plusDays(1),
+                "Kyiv");
+
+        assertThatThrownBy(() -> dtoValidator.validate(dto))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Date of birth must be in the past");
+    }
+
+    @Test
+    void shouldRejectBlankCredentialsUsername() {
+        assertThatThrownBy(() -> dtoValidator.validate(new Credentials("", "secret1234")))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Username cannot be null or empty");
+    }
+
+    @Test
+    void shouldRejectBlankCredentialsPassword() {
+        assertThatThrownBy(() -> dtoValidator.validate(new Credentials("Alice.Walker", "")))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Password cannot be null or empty");
+    }
+
+    @Test
+    void shouldRejectTrainingWithTooShortDuration() {
+        ScheduleTrainingRequest dto = new ScheduleTrainingRequest(
+                1L, 2L, "Morning Yoga", "YOGA", LocalDate.of(2024, 3, 1), Duration.ofSeconds(30));
+
+        assertThatThrownBy(() -> dtoValidator.validate(dto))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Duration must be at least 1 minute");
+    }
+
+    @Test
+    void shouldRejectTrainerUpdateWithoutId() {
+        UpdateTrainerRequest dto = new UpdateTrainerRequest(
+                null, new UserInfo("John", "Smith"), true, "YOGA");
+
+        assertThatThrownBy(() -> dtoValidator.validateForUpdate(dto, UpdateTrainerRequest::id, "Trainer"))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Trainer id is required");
     }
 }

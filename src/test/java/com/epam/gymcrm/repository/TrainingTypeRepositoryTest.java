@@ -1,6 +1,9 @@
 package com.epam.gymcrm.repository;
 
+import com.epam.gymcrm.dto.response.TrainingType;
 import com.epam.gymcrm.entity.TrainingTypeEntity;
+import com.epam.gymcrm.exception.EntityNotFoundException;
+import com.epam.gymcrm.service.TrainingTypeService;
 import com.epam.gymcrm.support.MySqlIntegrationTest;
 import com.epam.gymcrm.support.TestDataFactory;
 import org.junit.jupiter.api.Test;
@@ -9,12 +12,16 @@ import org.springframework.beans.factory.annotation.Autowired;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @MySqlIntegrationTest
 class TrainingTypeRepositoryTest {
 
     @Autowired
     private TrainingTypeRepository trainingTypeRepository;
+
+    @Autowired
+    private TrainingTypeService trainingTypeService;
 
     @Test
     void shouldFindById() {
@@ -56,5 +63,19 @@ class TrainingTypeRepositoryTest {
     void shouldReturnEmptyWhenNotFound() {
         assertThat(trainingTypeRepository.findById(99L)).isEmpty();
         assertThat(trainingTypeRepository.findByTypeName("UNKNOWN")).isEmpty();
+    }
+
+    @Test
+    void shouldReturnTrainingTypeByNameThroughService() {
+        TrainingType actual = trainingTypeService.getTrainingTypeByName("BOXING");
+
+        assertThat(actual).isEqualTo(TestDataFactory.trainingTypeResponse(3L, "BOXING"));
+    }
+
+    @Test
+    void shouldThrowWhenTrainingTypeMissingInService() {
+        assertThatThrownBy(() -> trainingTypeService.getTrainingTypeByName("UNKNOWN"))
+                .isInstanceOf(EntityNotFoundException.class)
+                .hasMessage("Training type not found: UNKNOWN");
     }
 }

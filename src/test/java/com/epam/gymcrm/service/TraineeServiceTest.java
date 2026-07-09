@@ -15,6 +15,7 @@ import com.epam.gymcrm.mapper.TrainerMapper;
 import com.epam.gymcrm.repository.TraineeRepository;
 import com.epam.gymcrm.repository.TrainerRepository;
 import com.epam.gymcrm.security.Credentials;
+import com.epam.gymcrm.service.UserCredentialService;
 import com.epam.gymcrm.support.TestDataFactory;
 import com.epam.gymcrm.util.DtoValidator;
 import org.junit.jupiter.api.BeforeEach;
@@ -410,5 +411,123 @@ class TraineeServiceTest {
 
         verify(authenticationService, times(1)).requireAuthenticated(auth);
         verify(userService, times(1)).changePassword("Alice.Walker", "wrong", "NewPass1!");
+    }
+
+    @Test
+    void shouldThrowWhenDeletingMissingTrainee() {
+        when(traineeRepository.findByUsername("Missing.User")).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> traineeService.deleteTraineeByUsername(auth, "Missing.User"))
+                .isInstanceOf(EntityNotFoundException.class);
+
+        verify(traineeRepository, never()).deleteByUsername("Missing.User");
+    }
+
+    @Test
+    void shouldRejectBlankUsernameOnDelete() {
+        assertThatThrownBy(() -> traineeService.deleteTraineeByUsername(auth, " "))
+                .isInstanceOf(IllegalArgumentException.class);
+
+        verify(traineeRepository, never()).findByUsername(any());
+    }
+
+    @Test
+    void shouldThrowWhenUpdatingTrainersListForMissingTrainee() {
+        when(traineeRepository.findByUsername("Missing.User")).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> traineeService.updateTrainersList(auth, "Missing.User", Set.of("John.Smith")))
+                .isInstanceOf(EntityNotFoundException.class);
+    }
+
+    @Test
+    void shouldThrowWhenTrainerMissingInUpdateTrainersList() {
+        TraineeEntity trainee = TestDataFactory.traineeWithId(1L, "Alice.Walker");
+        when(traineeRepository.findByUsername("Alice.Walker")).thenReturn(Optional.of(trainee));
+        when(trainerRepository.findByUsernames(Set.of("Missing.Trainer"))).thenReturn(List.of());
+
+        assertThatThrownBy(() -> traineeService.updateTrainersList(auth, "Alice.Walker", Set.of("Missing.Trainer")))
+                .isInstanceOf(EntityNotFoundException.class);
+    }
+
+    @Test
+    void shouldRejectInactiveTrainerInUpdateTrainersList() {
+        TraineeEntity trainee = TestDataFactory.traineeWithId(1L, "Alice.Walker");
+        TrainerEntity inactiveTrainer = TestDataFactory.trainerWithId(2L, "John.Smith");
+        inactiveTrainer.setActive(false);
+        when(traineeRepository.findByUsername("Alice.Walker")).thenReturn(Optional.of(trainee));
+        when(trainerRepository.findByUsernames(Set.of("John.Smith"))).thenReturn(List.of(inactiveTrainer));
+
+        assertThatThrownBy(() -> traineeService.updateTrainersList(auth, "Alice.Walker", Set.of("John.Smith")))
+                .isInstanceOf(InvalidOperationException.class)
+                .hasMessageContaining("inactive");
+    }
+
+    @Test
+    void shouldRejectNullTrainerSetInUpdateTrainersList() {
+        assertThatThrownBy(() -> traineeService.updateTrainersList(auth, "Alice.Walker", null))
+                .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    void shouldThrowWhenTraineeNotFoundByUsername() {
+        when(traineeRepository.findByUsername("Missing.User")).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> traineeService.getTraineeByUsername(auth, "Missing.User"))
+                .isInstanceOf(EntityNotFoundException.class);
+
+        verify(authenticationService, times(1)).requireAuthenticated(auth);
+    }
+
+
+    @Test
+    void traineeMapperShouldMapEntityToResponse() {
+        TraineeMapper mapper = new TraineeMapper(org.mockito.Mockito.mock(UserCredentialService.class));
+        TraineeEntity entity = TestDataFactory.traineeWithId(5L, "Jane.Doe");
+        entity.setFirstName("Jane");
+        entity.setLastName("Doe");
+        entity.setDateOfBirth(LocalDate.of(1998, 5, 20));
+        entity.setAddress("Kyiv");
+
+        Trainee actual = mapper.toResponse(entity);
+
+        assertThat(actual.userId()).isEqualTo(5L);
+        assertThat(actual.fullName()).isEqualTo("Jane Doe");
+        assertThat(actual.username()).isEqualTo("Jane.Doe");
+        assertThat(actual.dateOfBirth()).isEqualTo(LocalDate.of(1998, 5, 20));
+        assertThat(actual.address()).isEqualTo("Kyiv");
+    }
+
+    @Test
+    void traineeMapperShouldMapCreateRequestToEntity() {
+        UserCredentialService credentialService = org.mockito.Mockito.mock(UserCredentialService.class);
+        when(credentialService.generateUniqueUsername("Jane", "Doe")).thenReturn("Jane.Doe");
+        when(credentialService.generatePassword()).thenReturn("Pass1234");
+        TraineeMapper mapper = new TraineeMapper(credentialService);
+        CreateTraineeRequest request = TestDataFactory.createTraineeRequest("Jane", "Doe");
+
+        TraineeEntity actual = mapper.toEntity(request);
+
+        assertThat(actual.getFirstName()).isEqualTo("Jane");
+        assertThat(actual.getLastName()).isEqualTo("Doe");
+        assertThat(actual.getUsername()).isEqualTo("Jane.Doe");
+        assertThat(actual.getPassword()).isEqualTo("Pass1234");
+        assertThat(actual.isActive()).isTrue();
+        assertThat(actual.getDateOfBirth()).isEqualTo(LocalDate.of(1998, 5, 20));
+        assertThat(actual.getAddress()).isEqualTo("Kyiv");
+    }
+
+    @Test
+    void traineeMapperShouldMapUpdateRequestToEntity() {
+        TraineeMapper mapper = new TraineeMapper(org.mockito.Mockito.mock(UserCredentialService.class));
+        UpdateTraineeRequest request = new UpdateTraineeRequest(
+                3L, new UserInfo("Jane", "Updated"), false, LocalDate.of(1990, 1, 1), "Lviv");
+
+        TraineeEntity actual = mapper.toEntity(request, "Jane.Doe", "storedPass");
+
+        assertThat(actual.getId()).isEqualTo(3L);
+        assertThat(actual.getUsername()).isEqualTo("Jane.Doe");
+        assertThat(actual.getPassword()).isEqualTo("storedPass");
+        assertThat(actual.isActive()).isFalse();
+        assertThat(actual.getAddress()).isEqualTo("Lviv");
     }
 }

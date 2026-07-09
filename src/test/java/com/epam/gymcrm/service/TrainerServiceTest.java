@@ -352,4 +352,92 @@ class TrainerServiceTest {
         verify(trainerRepository, times(1)).findById(2L);
         verify(trainerMapper, times(1)).toResponse(trainer);
     }
+
+    @Test
+    void shouldThrowWhenTrainerNotFoundById() {
+        when(trainerRepository.findById(99L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> trainerService.getTrainer(99L))
+                .isInstanceOf(EntityNotFoundException.class);
+    }
+
+    @Test
+    void shouldThrowWhenTrainerNotFoundByUsername() {
+        when(trainerRepository.findByUsername("Missing.Trainer")).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> trainerService.getTrainerByUsername(auth, "Missing.Trainer"))
+                .isInstanceOf(EntityNotFoundException.class);
+    }
+
+    @Test
+    void shouldThrowWhenTrainingTypeNotFoundOnCreate() {
+        CreateTrainerRequest request = TestDataFactory.createTrainerRequest("UNKNOWN");
+        when(trainingTypeRepository.findByTypeName("UNKNOWN")).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> trainerService.createTrainer(request))
+                .isInstanceOf(EntityNotFoundException.class);
+
+        verify(trainerRepository, never()).save(any());
+    }
+
+    @Test
+    void shouldThrowWhenTrainerNotFoundOnUpdate() {
+        UpdateTrainerRequest request = TestDataFactory.updateTrainerRequest(99L, "YOGA");
+        when(trainerRepository.findById(99L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> trainerService.updateTrainer(auth, request))
+                .isInstanceOf(EntityNotFoundException.class);
+    }
+
+    @Test
+    void trainerEntityShouldMatchSpecializationCaseInsensitively() {
+        TrainerEntity trainer = TestDataFactory.trainerWithId(1L, "John.Smith");
+        trainer.setSpecialization(TestDataFactory.trainingType("YOGA"));
+
+        assertThat(trainer.matchesSpecialization("yoga")).isTrue();
+        assertThat(trainer.matchesSpecialization("YOGA")).isTrue();
+        assertThat(trainer.matchesSpecialization("BOXING")).isFalse();
+        assertThat(trainer.matchesSpecialization(null)).isFalse();
+        assertThat(trainer.matchesSpecialization(" ")).isFalse();
+    }
+
+    @Test
+    void trainerMapperShouldMapEntityToResponse() {
+        TrainerMapper mapper = new TrainerMapper(org.mockito.Mockito.mock(UserCredentialService.class));
+        TrainerEntity entity = TestDataFactory.trainerWithId(2L, "John.Smith");
+        entity.setFirstName("John");
+        entity.setLastName("Smith");
+
+        Trainer actual = mapper.toResponse(entity);
+
+        assertThat(actual.userId()).isEqualTo(2L);
+        assertThat(actual.fullName()).isEqualTo("John Smith");
+        assertThat(actual.username()).isEqualTo("John.Smith");
+        assertThat(actual.specialization().typeName()).isEqualTo("YOGA");
+    }
+
+    @Test
+    void trainerMapperShouldMapCreateRequestToEntity() {
+        UserCredentialService credentialService = org.mockito.Mockito.mock(UserCredentialService.class);
+        when(credentialService.generateUniqueUsername("John", "Smith")).thenReturn("John.Smith");
+        when(credentialService.generatePassword()).thenReturn("Pass1234");
+        TrainerMapper mapper = new TrainerMapper(credentialService);
+        CreateTrainerRequest request = TestDataFactory.createTrainerRequest("YOGA");
+        TrainingTypeEntity specialization = TestDataFactory.yogaTypeEntity();
+
+        TrainerEntity actual = mapper.toEntity(request, specialization);
+
+        assertThat(actual.getUsername()).isEqualTo("John.Smith");
+        assertThat(actual.getPassword()).isEqualTo("Pass1234");
+        assertThat(actual.isActive()).isTrue();
+        assertThat(actual.getSpecialization()).isEqualTo(specialization);
+    }
+
+    @Test
+    void trainerMapperShouldMapTrainingTypeEntityToResponse() {
+        TrainerMapper mapper = new TrainerMapper(org.mockito.Mockito.mock(UserCredentialService.class));
+
+        assertThat(mapper.toTrainingTypeResponse(TestDataFactory.yogaTypeEntity()))
+                .isEqualTo(TestDataFactory.trainingTypeResponse(1L, "YOGA"));
+    }
 }

@@ -2,6 +2,7 @@ package com.epam.gymcrm.repository;
 
 import com.epam.gymcrm.entity.TraineeEntity;
 import com.epam.gymcrm.entity.TrainingEntity;
+import com.epam.gymcrm.repository.UserAuthenticationRepository;
 import com.epam.gymcrm.support.MySqlIntegrationTest;
 import com.epam.gymcrm.support.TestDataFactory;
 import org.hibernate.SessionFactory;
@@ -21,6 +22,36 @@ class TraineeRepositoryTest {
 
     @Autowired
     private SessionFactory sessionFactory;
+
+    @Autowired
+    private UserAuthenticationRepository userAuthenticationRepository;
+
+    @Test
+    void shouldAuthenticateSeedTrainee() {
+        assertThat(userAuthenticationRepository.authenticateTrainee("Alice.Walker", "qW3eRt5yUi")).isTrue();
+    }
+
+    @Test
+    void shouldAuthenticateSeedTrainer() {
+        assertThat(userAuthenticationRepository.authenticateTrainer("John.Smith", "pass1234AB")).isTrue();
+    }
+
+    @Test
+    void shouldRejectWrongPasswordForTrainee() {
+        assertThat(userAuthenticationRepository.authenticateTrainee("Alice.Walker", "wrong")).isFalse();
+    }
+
+    @Test
+    void shouldRejectTrainerCredentialsForTraineeAuthentication() {
+        assertThat(userAuthenticationRepository.authenticateTrainee("John.Smith", "pass1234AB")).isFalse();
+    }
+
+    @Test
+    void shouldDeleteByUsernameSilentlyWhenTraineeMissing() {
+        traineeRepository.deleteByUsername("Definitely.Missing.User");
+
+        assertThat(traineeRepository.findByUsername("Definitely.Missing.User")).isEmpty();
+    }
 
     @Test
     void shouldSaveAndFindTraineeById() {

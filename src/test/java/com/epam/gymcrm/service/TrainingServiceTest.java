@@ -8,6 +8,7 @@ import com.epam.gymcrm.entity.TrainingEntity;
 import com.epam.gymcrm.entity.TrainingTypeEntity;
 import com.epam.gymcrm.exception.AuthenticationException;
 import com.epam.gymcrm.exception.EntityNotFoundException;
+import com.epam.gymcrm.mapper.TrainerMapper;
 import com.epam.gymcrm.mapper.TrainingMapper;
 import com.epam.gymcrm.repository.TraineeRepository;
 import com.epam.gymcrm.repository.TrainerRepository;
@@ -310,5 +311,98 @@ class TrainingServiceTest {
         verify(authenticationService, times(1)).requireAuthenticated(auth);
         verify(trainingRepository, never()).findByTrainerUsernameAndCriteria(
                 "John.Smith", null, null, null);
+    }
+
+    @Test
+    void shouldThrowWhenTrainingTypeMissingOnCreate() {
+        ScheduleTrainingRequest request = TestDataFactory.scheduleTrainingRequest(1L, 2L, "UNKNOWN");
+        when(traineeRepository.findById(1L)).thenReturn(Optional.of(TestDataFactory.traineeWithId(1L, "Alice.Walker")));
+        when(trainerRepository.findById(2L)).thenReturn(Optional.of(TestDataFactory.trainerWithId(2L, "John.Smith")));
+        when(trainingTypeRepository.findByTypeName("UNKNOWN")).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> trainingService.createTraining(auth, request))
+                .isInstanceOf(EntityNotFoundException.class);
+
+        verify(trainingRepository, never()).save(any());
+    }
+
+    @Test
+    void shouldRejectBlankTraineeUsernameOnTrainingsLookup() {
+        assertThatThrownBy(() -> trainingService.getTraineeTrainings(auth, " ", null, null, null, null))
+                .isInstanceOf(IllegalArgumentException.class);
+
+        verify(trainingRepository, never()).findByTraineeUsernameAndCriteria(any(), any(), any(), any(), any());
+    }
+
+    @Test
+    void shouldRejectBlankTrainerUsernameOnTrainingsLookup() {
+        assertThatThrownBy(() -> trainingService.getTrainerTrainings(auth, " ", null, null, null))
+                .isInstanceOf(IllegalArgumentException.class);
+
+        verify(trainingRepository, never()).findByTrainerUsernameAndCriteria(any(), any(), any(), any());
+    }
+
+    @Test
+    void shouldThrowWhenDeletingMissingTraining() {
+        when(trainingRepository.findById(99L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> trainingService.deleteTraining(99L))
+                .isInstanceOf(EntityNotFoundException.class);
+
+        verify(trainingRepository, never()).delete(99L);
+    }
+
+    @Test
+    void shouldReturnAllTrainings() {
+        TrainingEntity training = TestDataFactory.trainingWithId(10L, 1L, 2L);
+        Training response = TestDataFactory.trainingResponse(10L);
+        when(trainingRepository.findAll()).thenReturn(java.util.stream.Stream.of(training));
+        when(trainingMapper.toResponse(training)).thenReturn(response);
+
+        assertThat(trainingService.getAllTrainings()).containsExactly(response);
+    }
+
+    @Test
+    void shouldRejectCreateWithDurationShorterThanOneMinute() {
+        ScheduleTrainingRequest request = new ScheduleTrainingRequest(
+                1L, 2L, "Morning Yoga", "YOGA", LocalDate.of(2024, 3, 1), Duration.ofSeconds(30));
+
+        assertThatThrownBy(() -> trainingService.createTraining(auth, request))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Duration must be at least 1 minute");
+    }
+
+    @Test
+    void trainingMapperShouldMapScheduleRequestToEntity() {
+        TrainerMapper trainerMapper = new TrainerMapper(org.mockito.Mockito.mock(UserCredentialService.class));
+        TrainingMapper mapper = new TrainingMapper(trainerMapper);
+        ScheduleTrainingRequest request = TestDataFactory.scheduleTrainingRequest(4L, 1L, "YOGA");
+        TraineeEntity trainee = TestDataFactory.traineeWithId(4L, "Alice.Walker");
+        TrainerEntity trainer = TestDataFactory.trainerWithId(1L, "John.Smith");
+        TrainingTypeEntity type = TestDataFactory.yogaTypeEntity();
+
+        TrainingEntity actual = mapper.toEntity(request, trainee, trainer, type);
+
+        assertThat(actual.getTrainee()).isEqualTo(trainee);
+        assertThat(actual.getTrainer()).isEqualTo(trainer);
+        assertThat(actual.getTrainingName()).isEqualTo("Morning Yoga");
+        assertThat(actual.getTrainingType()).isEqualTo(type);
+        assertThat(actual.getTrainingDate()).isEqualTo(LocalDate.of(2024, 3, 1));
+        assertThat(actual.getDurationMinutes()).isEqualTo(60);
+    }
+
+    @Test
+    void trainingMapperShouldMapEntityToResponse() {
+        TrainerMapper trainerMapper = new TrainerMapper(org.mockito.Mockito.mock(UserCredentialService.class));
+        TrainingMapper mapper = new TrainingMapper(trainerMapper);
+        TrainingEntity entity = TestDataFactory.trainingWithSeedAssociations(10L);
+
+        Training actual = mapper.toResponse(entity);
+
+        assertThat(actual.id()).isEqualTo(10L);
+        assertThat(actual.name()).isEqualTo("Morning Yoga");
+        assertThat(actual.type().typeName()).isEqualTo("YOGA");
+        assertThat(actual.traineeId()).isEqualTo(4L);
+        assertThat(actual.trainerId()).isEqualTo(1L);
     }
 }

@@ -154,4 +154,34 @@ class TrainingRepositoryTest {
 
         assertThat(actual).isEmpty();
     }
+
+    @Test
+    void shouldFilterTraineeTrainingsByTrainerUsernameOnly() {
+        TrainingEntity saved = trainingRepository.save(TestDataFactory.createDefaultTraining(4L, 1L));
+
+        List<TrainingEntity> actual = trainingRepository.findByTraineeUsernameAndCriteria(
+                "Alice.Walker", null, null, "John.Smith", null);
+
+        assertThat(actual).extracting(TrainingEntity::getId).contains(saved.getId());
+    }
+
+    @Test
+    void shouldFilterTraineeTrainingsByTrainingTypeOnly() {
+        TrainingEntity saved = trainingRepository.save(TestDataFactory.createDefaultTraining(4L, 1L));
+
+        List<TrainingEntity> actual = trainingRepository.findByTraineeUsernameAndCriteria(
+                "Alice.Walker", null, null, null, "YOGA");
+
+        assertThat(actual).extracting(TrainingEntity::getId).contains(saved.getId());
+    }
+
+    @Test
+    void shouldFilterTrainerTrainingsByTraineeUsernameOnly() {
+        TrainingEntity saved = trainingRepository.save(TestDataFactory.createDefaultTraining(4L, 1L));
+
+        List<TrainingEntity> actual = trainingRepository.findByTrainerUsernameAndCriteria(
+                "John.Smith", null, null, "Alice.Walker");
+
+        assertThat(actual).extracting(TrainingEntity::getId).contains(saved.getId());
+    }
 }

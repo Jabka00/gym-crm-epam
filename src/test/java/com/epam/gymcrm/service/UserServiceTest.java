@@ -15,6 +15,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.Optional;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -81,5 +82,91 @@ class UserServiceTest {
 
         verify(traineeRepository, times(1)).findByUsername("Missing.User");
         verify(trainerRepository, times(1)).findByUsername("Missing.User");
+    }
+
+    @Test
+    void shouldToggleTraineeActivation() {
+        TraineeEntity trainee = TestDataFactory.traineeWithId(1L, "Alice.Walker");
+        trainee.setActive(true);
+        when(traineeRepository.findByUsername("Alice.Walker")).thenReturn(Optional.of(trainee));
+        when(traineeRepository.save(trainee)).thenReturn(trainee);
+
+        userService.toggleActivation("Alice.Walker");
+
+        assertThat(trainee.isActive()).isFalse();
+        verify(traineeRepository, times(1)).save(trainee);
+    }
+
+    @Test
+    void shouldToggleTrainerActivation() {
+        when(traineeRepository.findByUsername("John.Smith")).thenReturn(Optional.empty());
+        var trainer = TestDataFactory.trainerWithId(2L, "John.Smith");
+        trainer.setActive(true);
+        when(trainerRepository.findByUsername("John.Smith")).thenReturn(Optional.of(trainer));
+        when(trainerRepository.save(trainer)).thenReturn(trainer);
+
+        userService.toggleActivation("John.Smith");
+
+        assertThat(trainer.isActive()).isFalse();
+        verify(trainerRepository, times(1)).save(trainer);
+    }
+
+    @Test
+    void shouldThrowWhenTogglingActivationForMissingUser() {
+        when(traineeRepository.findByUsername("Missing.User")).thenReturn(Optional.empty());
+        when(trainerRepository.findByUsername("Missing.User")).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> userService.toggleActivation("Missing.User"))
+                .isInstanceOf(EntityNotFoundException.class);
+    }
+
+    @Test
+    void shouldRejectBlankUsernameOnToggleActivation() {
+        assertThatThrownBy(() -> userService.toggleActivation(" "))
+                .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    void shouldChangeTrainerPasswordWhenOldPasswordIsValid() {
+        var trainer = TestDataFactory.trainerWithId(2L, "John.Smith");
+        when(authenticationService.authenticate("John.Smith", "secret1234")).thenReturn(true);
+        when(traineeRepository.findByUsername("John.Smith")).thenReturn(Optional.empty());
+        when(trainerRepository.findByUsername("John.Smith")).thenReturn(Optional.of(trainer));
+        when(trainerRepository.save(trainer)).thenReturn(trainer);
+
+        userService.changePassword("John.Smith", "secret1234", "NewPass1!");
+
+        verify(trainerRepository, times(1)).save(trainer);
+    }
+
+    @Test
+    void shouldRejectNullPassword() {
+        PasswordValidator passwordValidator = new PasswordValidator(
+                "^(?=.*[A-Z])(?=.*[a-z])(?=.*\\d).{8,}$",
+                "Password must be at least 8 characters and contain uppercase, lowercase, and digit");
+
+        assertThatThrownBy(() -> passwordValidator.validate(null))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Password cannot be null");
+    }
+
+    @Test
+    void shouldRejectWeakPassword() {
+        PasswordValidator passwordValidator = new PasswordValidator(
+                "^(?=.*[A-Z])(?=.*[a-z])(?=.*\\d).{8,}$",
+                "Password must be at least 8 characters and contain uppercase, lowercase, and digit");
+
+        assertThatThrownBy(() -> passwordValidator.validate("weak"))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Password must be at least 8 characters and contain uppercase, lowercase, and digit");
+    }
+
+    @Test
+    void shouldAcceptValidPassword() {
+        PasswordValidator passwordValidator = new PasswordValidator(
+                "^(?=.*[A-Z])(?=.*[a-z])(?=.*\\d).{8,}$",
+                "Password must be at least 8 characters and contain uppercase, lowercase, and digit");
+
+        passwordValidator.validate("ValidPass1");
     }
 }

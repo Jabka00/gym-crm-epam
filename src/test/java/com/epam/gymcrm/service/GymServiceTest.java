@@ -181,4 +181,18 @@ class GymServiceTest {
 
         verify(traineeService, times(1)).deleteTraineeByUsername(auth, "Alice.Walker");
     }
+
+    @Test
+    void shouldRejectUnauthenticatedAutoSchedule() {
+        AutoScheduleTrainingRequest request = TestDataFactory.autoScheduleTrainingRequest(1L, "YOGA");
+        doThrow(new AuthenticationException("Invalid credentials for username: Alice.Walker"))
+                .when(authenticationService)
+                .requireAuthenticated(auth);
+
+        assertThatThrownBy(() -> gymService.autoScheduleTraining(auth, request))
+                .isInstanceOf(AuthenticationException.class);
+
+        verifyNoInteractions(traineeService, trainerRepository, trainingService);
+    }
+
 }
