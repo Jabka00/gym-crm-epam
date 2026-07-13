@@ -1,5 +1,7 @@
 package com.epam.gymcrm.repository;
 
+import com.epam.gymcrm.model.TrainingType;
+
 import com.epam.gymcrm.entity.TrainingEntity;
 import com.epam.gymcrm.support.MySqlIntegrationTest;
 import com.epam.gymcrm.support.TestDataFactory;
@@ -94,7 +96,7 @@ class TrainingRepositoryTest {
                 LocalDate.of(2024, 1, 1),
                 LocalDate.of(2024, 12, 31),
                 "John.Smith",
-                "YOGA");
+                TrainingType.YOGA);
 
         assertThat(actual)
                 .extracting(TrainingEntity::getId)
@@ -170,7 +172,7 @@ class TrainingRepositoryTest {
         TrainingEntity saved = trainingRepository.save(TestDataFactory.createDefaultTraining(4L, 1L));
 
         List<TrainingEntity> actual = trainingRepository.findByTraineeUsernameAndCriteria(
-                "Alice.Walker", null, null, null, "YOGA");
+                "Alice.Walker", null, null, null, TrainingType.YOGA);
 
         assertThat(actual).extracting(TrainingEntity::getId).contains(saved.getId());
     }

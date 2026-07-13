@@ -1,5 +1,7 @@
 package com.epam.gymcrm.util;
 
+import com.epam.gymcrm.model.TrainingType;
+
 import com.epam.gymcrm.dto.request.CreateTraineeRequest;
 import com.epam.gymcrm.dto.request.CreateTrainerRequest;
 import com.epam.gymcrm.dto.request.ScheduleTrainingRequest;
@@ -103,7 +105,7 @@ class DtoValidatorTest {
     @Test
     void shouldRejectTrainingWithTooShortDuration() {
         ScheduleTrainingRequest dto = new ScheduleTrainingRequest(
-                1L, 2L, "Morning Yoga", "YOGA", LocalDate.of(2024, 3, 1), Duration.ofSeconds(30));
+                1L, 2L, "Morning Yoga", TrainingType.YOGA, LocalDate.of(2024, 3, 1), Duration.ofSeconds(30));
 
         assertThatThrownBy(() -> dtoValidator.validate(dto))
                 .isInstanceOf(IllegalArgumentException.class)
@@ -113,7 +115,7 @@ class DtoValidatorTest {
     @Test
     void shouldRejectTrainerUpdateWithoutId() {
         UpdateTrainerRequest dto = new UpdateTrainerRequest(
-                null, new UserInfo("John", "Smith"), true, "YOGA");
+                null, new UserInfo("John", "Smith"), true, TrainingType.YOGA);
 
         assertThatThrownBy(() -> dtoValidator.validateForUpdate(dto, UpdateTrainerRequest::id, "Trainer"))
                 .isInstanceOf(IllegalArgumentException.class)

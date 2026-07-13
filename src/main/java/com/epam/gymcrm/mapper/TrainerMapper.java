@@ -7,6 +7,7 @@ import com.epam.gymcrm.dto.response.TrainingTypeResponse;
 import com.epam.gymcrm.entity.TrainerEntity;
 import com.epam.gymcrm.entity.TrainingTypeEntity;
 import com.epam.gymcrm.entity.UserEntity;
+import com.epam.gymcrm.service.PasswordGenerator;
 import com.epam.gymcrm.service.UserCredentialService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -16,6 +17,7 @@ import org.springframework.stereotype.Component;
 public class TrainerMapper {
 
     private final UserCredentialService userCredentialService;
+    private final PasswordGenerator passwordGenerator;
 
     public Trainer toResponse(TrainerEntity entity) {
         UserEntity user = entity.getUser();
@@ -37,7 +39,7 @@ public class TrainerMapper {
         user.setLastName(request.user().lastName());
         user.setUsername(userCredentialService.generateUniqueUsername(
                 request.user().firstName(), request.user().lastName()));
-        user.setPassword(userCredentialService.generatePassword());
+        user.setPassword(passwordGenerator.generatePassword());
         user.setActive(true);
 
         TrainerEntity entity = new TrainerEntity();

@@ -31,6 +31,17 @@ public class TrainingMapper {
         );
     }
 
+    public ScheduleTrainingRequest toScheduleRequest(AutoScheduleTrainingRequest request, Long trainerId) {
+        return new ScheduleTrainingRequest(
+                request.traineeId(),
+                trainerId,
+                request.name(),
+                request.type(),
+                request.date(),
+                request.duration()
+        );
+    }
+
     public TrainingEntity toEntity(
             ScheduleTrainingRequest request,
             TraineeEntity trainee,

@@ -1,6 +1,7 @@
 package com.epam.gymcrm.repository;
 
-import com.epam.gymcrm.dto.response.TrainingType;
+import com.epam.gymcrm.dto.response.TrainingTypeResponse;
+import com.epam.gymcrm.model.TrainingType;
 import com.epam.gymcrm.entity.TrainingTypeEntity;
 import com.epam.gymcrm.exception.EntityNotFoundException;
 import com.epam.gymcrm.service.TrainingTypeService;
@@ -36,10 +37,10 @@ class TrainingTypeRepositoryTest {
     @Test
     void shouldFindByTypeName() {
         TrainingTypeEntity expected = TestDataFactory.yogaTypeEntity();
-        expected.setTypeName("CROSSFIT");
+        expected.setTypeName(TrainingType.CROSSFIT);
         expected.setId(2L);
 
-        assertThat(trainingTypeRepository.findByTypeName("CROSSFIT"))
+        assertThat(trainingTypeRepository.findByTypeName(TrainingType.CROSSFIT))
                 .get()
                 .usingRecursiveComparison()
                 .isEqualTo(expected);
@@ -62,20 +63,20 @@ class TrainingTypeRepositoryTest {
     @Test
     void shouldReturnEmptyWhenNotFound() {
         assertThat(trainingTypeRepository.findById(99L)).isEmpty();
-        assertThat(trainingTypeRepository.findByTypeName("UNKNOWN")).isEmpty();
+        assertThat(trainingTypeRepository.findByTypeName(null)).isEmpty();
     }
 
     @Test
     void shouldReturnTrainingTypeByNameThroughService() {
-        TrainingType actual = trainingTypeService.getTrainingTypeByName("BOXING");
+        TrainingTypeResponse actual = trainingTypeService.getTrainingTypeByName(TrainingType.BOXING);
 
-        assertThat(actual).isEqualTo(TestDataFactory.trainingTypeResponse(3L, "BOXING"));
+        assertThat(actual).isEqualTo(TestDataFactory.trainingTypeResponse(3L, TrainingType.BOXING));
     }
 
     @Test
     void shouldThrowWhenTrainingTypeMissingInService() {
-        assertThatThrownBy(() -> trainingTypeService.getTrainingTypeByName("UNKNOWN"))
+        assertThatThrownBy(() -> trainingTypeService.getTrainingTypeByName(null))
                 .isInstanceOf(EntityNotFoundException.class)
-                .hasMessage("Training type not found: UNKNOWN");
+                .hasMessage("Training type not found: null");
     }
 }

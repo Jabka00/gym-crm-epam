@@ -10,6 +10,8 @@ import com.epam.gymcrm.exception.AuthenticationException;
 import com.epam.gymcrm.exception.EntityNotFoundException;
 import com.epam.gymcrm.exception.InvalidOperationException;
 import com.epam.gymcrm.mapper.TrainerMapper;
+import com.epam.gymcrm.mapper.TrainingMapper;
+import com.epam.gymcrm.model.TrainingType;
 import com.epam.gymcrm.repository.TrainerRepository;
 import com.epam.gymcrm.security.Credentials;
 import com.epam.gymcrm.support.TestDataFactory;
@@ -53,6 +55,9 @@ class GymServiceTest {
     @Mock
     private TrainerMapper trainerMapper;
 
+    @Mock
+    private TrainingMapper trainingMapper;
+
     @InjectMocks
     private GymService gymService;
 
@@ -65,13 +70,13 @@ class GymServiceTest {
 
     @Test
     void shouldScheduleTraining() {
-        ScheduleTrainingRequest request = TestDataFactory.scheduleTrainingRequest(1L, 2L, "YOGA");
+        ScheduleTrainingRequest request = TestDataFactory.scheduleTrainingRequest(1L, 2L, TrainingType.YOGA);
         Trainee trainee = TestDataFactory.traineeResponse(1L, "Alice.Walker");
         Trainer trainer = TestDataFactory.trainerResponse(2L, "John.Smith");
         Training scheduled = TestDataFactory.trainingResponse(10L);
 
         when(traineeService.getActiveTrainee(1L)).thenReturn(trainee);
-        when(trainerService.getActiveTrainerForSpecialization(2L, "YOGA")).thenReturn(trainer);
+        when(trainerService.getActiveTrainerForSpecialization(2L, TrainingType.YOGA)).thenReturn(trainer);
         when(trainingService.createTraining(auth, request)).thenReturn(scheduled);
 
         Training actual = gymService.scheduleTraining(auth, request);
@@ -79,24 +84,25 @@ class GymServiceTest {
         assertThat(actual).usingRecursiveComparison().isEqualTo(scheduled);
         verify(authenticationService, times(1)).requireAuthenticated(auth);
         verify(traineeService, times(1)).getActiveTrainee(1L);
-        verify(trainerService, times(1)).getActiveTrainerForSpecialization(2L, "YOGA");
+        verify(trainerService, times(1)).getActiveTrainerForSpecialization(2L, TrainingType.YOGA);
         verify(trainingService, times(1)).createTraining(auth, request);
     }
 
     @Test
     void shouldAutoScheduleTraining() {
         AutoScheduleTrainingRequest request = TestDataFactory.autoScheduleTrainingRequest(
-                1L, "YOGA", LocalDate.of(2024, 3, 1));
+                1L, TrainingType.YOGA, LocalDate.of(2024, 3, 1));
         ScheduleTrainingRequest expectedScheduleRequest =
-                TestDataFactory.scheduleTrainingRequest(1L, 5L, "YOGA", LocalDate.of(2024, 3, 1));
+                TestDataFactory.scheduleTrainingRequest(1L, 5L, TrainingType.YOGA, LocalDate.of(2024, 3, 1));
         Trainee trainee = TestDataFactory.traineeResponse(1L, "Alice.Walker");
         TrainerEntity trainerEntity = TestDataFactory.trainerWithId(5L, "John.Smith");
         Trainer trainer = TestDataFactory.trainerResponse(5L, "John.Smith");
         Training scheduled = TestDataFactory.trainingResponse(100L);
 
         when(traineeService.getActiveTrainee(1L)).thenReturn(trainee);
-        when(trainerRepository.findActiveBySpecialization("YOGA")).thenReturn(Optional.of(trainerEntity));
+        when(trainerRepository.findActiveBySpecialization(TrainingType.YOGA)).thenReturn(Optional.of(trainerEntity));
         when(trainerMapper.toResponse(trainerEntity)).thenReturn(trainer);
+        when(trainingMapper.toScheduleRequest(request, 5L)).thenReturn(expectedScheduleRequest);
         when(trainingService.createTraining(auth, expectedScheduleRequest)).thenReturn(scheduled);
 
         Training actual = gymService.autoScheduleTraining(auth, request);
@@ -104,30 +110,31 @@ class GymServiceTest {
         assertThat(actual).usingRecursiveComparison().isEqualTo(scheduled);
         verify(authenticationService, times(1)).requireAuthenticated(auth);
         verify(traineeService, times(1)).getActiveTrainee(1L);
-        verify(trainerRepository, times(1)).findActiveBySpecialization("YOGA");
+        verify(trainerRepository, times(1)).findActiveBySpecialization(TrainingType.YOGA);
         verify(trainerMapper, times(1)).toResponse(trainerEntity);
+        verify(trainingMapper, times(1)).toScheduleRequest(request, 5L);
         verify(trainingService, times(1)).createTraining(auth, expectedScheduleRequest);
     }
 
     @Test
     void shouldThrowWhenNoActiveTrainerForSpecializationDuringAutoSchedule() {
-        AutoScheduleTrainingRequest request = TestDataFactory.autoScheduleTrainingRequest(1L, "YOGA");
+        AutoScheduleTrainingRequest request = TestDataFactory.autoScheduleTrainingRequest(1L, TrainingType.YOGA);
         when(traineeService.getActiveTrainee(1L)).thenReturn(TestDataFactory.traineeResponse(1L, "Alice.Walker"));
-        when(trainerRepository.findActiveBySpecialization("YOGA")).thenReturn(Optional.empty());
+        when(trainerRepository.findActiveBySpecialization(TrainingType.YOGA)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> gymService.autoScheduleTraining(auth, request))
                 .isInstanceOf(EntityNotFoundException.class);
 
         verify(authenticationService, times(1)).requireAuthenticated(auth);
         verify(traineeService, times(1)).getActiveTrainee(1L);
-        verify(trainerRepository, times(1)).findActiveBySpecialization("YOGA");
+        verify(trainerRepository, times(1)).findActiveBySpecialization(TrainingType.YOGA);
         verify(trainerMapper, never()).toResponse(org.mockito.ArgumentMatchers.any());
         verifyNoInteractions(trainingService);
     }
 
     @Test
     void shouldPropagateAuthenticationFailureWhenSchedulingTraining() {
-        ScheduleTrainingRequest request = TestDataFactory.scheduleTrainingRequest(1L, 2L, "YOGA");
+        ScheduleTrainingRequest request = TestDataFactory.scheduleTrainingRequest(1L, 2L, TrainingType.YOGA);
         doThrow(new AuthenticationException("Invalid credentials for username: Alice.Walker"))
                 .when(authenticationService)
                 .requireAuthenticated(auth);
@@ -143,7 +150,7 @@ class GymServiceTest {
 
     @Test
     void shouldRejectSchedulingWhenTraineeInactive() {
-        ScheduleTrainingRequest request = TestDataFactory.scheduleTrainingRequest(1L, 2L, "YOGA");
+        ScheduleTrainingRequest request = TestDataFactory.scheduleTrainingRequest(1L, 2L, TrainingType.YOGA);
         when(traineeService.getActiveTrainee(1L))
                 .thenThrow(new InvalidOperationException("Trainee is inactive: id=1"));
 
@@ -153,16 +160,16 @@ class GymServiceTest {
 
         verify(authenticationService, times(1)).requireAuthenticated(auth);
         verify(traineeService, times(1)).getActiveTrainee(1L);
-        verify(trainerService, never()).getActiveTrainerForSpecialization(2L, "YOGA");
+        verify(trainerService, never()).getActiveTrainerForSpecialization(2L, TrainingType.YOGA);
         verifyNoInteractions(trainingService);
     }
 
     @Test
     void shouldRejectSchedulingWhenTrainerInactive() {
-        ScheduleTrainingRequest request = TestDataFactory.scheduleTrainingRequest(1L, 2L, "YOGA");
+        ScheduleTrainingRequest request = TestDataFactory.scheduleTrainingRequest(1L, 2L, TrainingType.YOGA);
         Trainee trainee = TestDataFactory.traineeResponse(1L, "Alice.Walker");
         when(traineeService.getActiveTrainee(1L)).thenReturn(trainee);
-        when(trainerService.getActiveTrainerForSpecialization(2L, "YOGA"))
+        when(trainerService.getActiveTrainerForSpecialization(2L, TrainingType.YOGA))
                 .thenThrow(new InvalidOperationException("Trainer is inactive: id=2"));
 
         assertThatThrownBy(() -> gymService.scheduleTraining(auth, request))
@@ -171,7 +178,7 @@ class GymServiceTest {
 
         verify(authenticationService, times(1)).requireAuthenticated(auth);
         verify(traineeService, times(1)).getActiveTrainee(1L);
-        verify(trainerService, times(1)).getActiveTrainerForSpecialization(2L, "YOGA");
+        verify(trainerService, times(1)).getActiveTrainerForSpecialization(2L, TrainingType.YOGA);
         verifyNoInteractions(trainingService);
     }
 
@@ -184,7 +191,7 @@ class GymServiceTest {
 
     @Test
     void shouldRejectUnauthenticatedAutoSchedule() {
-        AutoScheduleTrainingRequest request = TestDataFactory.autoScheduleTrainingRequest(1L, "YOGA");
+        AutoScheduleTrainingRequest request = TestDataFactory.autoScheduleTrainingRequest(1L, TrainingType.YOGA);
         doThrow(new AuthenticationException("Invalid credentials for username: Alice.Walker"))
                 .when(authenticationService)
                 .requireAuthenticated(auth);

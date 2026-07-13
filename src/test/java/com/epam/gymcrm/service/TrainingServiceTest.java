@@ -1,5 +1,9 @@
 package com.epam.gymcrm.service;
 
+import com.epam.gymcrm.service.PasswordGenerator;
+
+import com.epam.gymcrm.model.TrainingType;
+
 import com.epam.gymcrm.dto.request.ScheduleTrainingRequest;
 import com.epam.gymcrm.dto.response.Training;
 import com.epam.gymcrm.entity.TraineeEntity;
@@ -77,7 +81,7 @@ class TrainingServiceTest {
     @Test
     void shouldRejectCreateWithMissingTrainingName() {
         ScheduleTrainingRequest request = new ScheduleTrainingRequest(
-                1L, 2L, null, "YOGA", LocalDate.of(2024, 3, 1), Duration.ofMinutes(60));
+                1L, 2L, null, TrainingType.YOGA, LocalDate.of(2024, 3, 1), Duration.ofMinutes(60));
 
         assertThatThrownBy(() -> trainingService.createTraining(auth, request))
                 .isInstanceOf(IllegalArgumentException.class)
@@ -90,7 +94,7 @@ class TrainingServiceTest {
     @Test
     void shouldRejectCreateWithoutTrainerId() {
         ScheduleTrainingRequest request = new ScheduleTrainingRequest(
-                1L, null, "Morning Yoga", "YOGA", LocalDate.of(2024, 3, 1), Duration.ofMinutes(60));
+                1L, null, "Morning Yoga", TrainingType.YOGA, LocalDate.of(2024, 3, 1), Duration.ofMinutes(60));
 
         assertThatThrownBy(() -> trainingService.createTraining(auth, request))
                 .isInstanceOf(IllegalArgumentException.class)
@@ -103,7 +107,7 @@ class TrainingServiceTest {
     @Test
     void shouldRejectCreateWithoutTraineeId() {
         ScheduleTrainingRequest request = new ScheduleTrainingRequest(
-                null, 2L, "Morning Yoga", "YOGA", LocalDate.of(2024, 3, 1), Duration.ofMinutes(60));
+                null, 2L, "Morning Yoga", TrainingType.YOGA, LocalDate.of(2024, 3, 1), Duration.ofMinutes(60));
 
         assertThatThrownBy(() -> trainingService.createTraining(auth, request))
                 .isInstanceOf(IllegalArgumentException.class)
@@ -115,7 +119,7 @@ class TrainingServiceTest {
 
     @Test
     void shouldCreateTraining() {
-        ScheduleTrainingRequest request = TestDataFactory.scheduleTrainingRequest(1L, 2L, "YOGA");
+        ScheduleTrainingRequest request = TestDataFactory.scheduleTrainingRequest(1L, 2L, TrainingType.YOGA);
         TraineeEntity trainee = TestDataFactory.traineeWithId(1L, "Alice.Walker");
         TrainerEntity trainer = TestDataFactory.trainerWithId(2L, "John.Smith");
         TrainingTypeEntity trainingType = TestDataFactory.yogaTypeEntity();
@@ -125,7 +129,7 @@ class TrainingServiceTest {
 
         when(traineeRepository.findById(1L)).thenReturn(Optional.of(trainee));
         when(trainerRepository.findById(2L)).thenReturn(Optional.of(trainer));
-        when(trainingTypeRepository.findByTypeName("YOGA")).thenReturn(Optional.of(trainingType));
+        when(trainingTypeRepository.findByTypeName(TrainingType.YOGA)).thenReturn(Optional.of(trainingType));
         when(trainingMapper.toEntity(request, trainee, trainer, trainingType)).thenReturn(toSave);
         when(trainingRepository.save(toSave)).thenReturn(saved);
         when(trainingMapper.toResponse(saved)).thenReturn(expected);
@@ -135,7 +139,7 @@ class TrainingServiceTest {
         assertThat(actual).usingRecursiveComparison().isEqualTo(expected);
         verify(traineeRepository, times(1)).findById(1L);
         verify(trainerRepository, times(1)).findById(2L);
-        verify(trainingTypeRepository, times(1)).findByTypeName("YOGA");
+        verify(trainingTypeRepository, times(1)).findByTypeName(TrainingType.YOGA);
         verify(trainingMapper, times(1)).toEntity(request, trainee, trainer, trainingType);
         verify(trainingRepository, times(1)).save(toSave);
         verify(trainingMapper, times(1)).toResponse(saved);
@@ -182,7 +186,7 @@ class TrainingServiceTest {
 
     @Test
     void shouldThrowWhenCreatingTrainingForMissingTrainee() {
-        ScheduleTrainingRequest request = TestDataFactory.scheduleTrainingRequest(1L, 2L, "YOGA");
+        ScheduleTrainingRequest request = TestDataFactory.scheduleTrainingRequest(1L, 2L, TrainingType.YOGA);
         when(traineeRepository.findById(1L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> trainingService.createTraining(auth, request))
@@ -191,13 +195,13 @@ class TrainingServiceTest {
 
         verify(traineeRepository, times(1)).findById(1L);
         verify(trainerRepository, never()).findById(2L);
-        verify(trainingTypeRepository, never()).findByTypeName("YOGA");
+        verify(trainingTypeRepository, never()).findByTypeName(TrainingType.YOGA);
         verify(trainingRepository, never()).save(any());
     }
 
     @Test
     void shouldThrowWhenCreatingTrainingForMissingTrainer() {
-        ScheduleTrainingRequest request = TestDataFactory.scheduleTrainingRequest(1L, 2L, "YOGA");
+        ScheduleTrainingRequest request = TestDataFactory.scheduleTrainingRequest(1L, 2L, TrainingType.YOGA);
         when(traineeRepository.findById(1L)).thenReturn(Optional.of(TestDataFactory.traineeWithId(1L, "Alice.Walker")));
         when(trainerRepository.findById(2L)).thenReturn(Optional.empty());
 
@@ -207,13 +211,13 @@ class TrainingServiceTest {
 
         verify(traineeRepository, times(1)).findById(1L);
         verify(trainerRepository, times(1)).findById(2L);
-        verify(trainingTypeRepository, never()).findByTypeName("YOGA");
+        verify(trainingTypeRepository, never()).findByTypeName(TrainingType.YOGA);
         verify(trainingRepository, never()).save(any());
     }
 
     @Test
     void shouldRejectUnauthenticatedTrainingCreation() {
-        ScheduleTrainingRequest request = TestDataFactory.scheduleTrainingRequest(1L, 2L, "YOGA");
+        ScheduleTrainingRequest request = TestDataFactory.scheduleTrainingRequest(1L, 2L, TrainingType.YOGA);
         doThrow(new AuthenticationException("Invalid credentials for username: Alice.Walker"))
                 .when(authenticationService)
                 .requireAuthenticated(auth);
@@ -235,7 +239,7 @@ class TrainingServiceTest {
                 LocalDate.of(2024, 3, 1),
                 LocalDate.of(2024, 3, 31),
                 "John.Smith",
-                "YOGA")).thenReturn(List.of(training));
+                TrainingType.YOGA)).thenReturn(List.of(training));
         when(trainingMapper.toResponse(training)).thenReturn(trainingResponse);
 
         List<Training> actual = trainingService.getTraineeTrainings(
@@ -244,7 +248,7 @@ class TrainingServiceTest {
                 LocalDate.of(2024, 3, 1),
                 LocalDate.of(2024, 3, 31),
                 "John.Smith",
-                "YOGA");
+                TrainingType.YOGA);
 
         assertThat(actual).containsExactly(trainingResponse);
         verify(authenticationService, times(1)).requireAuthenticated(auth);
@@ -253,7 +257,7 @@ class TrainingServiceTest {
                 LocalDate.of(2024, 3, 1),
                 LocalDate.of(2024, 3, 31),
                 "John.Smith",
-                "YOGA");
+                TrainingType.YOGA);
     }
 
     @Test
@@ -315,10 +319,10 @@ class TrainingServiceTest {
 
     @Test
     void shouldThrowWhenTrainingTypeMissingOnCreate() {
-        ScheduleTrainingRequest request = TestDataFactory.scheduleTrainingRequest(1L, 2L, "UNKNOWN");
+        ScheduleTrainingRequest request = TestDataFactory.scheduleTrainingRequest(1L, 2L, TrainingType.PILATES);
         when(traineeRepository.findById(1L)).thenReturn(Optional.of(TestDataFactory.traineeWithId(1L, "Alice.Walker")));
         when(trainerRepository.findById(2L)).thenReturn(Optional.of(TestDataFactory.trainerWithId(2L, "John.Smith")));
-        when(trainingTypeRepository.findByTypeName("UNKNOWN")).thenReturn(Optional.empty());
+        when(trainingTypeRepository.findByTypeName(TrainingType.PILATES)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> trainingService.createTraining(auth, request))
                 .isInstanceOf(EntityNotFoundException.class);
@@ -365,7 +369,7 @@ class TrainingServiceTest {
     @Test
     void shouldRejectCreateWithDurationShorterThanOneMinute() {
         ScheduleTrainingRequest request = new ScheduleTrainingRequest(
-                1L, 2L, "Morning Yoga", "YOGA", LocalDate.of(2024, 3, 1), Duration.ofSeconds(30));
+                1L, 2L, "Morning Yoga", TrainingType.YOGA, LocalDate.of(2024, 3, 1), Duration.ofSeconds(30));
 
         assertThatThrownBy(() -> trainingService.createTraining(auth, request))
                 .isInstanceOf(IllegalArgumentException.class)
@@ -374,9 +378,9 @@ class TrainingServiceTest {
 
     @Test
     void trainingMapperShouldMapScheduleRequestToEntity() {
-        TrainerMapper trainerMapper = new TrainerMapper(org.mockito.Mockito.mock(UserCredentialService.class));
+        TrainerMapper trainerMapper = new TrainerMapper(org.mockito.Mockito.mock(UserCredentialService.class), org.mockito.Mockito.mock(PasswordGenerator.class));
         TrainingMapper mapper = new TrainingMapper(trainerMapper);
-        ScheduleTrainingRequest request = TestDataFactory.scheduleTrainingRequest(4L, 1L, "YOGA");
+        ScheduleTrainingRequest request = TestDataFactory.scheduleTrainingRequest(4L, 1L, TrainingType.YOGA);
         TraineeEntity trainee = TestDataFactory.traineeWithId(4L, "Alice.Walker");
         TrainerEntity trainer = TestDataFactory.trainerWithId(1L, "John.Smith");
         TrainingTypeEntity type = TestDataFactory.yogaTypeEntity();
@@ -393,7 +397,7 @@ class TrainingServiceTest {
 
     @Test
     void trainingMapperShouldMapEntityToResponse() {
-        TrainerMapper trainerMapper = new TrainerMapper(org.mockito.Mockito.mock(UserCredentialService.class));
+        TrainerMapper trainerMapper = new TrainerMapper(org.mockito.Mockito.mock(UserCredentialService.class), org.mockito.Mockito.mock(PasswordGenerator.class));
         TrainingMapper mapper = new TrainingMapper(trainerMapper);
         TrainingEntity entity = TestDataFactory.trainingWithSeedAssociations(10L);
 
@@ -401,7 +405,7 @@ class TrainingServiceTest {
 
         assertThat(actual.id()).isEqualTo(10L);
         assertThat(actual.name()).isEqualTo("Morning Yoga");
-        assertThat(actual.type().typeName()).isEqualTo("YOGA");
+        assertThat(actual.type().typeName()).isEqualTo(TrainingType.YOGA);
         assertThat(actual.traineeId()).isEqualTo(4L);
         assertThat(actual.trainerId()).isEqualTo(1L);
     }

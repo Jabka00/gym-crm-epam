@@ -1,5 +1,7 @@
 package com.epam.gymcrm.repository;
 
+import com.epam.gymcrm.model.TrainingType;
+
 import com.epam.gymcrm.entity.TrainerEntity;
 import com.epam.gymcrm.support.MySqlIntegrationTest;
 import com.epam.gymcrm.support.TestDataFactory;
@@ -125,10 +127,10 @@ class TrainerRepositoryTest {
         TrainerEntity saved = trainerRepository.save(TestDataFactory.trainer("Active.Yoga"));
         assertThat(saved.getUser().isActive()).isTrue();
 
-        TrainerEntity found = trainerRepository.findActiveBySpecialization("YOGA").orElseThrow();
+        TrainerEntity found = trainerRepository.findActiveBySpecialization(TrainingType.YOGA).orElseThrow();
 
         assertThat(found.getUser().isActive()).isTrue();
-        assertThat(found.getSpecialization().getTypeName()).isEqualTo("YOGA");
+        assertThat(found.getSpecialization().getTypeName()).isEqualTo(TrainingType.YOGA);
     }
 
     @Test
@@ -139,7 +141,7 @@ class TrainerRepositoryTest {
         inactive.getUser().setActive(false);
         trainerRepository.save(inactive);
 
-        TrainerEntity found = trainerRepository.findActiveBySpecialization("YOGA").orElseThrow();
+        TrainerEntity found = trainerRepository.findActiveBySpecialization(TrainingType.YOGA).orElseThrow();
 
         assertThat(found.getUser().isActive()).isTrue();
         assertThat(found.getUser().getUsername()).isNotEqualTo("Inactive.Yoga");

@@ -11,7 +11,6 @@ import com.epam.gymcrm.mapper.TrainerMapper;
 import com.epam.gymcrm.model.TrainingType;
 import com.epam.gymcrm.repository.TrainerRepository;
 import com.epam.gymcrm.repository.TrainingTypeRepository;
-
 import com.epam.gymcrm.security.Credentials;
 import com.epam.gymcrm.util.DtoValidator;
 import lombok.RequiredArgsConstructor;
@@ -44,11 +43,6 @@ public class TrainerService {
         TrainerEntity trainer = trainerMapper.toEntity(request, specialization);
         TrainerEntity created = trainerRepository.save(trainer);
         return trainerMapper.toResponse(created);
-    }
-
-    @Transactional(readOnly = true)
-    public boolean verifyPassword(String username, String password) {
-        return authenticationService.authenticateTrainer(username, password);
     }
 
     public Trainer updateTrainer(Credentials auth, UpdateTrainerRequest request) {
@@ -108,7 +102,7 @@ public class TrainerService {
     @Transactional(readOnly = true)
     public Trainer getActiveTrainerForSpecialization(Long id, TrainingType typeName) {
         TrainerEntity trainer = getActiveEntity(id);
-        if (!trainer.matchesSpecialization(typeName)) {
+        if (!matchesSpecialization(trainer, typeName)) {
             throw new InvalidOperationException(
                     "Trainer specialization does not match training type: " + typeName);
         }
@@ -122,5 +116,11 @@ public class TrainerService {
             throw new InvalidOperationException("Trainer is inactive: id=" + id);
         }
         return trainer;
+    }
+
+    private static boolean matchesSpecialization(TrainerEntity trainer, TrainingType type) {
+        return type != null
+                && trainer.getSpecialization() != null
+                && type == trainer.getSpecialization().getTypeName();
     }
 }

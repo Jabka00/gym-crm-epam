@@ -7,6 +7,7 @@ import com.epam.gymcrm.dto.response.Training;
 import com.epam.gymcrm.entity.TrainerEntity;
 import com.epam.gymcrm.exception.EntityNotFoundException;
 import com.epam.gymcrm.mapper.TrainerMapper;
+import com.epam.gymcrm.mapper.TrainingMapper;
 import com.epam.gymcrm.model.TrainingType;
 import com.epam.gymcrm.repository.TrainerRepository;
 import com.epam.gymcrm.security.Credentials;
@@ -25,6 +26,7 @@ public class GymService {
     private final AuthenticationService authenticationService;
     private final TrainerRepository trainerRepository;
     private final TrainerMapper trainerMapper;
+    private final TrainingMapper trainingMapper;
 
     public Training scheduleTraining(Credentials auth, ScheduleTrainingRequest request) {
         authenticationService.requireAuthenticated(auth);
@@ -43,7 +45,8 @@ public class GymService {
 
         log.info("Auto-assigned trainer id={} for training '{}'", trainer.userId(), request.name());
 
-        return trainingService.createTraining(auth, toScheduleRequest(request, trainer.userId()));
+        return trainingService.createTraining(
+                auth, trainingMapper.toScheduleRequest(request, trainer.userId()));
     }
 
     public void removeTraineeProfile(Credentials auth, String username) {
@@ -56,16 +59,5 @@ public class GymService {
                 .orElseThrow(() -> new EntityNotFoundException(
                         "No active trainer found for type: " + typeName));
         return trainerMapper.toResponse(trainer);
-    }
-
-    private ScheduleTrainingRequest toScheduleRequest(AutoScheduleTrainingRequest request, Long trainerId) {
-        return new ScheduleTrainingRequest(
-                request.traineeId(),
-                trainerId,
-                request.name(),
-                request.type(),
-                request.date(),
-                request.duration()
-        );
     }
 }

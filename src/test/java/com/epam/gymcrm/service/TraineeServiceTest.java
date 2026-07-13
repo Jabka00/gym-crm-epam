@@ -1,5 +1,7 @@
 package com.epam.gymcrm.service;
 
+import com.epam.gymcrm.service.PasswordGenerator;
+
 import com.epam.gymcrm.dto.request.CreateTraineeRequest;
 import com.epam.gymcrm.dto.request.UpdateTraineeRequest;
 import com.epam.gymcrm.dto.request.UserInfo;
@@ -88,25 +90,6 @@ class TraineeServiceTest {
 
         verifyNoInteractions(traineeMapper);
         verify(traineeRepository, never()).save(any());
-    }
-
-    @Test
-    void shouldVerifyTraineePassword() {
-        when(authenticationService.authenticateTrainee("Kate.Doe", "secret1234")).thenReturn(true);
-
-        assertThat(traineeService.verifyPassword("Kate.Doe", "secret1234")).isTrue();
-
-        verify(authenticationService, times(1)).authenticateTrainee("Kate.Doe", "secret1234");
-        verifyNoMoreInteractions(authenticationService);
-    }
-
-    @Test
-    void shouldRejectInvalidTraineePassword() {
-        when(authenticationService.authenticateTrainee("Kate.Doe", "wrong")).thenReturn(false);
-
-        assertThat(traineeService.verifyPassword("Kate.Doe", "wrong")).isFalse();
-
-        verify(authenticationService, times(1)).authenticateTrainee("Kate.Doe", "wrong");
     }
 
     @Test
@@ -481,7 +464,7 @@ class TraineeServiceTest {
 
     @Test
     void traineeMapperShouldMapEntityToResponse() {
-        TraineeMapper mapper = new TraineeMapper(org.mockito.Mockito.mock(UserCredentialService.class));
+        TraineeMapper mapper = new TraineeMapper(org.mockito.Mockito.mock(UserCredentialService.class), org.mockito.Mockito.mock(PasswordGenerator.class));
         TraineeEntity entity = TestDataFactory.traineeWithId(5L, "Jane.Doe");
         entity.getUser().setFirstName("Jane");
         entity.getUser().setLastName("Doe");
@@ -501,8 +484,9 @@ class TraineeServiceTest {
     void traineeMapperShouldMapCreateRequestToEntity() {
         UserCredentialService credentialService = org.mockito.Mockito.mock(UserCredentialService.class);
         when(credentialService.generateUniqueUsername("Jane", "Doe")).thenReturn("Jane.Doe");
-        when(credentialService.generatePassword()).thenReturn("Pass1234");
-        TraineeMapper mapper = new TraineeMapper(credentialService);
+        PasswordGenerator passwordGenerator = org.mockito.Mockito.mock(PasswordGenerator.class);
+        when(passwordGenerator.generatePassword()).thenReturn("Pass1234");
+        TraineeMapper mapper = new TraineeMapper(credentialService, passwordGenerator);
         CreateTraineeRequest request = TestDataFactory.createTraineeRequest("Jane", "Doe");
 
         TraineeEntity actual = mapper.toEntity(request);
@@ -518,7 +502,7 @@ class TraineeServiceTest {
 
     @Test
     void traineeMapperShouldMapUpdateRequestToEntity() {
-        TraineeMapper mapper = new TraineeMapper(org.mockito.Mockito.mock(UserCredentialService.class));
+        TraineeMapper mapper = new TraineeMapper(org.mockito.Mockito.mock(UserCredentialService.class), org.mockito.Mockito.mock(PasswordGenerator.class));
         UpdateTraineeRequest request = new UpdateTraineeRequest(
                 3L, new UserInfo("Jane", "Updated"), false, LocalDate.of(1990, 1, 1), "Lviv");
 

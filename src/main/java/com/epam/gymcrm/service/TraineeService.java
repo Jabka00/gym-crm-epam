@@ -46,11 +46,6 @@ public class TraineeService {
         return traineeMapper.toResponse(created);
     }
 
-    @Transactional(readOnly = true)
-    public boolean verifyPassword(String username, String password) {
-        return authenticationService.authenticateTrainee(username, password);
-    }
-
     public Trainee updateTrainee(Credentials auth, UpdateTraineeRequest request) {
         authenticationService.requireAuthenticated(auth);
 

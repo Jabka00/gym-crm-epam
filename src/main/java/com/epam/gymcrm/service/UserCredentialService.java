@@ -13,7 +13,6 @@ public class UserCredentialService {
 
     private final TraineeRepository traineeRepository;
     private final TrainerRepository trainerRepository;
-    private final PasswordGenerator passwordGenerator;
 
     public synchronized String generateUniqueUsername(String firstName, String lastName) {
         String baseUsername = firstName + "." + lastName;
@@ -27,9 +26,5 @@ public class UserCredentialService {
 
         log.debug("Generated unique username for base={}", baseUsername);
         return username;
-    }
-
-    public String generatePassword() {
-        return passwordGenerator.generatePassword();
     }
 }

@@ -43,8 +43,4 @@ public class TrainerEntity {
 
     @OneToMany(mappedBy = "trainer", fetch = FetchType.LAZY)
     private Set<TrainingEntity> trainings = new HashSet<>();
-
-    public boolean matchesSpecialization(TrainingType type) {
-        return type != null && specialization != null && type == specialization.getTypeName();
-    }
 }

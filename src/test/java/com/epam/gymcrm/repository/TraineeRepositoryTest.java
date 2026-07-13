@@ -2,7 +2,7 @@ package com.epam.gymcrm.repository;
 
 import com.epam.gymcrm.entity.TraineeEntity;
 import com.epam.gymcrm.entity.TrainingEntity;
-import com.epam.gymcrm.repository.UserAuthenticationRepository;
+import com.epam.gymcrm.service.AuthenticationService;
 import com.epam.gymcrm.support.MySqlIntegrationTest;
 import com.epam.gymcrm.support.TestDataFactory;
 import org.hibernate.SessionFactory;
@@ -24,26 +24,26 @@ class TraineeRepositoryTest {
     private SessionFactory sessionFactory;
 
     @Autowired
-    private UserAuthenticationRepository userAuthenticationRepository;
+    private AuthenticationService authenticationService;
 
     @Test
     void shouldAuthenticateSeedTrainee() {
-        assertThat(userAuthenticationRepository.authenticateTrainee("Alice.Walker", "qW3eRt5yUi")).isTrue();
+        assertThat(authenticationService.authenticateTrainee("Alice.Walker", "qW3eRt5yUi")).isTrue();
     }
 
     @Test
     void shouldAuthenticateSeedTrainer() {
-        assertThat(userAuthenticationRepository.authenticateTrainer("John.Smith", "pass1234AB")).isTrue();
+        assertThat(authenticationService.authenticateTrainer("John.Smith", "pass1234AB")).isTrue();
     }
 
     @Test
     void shouldRejectWrongPasswordForTrainee() {
-        assertThat(userAuthenticationRepository.authenticateTrainee("Alice.Walker", "wrong")).isFalse();
+        assertThat(authenticationService.authenticateTrainee("Alice.Walker", "wrong")).isFalse();
     }
 
     @Test
     void shouldRejectTrainerCredentialsForTraineeAuthentication() {
-        assertThat(userAuthenticationRepository.authenticateTrainee("John.Smith", "pass1234AB")).isFalse();
+        assertThat(authenticationService.authenticateTrainee("John.Smith", "pass1234AB")).isFalse();
     }
 
     @Test

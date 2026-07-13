@@ -1,9 +1,11 @@
 package com.epam.gymcrm.service;
 
 import com.epam.gymcrm.exception.AuthenticationException;
-import com.epam.gymcrm.repository.UserAuthenticationRepository;
 import com.epam.gymcrm.security.Credentials;
 import com.epam.gymcrm.util.DtoValidator;
+import org.hibernate.Session;
+import org.hibernate.SessionFactory;
+import org.hibernate.query.Query;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -13,6 +15,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -21,7 +25,13 @@ import static org.mockito.Mockito.when;
 class AuthenticationServiceRequireAuthenticatedTest {
 
     @Mock
-    private UserAuthenticationRepository userAuthenticationRepository;
+    private SessionFactory sessionFactory;
+
+    @Mock
+    private Session session;
+
+    @Mock
+    private Query<Long> query;
 
     @Spy
     private DtoValidator dtoValidator = new DtoValidator();
@@ -32,23 +42,29 @@ class AuthenticationServiceRequireAuthenticatedTest {
     @Test
     void shouldRequireAuthenticatedWhenCredentialsAreValid() {
         Credentials credentials = new Credentials("Alice.Walker", "secret1234");
-        when(userAuthenticationRepository.authenticate("Alice.Walker", "secret1234")).thenReturn(true);
+        when(sessionFactory.getCurrentSession()).thenReturn(session);
+        when(session.createQuery(anyString(), eq(Long.class))).thenReturn(query);
+        when(query.setParameter(anyString(), anyString())).thenReturn(query);
+        when(query.getSingleResult()).thenReturn(1L);
 
         assertThatCode(() -> authenticationService.requireAuthenticated(credentials))
                 .doesNotThrowAnyException();
 
-        verify(userAuthenticationRepository, times(1)).authenticate("Alice.Walker", "secret1234");
+        verify(session, times(1)).createQuery(anyString(), eq(Long.class));
     }
 
     @Test
     void shouldThrowWhenCredentialsAreInvalid() {
         Credentials credentials = new Credentials("Inactive.User", "secret1234");
-        when(userAuthenticationRepository.authenticate("Inactive.User", "secret1234")).thenReturn(false);
+        when(sessionFactory.getCurrentSession()).thenReturn(session);
+        when(session.createQuery(anyString(), eq(Long.class))).thenReturn(query);
+        when(query.setParameter(anyString(), anyString())).thenReturn(query);
+        when(query.getSingleResult()).thenReturn(0L);
 
         assertThatThrownBy(() -> authenticationService.requireAuthenticated(credentials))
                 .isInstanceOf(AuthenticationException.class)
                 .hasMessage("Invalid credentials for username: Inactive.User");
 
-        verify(userAuthenticationRepository, times(1)).authenticate("Inactive.User", "secret1234");
+        verify(session, times(1)).createQuery(anyString(), eq(Long.class));
     }
 }

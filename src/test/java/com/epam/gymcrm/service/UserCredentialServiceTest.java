@@ -23,8 +23,6 @@ class UserCredentialServiceTest {
     @Mock
     private TrainerRepository trainerRepository;
 
-    @Mock
-    private PasswordGenerator passwordGenerator;
 
     @InjectMocks
     private UserCredentialService userCredentialService;
@@ -56,13 +54,4 @@ class UserCredentialServiceTest {
         verify(trainerRepository, never()).existsByUsername("John.Smith");
     }
 
-    @Test
-    void shouldDelegatePasswordGeneration() {
-        when(passwordGenerator.generatePassword()).thenReturn("abcdefghij");
-
-        String password = userCredentialService.generatePassword();
-
-        assertThat(password).isEqualTo("abcdefghij");
-        verify(passwordGenerator, times(1)).generatePassword();
-    }
 }
