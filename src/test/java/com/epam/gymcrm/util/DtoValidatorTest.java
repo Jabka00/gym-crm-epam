@@ -8,7 +8,7 @@ import com.epam.gymcrm.dto.request.ScheduleTrainingRequest;
 import com.epam.gymcrm.dto.request.UpdateTraineeRequest;
 import com.epam.gymcrm.dto.request.UpdateTrainerRequest;
 import com.epam.gymcrm.dto.request.UserInfo;
-import com.epam.gymcrm.security.Credentials;
+import com.epam.gymcrm.dto.Credentials;
 import com.epam.gymcrm.support.TestDataFactory;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

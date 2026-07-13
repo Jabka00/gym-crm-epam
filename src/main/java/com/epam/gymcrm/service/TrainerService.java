@@ -11,7 +11,7 @@ import com.epam.gymcrm.mapper.TrainerMapper;
 import com.epam.gymcrm.model.TrainingType;
 import com.epam.gymcrm.repository.TrainerRepository;
 import com.epam.gymcrm.repository.TrainingTypeRepository;
-import com.epam.gymcrm.security.Credentials;
+import com.epam.gymcrm.dto.Credentials;
 import com.epam.gymcrm.util.DtoValidator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

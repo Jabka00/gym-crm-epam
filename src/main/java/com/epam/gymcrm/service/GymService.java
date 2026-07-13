@@ -1,5 +1,6 @@
 package com.epam.gymcrm.service;
 
+import com.epam.gymcrm.dto.Credentials;
 import com.epam.gymcrm.dto.request.AutoScheduleTrainingRequest;
 import com.epam.gymcrm.dto.request.ScheduleTrainingRequest;
 import com.epam.gymcrm.dto.response.Trainer;
@@ -10,7 +11,6 @@ import com.epam.gymcrm.mapper.TrainerMapper;
 import com.epam.gymcrm.mapper.TrainingMapper;
 import com.epam.gymcrm.model.TrainingType;
 import com.epam.gymcrm.repository.TrainerRepository;
-import com.epam.gymcrm.security.Credentials;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -51,7 +51,7 @@ public class GymService {
 
     public void removeTraineeProfile(Credentials auth, String username) {
         traineeService.deleteTraineeByUsername(auth, username);
-        log.info("Removed trainee profile username={}", username);
+        log.info("Removed trainee profile");
     }
 
     private Trainer findActiveTrainerBySpecialization(TrainingType typeName) {

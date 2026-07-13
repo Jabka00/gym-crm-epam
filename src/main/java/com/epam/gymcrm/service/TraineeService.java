@@ -8,12 +8,13 @@ import com.epam.gymcrm.entity.TraineeEntity;
 import com.epam.gymcrm.entity.TrainerEntity;
 import com.epam.gymcrm.exception.EntityNotFoundException;
 import com.epam.gymcrm.exception.InvalidOperationException;
+import com.epam.gymcrm.exception.ValidationException;
 import com.epam.gymcrm.mapper.TraineeMapper;
 import com.epam.gymcrm.mapper.TrainerMapper;
 import com.epam.gymcrm.repository.TraineeRepository;
 import com.epam.gymcrm.repository.TrainerRepository;
 
-import com.epam.gymcrm.security.Credentials;
+import com.epam.gymcrm.dto.Credentials;
 import com.epam.gymcrm.util.DtoValidator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -64,14 +65,14 @@ public class TraineeService {
         authenticationService.requireAuthenticated(auth);
 
         if (username == null || username.isBlank()) {
-            throw new IllegalArgumentException("Trainee username cannot be null or empty");
+            throw new ValidationException("Trainee username cannot be null or empty");
         }
 
         traineeRepository.findByUsername(username)
                 .orElseThrow(() -> new EntityNotFoundException("Trainee not found with username: " + username));
 
         traineeRepository.deleteByUsername(username);
-        log.info("Deleted trainee username={}", username);
+        log.info("Deleted trainee");
     }
 
     @Transactional(readOnly = true)
@@ -113,10 +114,10 @@ public class TraineeService {
         authenticationService.requireAuthenticated(auth);
 
         if (traineeUsername == null || traineeUsername.isBlank()) {
-            throw new IllegalArgumentException("Trainee username cannot be null or empty");
+            throw new ValidationException("Trainee username cannot be null or empty");
         }
         if (trainerUsernames == null) {
-            throw new IllegalArgumentException("Trainer usernames set cannot be null");
+            throw new ValidationException("Trainer usernames set cannot be null");
         }
 
         TraineeEntity trainee = traineeRepository.findByUsername(traineeUsername)
@@ -145,7 +146,7 @@ public class TraineeService {
         }
 
         traineeRepository.save(trainee);
-        log.info("Updated trainers list for trainee username={}", traineeUsername);
+        log.info("Updated trainers list for trainee");
     }
 
     @Transactional(readOnly = true)
@@ -153,7 +154,7 @@ public class TraineeService {
         authenticationService.requireAuthenticated(auth);
 
         if (traineeUsername == null || traineeUsername.isBlank()) {
-            throw new IllegalArgumentException("Trainee username cannot be null or empty");
+            throw new ValidationException("Trainee username cannot be null or empty");
         }
 
         return trainerRepository.findNotAssignedToTrainee(traineeUsername).stream()

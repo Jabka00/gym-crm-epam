@@ -12,13 +12,14 @@ import com.epam.gymcrm.entity.TrainingEntity;
 import com.epam.gymcrm.entity.TrainingTypeEntity;
 import com.epam.gymcrm.exception.AuthenticationException;
 import com.epam.gymcrm.exception.EntityNotFoundException;
+import com.epam.gymcrm.exception.ValidationException;
 import com.epam.gymcrm.mapper.TrainerMapper;
 import com.epam.gymcrm.mapper.TrainingMapper;
 import com.epam.gymcrm.repository.TraineeRepository;
 import com.epam.gymcrm.repository.TrainerRepository;
 import com.epam.gymcrm.repository.TrainingRepository;
 import com.epam.gymcrm.repository.TrainingTypeRepository;
-import com.epam.gymcrm.security.Credentials;
+import com.epam.gymcrm.dto.Credentials;
 import com.epam.gymcrm.support.TestDataFactory;
 import com.epam.gymcrm.util.DtoValidator;
 import org.junit.jupiter.api.BeforeEach;
@@ -218,7 +219,7 @@ class TrainingServiceTest {
     @Test
     void shouldRejectUnauthenticatedTrainingCreation() {
         ScheduleTrainingRequest request = TestDataFactory.scheduleTrainingRequest(1L, 2L, TrainingType.YOGA);
-        doThrow(new AuthenticationException("Invalid credentials for username: Alice.Walker"))
+        doThrow(new AuthenticationException("Invalid credentials"))
                 .when(authenticationService)
                 .requireAuthenticated(auth);
 
@@ -289,7 +290,7 @@ class TrainingServiceTest {
 
     @Test
     void shouldRejectUnauthenticatedTraineeTrainingsLookup() {
-        doThrow(new AuthenticationException("Invalid credentials for username: Alice.Walker"))
+        doThrow(new AuthenticationException("Invalid credentials"))
                 .when(authenticationService)
                 .requireAuthenticated(auth);
 
@@ -304,7 +305,7 @@ class TrainingServiceTest {
 
     @Test
     void shouldRejectUnauthenticatedTrainerTrainingsLookup() {
-        doThrow(new AuthenticationException("Invalid credentials for username: John.Smith"))
+        doThrow(new AuthenticationException("Invalid credentials"))
                 .when(authenticationService)
                 .requireAuthenticated(auth);
 
@@ -333,7 +334,7 @@ class TrainingServiceTest {
     @Test
     void shouldRejectBlankTraineeUsernameOnTrainingsLookup() {
         assertThatThrownBy(() -> trainingService.getTraineeTrainings(auth, " ", null, null, null, null))
-                .isInstanceOf(IllegalArgumentException.class);
+                .isInstanceOf(ValidationException.class);
 
         verify(trainingRepository, never()).findByTraineeUsernameAndCriteria(any(), any(), any(), any(), any());
     }
@@ -341,7 +342,7 @@ class TrainingServiceTest {
     @Test
     void shouldRejectBlankTrainerUsernameOnTrainingsLookup() {
         assertThatThrownBy(() -> trainingService.getTrainerTrainings(auth, " ", null, null, null))
-                .isInstanceOf(IllegalArgumentException.class);
+                .isInstanceOf(ValidationException.class);
 
         verify(trainingRepository, never()).findByTrainerUsernameAndCriteria(any(), any(), any(), any());
     }

@@ -7,13 +7,14 @@ import com.epam.gymcrm.entity.TrainerEntity;
 import com.epam.gymcrm.entity.TrainingEntity;
 import com.epam.gymcrm.entity.TrainingTypeEntity;
 import com.epam.gymcrm.exception.EntityNotFoundException;
+import com.epam.gymcrm.exception.ValidationException;
 import com.epam.gymcrm.mapper.TrainingMapper;
 import com.epam.gymcrm.model.TrainingType;
 import com.epam.gymcrm.repository.TraineeRepository;
 import com.epam.gymcrm.repository.TrainerRepository;
 import com.epam.gymcrm.repository.TrainingRepository;
 import com.epam.gymcrm.repository.TrainingTypeRepository;
-import com.epam.gymcrm.security.Credentials;
+import com.epam.gymcrm.dto.Credentials;
 import com.epam.gymcrm.util.DtoValidator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -95,11 +96,11 @@ public class TrainingService {
         authenticationService.requireAuthenticated(auth);
 
         if (traineeUsername == null || traineeUsername.isBlank()) {
-            throw new IllegalArgumentException("Trainee username is required");
+            throw new ValidationException("Trainee username is required");
         }
 
-        log.info("Fetching trainings for trainee: {}, fromDate: {}, toDate: {}, trainer: {}, typeName: {}",
-                traineeUsername, fromDate, toDate, trainerUsername, trainingTypeName);
+        log.info("Fetching trainings for trainee, fromDate: {}, toDate: {}, typeName: {}",
+                fromDate, toDate, trainingTypeName);
 
         List<Training> trainings = trainingRepository
                 .findByTraineeUsernameAndCriteria(
@@ -108,7 +109,7 @@ public class TrainingService {
                 .map(trainingMapper::toResponse)
                 .toList();
 
-        log.info("Found {} trainings for trainee: {}", trainings.size(), traineeUsername);
+        log.info("Found {} trainings for trainee", trainings.size());
         return trainings;
     }
 
@@ -123,11 +124,10 @@ public class TrainingService {
         authenticationService.requireAuthenticated(auth);
 
         if (trainerUsername == null || trainerUsername.isBlank()) {
-            throw new IllegalArgumentException("Trainer username is required");
+            throw new ValidationException("Trainer username is required");
         }
 
-        log.info("Fetching trainings for trainer: {}, fromDate: {}, toDate: {}, trainee: {}",
-                trainerUsername, fromDate, toDate, traineeUsername);
+        log.info("Fetching trainings for trainer, fromDate: {}, toDate: {}", fromDate, toDate);
 
         List<Training> trainings = trainingRepository
                 .findByTrainerUsernameAndCriteria(trainerUsername, fromDate, toDate, traineeUsername)
@@ -135,7 +135,7 @@ public class TrainingService {
                 .map(trainingMapper::toResponse)
                 .toList();
 
-        log.info("Found {} trainings for trainer: {}", trainings.size(), trainerUsername);
+        log.info("Found {} trainings for trainer", trainings.size());
         return trainings;
     }
 }

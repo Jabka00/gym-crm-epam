@@ -1,6 +1,7 @@
 package com.epam.gymcrm;
 
 import com.epam.gymcrm.config.AppConfig;
+import com.epam.gymcrm.dto.Credentials;
 import com.epam.gymcrm.dto.request.AutoScheduleTrainingRequest;
 import com.epam.gymcrm.dto.request.CreateTraineeRequest;
 import com.epam.gymcrm.dto.request.CreateTrainerRequest;
@@ -12,7 +13,6 @@ import com.epam.gymcrm.dto.response.Training;
 import com.epam.gymcrm.exception.InvalidOperationException;
 import com.epam.gymcrm.repository.TraineeRepository;
 import com.epam.gymcrm.repository.TrainerRepository;
-import com.epam.gymcrm.security.Credentials;
 import com.epam.gymcrm.service.AuthenticationService;
 import com.epam.gymcrm.service.GymService;
 import com.epam.gymcrm.service.TraineeService;
@@ -57,11 +57,11 @@ public class GymCrmApp {
                     "Kyiv"
             );
             Trainee disposableTrainee = traineeService.createTrainee(disposableRequest);
-            log.info("Created trainee id={}, username={}", disposableTrainee.userId(), disposableTrainee.username());
+            log.info("Created trainee id={}", disposableTrainee.userId());
 
             Credentials disposableAuth = credentialsOf(disposableTrainee, traineeRepository);
             gymService.removeTraineeProfile(disposableAuth, disposableTrainee.username());
-            log.info("Removed trainee username={}", disposableTrainee.username());
+            log.info("Removed trainee id={}", disposableTrainee.userId());
 
             trainingTypeService.getTrainingTypeByName(TrainingType.PILATES);
             trainingTypeService.getTrainingTypeByName(TrainingType.YOGA);
@@ -72,7 +72,7 @@ public class GymCrmApp {
             );
             Trainer pilatesTrainer = trainerService.createTrainer(pilatesTrainerRequest);
             Credentials pilatesAuth = credentialsOf(pilatesTrainer, trainerRepository);
-            log.info("Created trainer id={}, username={}", pilatesTrainer.userId(), pilatesTrainer.username());
+            log.info("Created trainer id={}", pilatesTrainer.userId());
             logTrainerAuthentication(authenticationService, pilatesAuth);
 
             CreateTraineeRequest kateRequest = new CreateTraineeRequest(
@@ -82,7 +82,7 @@ public class GymCrmApp {
             );
             Trainee kate = traineeService.createTrainee(kateRequest);
             Credentials kateAuth = credentialsOf(kate, traineeRepository);
-            log.info("Created trainee id={}, username={}", kate.userId(), kate.username());
+            log.info("Created trainee id={}", kate.userId());
             logTraineeAuthentication(authenticationService, kateAuth);
 
             ScheduleTrainingRequest scheduleRequest = new ScheduleTrainingRequest(
@@ -108,10 +108,10 @@ public class GymCrmApp {
                     autoScheduledTraining.id(), autoScheduledTraining.trainerId());
 
             List<Trainer> unassignedTrainers = traineeService.getNotAssignedTrainers(kateAuth, kate.username());
-            log.info("Unassigned active trainers for {}: {}", kate.username(), unassignedTrainers.size());
+            log.info("Unassigned active trainers: {}", unassignedTrainers.size());
 
             traineeService.updateTrainersList(kateAuth, kate.username(), Set.of("John.Smith", "Anna.Jones"));
-            log.info("Assigned seed trainers to {}", kate.username());
+            log.info("Assigned seed trainers");
 
             List<Trainer> unassignedAfterUpdate = traineeService.getNotAssignedTrainers(kateAuth, kate.username());
             log.info("Unassigned trainers after update: {}", unassignedAfterUpdate.size());
@@ -126,7 +126,7 @@ public class GymCrmApp {
                     LocalDate.of(2024, 3, 31),
                     "John.Smith",
                     TrainingType.YOGA);
-            log.info("Alice.Walker YOGA trainings with John.Smith in March 2024: {}", aliceTrainings.size());
+            log.info("Trainee YOGA trainings in March 2024: {}", aliceTrainings.size());
 
             List<Training> johnTrainings = trainingService.getTrainerTrainings(
                     johnAuth,
@@ -134,22 +134,22 @@ public class GymCrmApp {
                     LocalDate.of(2024, 1, 1),
                     LocalDate.of(2024, 12, 31),
                     null);
-            log.info("John.Smith trainings in 2024: {}", johnTrainings.size());
+            log.info("Trainer trainings in 2024: {}", johnTrainings.size());
 
             String newPassword = "SecurePass1";
             traineeService.changePassword(kateAuth, kate.username(), kateAuth.password(), newPassword);
             kateAuth = new Credentials(kate.username(), newPassword);
-            log.info("Password changed for {}", kate.username());
+            log.info("Password changed for trainee id={}", kate.userId());
             logTraineeAuthentication(authenticationService, kateAuth);
 
             traineeService.toggleActivation(kateAuth, kate.username());
-            log.info("Deactivated trainee {}", kate.username());
+            log.info("Deactivated trainee id={}", kate.userId());
 
             try {
                 traineeService.getTraineeByUsername(aliceAuth, kate.username());
                 log.error("Expected inactive trainee lookup to fail");
             } catch (InvalidOperationException e) {
-                log.info("Inactive trainee correctly hidden: {}", e.getMessage());
+                log.info("Inactive trainee correctly hidden");
             }
 
             logTraineeAuthentication(authenticationService, kateAuth);
@@ -157,7 +157,7 @@ public class GymCrmApp {
             Training fetchedScheduled = trainingService.getTraining(scheduledTraining.id());
             Trainer fetchedTrainer = trainerService.getTrainerByUsername(pilatesAuth, pilatesTrainer.username());
             log.info("Fetched training: {}", fetchedScheduled.name());
-            log.info("Fetched trainer: {}", fetchedTrainer.username());
+            log.info("Fetched trainer id={}", fetchedTrainer.userId());
 
             log.info("Demo completed successfully");
         } catch (Exception e) {
@@ -184,12 +184,12 @@ public class GymCrmApp {
     private static void logTraineeAuthentication(AuthenticationService authenticationService, Credentials credentials) {
         boolean authenticated = authenticationService.authenticateTrainee(
                 credentials.username(), credentials.password());
-        log.info("Trainee authentication for {}: {}", credentials.username(), authenticated ? "success" : "failed");
+        log.info("Trainee authentication: {}", authenticated ? "success" : "failed");
     }
 
     private static void logTrainerAuthentication(AuthenticationService authenticationService, Credentials credentials) {
         boolean authenticated = authenticationService.authenticateTrainer(
                 credentials.username(), credentials.password());
-        log.info("Trainer authentication for {}: {}", credentials.username(), authenticated ? "success" : "failed");
+        log.info("Trainer authentication: {}", authenticated ? "success" : "failed");
     }
 }

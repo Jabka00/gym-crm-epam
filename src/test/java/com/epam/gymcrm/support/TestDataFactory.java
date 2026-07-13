@@ -17,7 +17,7 @@ import com.epam.gymcrm.entity.TrainingEntity;
 import com.epam.gymcrm.entity.TrainingTypeEntity;
 import com.epam.gymcrm.entity.UserEntity;
 import com.epam.gymcrm.model.TrainingType;
-import com.epam.gymcrm.security.Credentials;
+import com.epam.gymcrm.dto.Credentials;
 
 import java.time.Duration;
 import java.time.LocalDate;

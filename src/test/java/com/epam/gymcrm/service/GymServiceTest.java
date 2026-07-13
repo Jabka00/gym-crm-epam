@@ -13,7 +13,7 @@ import com.epam.gymcrm.mapper.TrainerMapper;
 import com.epam.gymcrm.mapper.TrainingMapper;
 import com.epam.gymcrm.model.TrainingType;
 import com.epam.gymcrm.repository.TrainerRepository;
-import com.epam.gymcrm.security.Credentials;
+import com.epam.gymcrm.dto.Credentials;
 import com.epam.gymcrm.support.TestDataFactory;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -135,7 +135,7 @@ class GymServiceTest {
     @Test
     void shouldPropagateAuthenticationFailureWhenSchedulingTraining() {
         ScheduleTrainingRequest request = TestDataFactory.scheduleTrainingRequest(1L, 2L, TrainingType.YOGA);
-        doThrow(new AuthenticationException("Invalid credentials for username: Alice.Walker"))
+        doThrow(new AuthenticationException("Invalid credentials"))
                 .when(authenticationService)
                 .requireAuthenticated(auth);
 
@@ -192,7 +192,7 @@ class GymServiceTest {
     @Test
     void shouldRejectUnauthenticatedAutoSchedule() {
         AutoScheduleTrainingRequest request = TestDataFactory.autoScheduleTrainingRequest(1L, TrainingType.YOGA);
-        doThrow(new AuthenticationException("Invalid credentials for username: Alice.Walker"))
+        doThrow(new AuthenticationException("Invalid credentials"))
                 .when(authenticationService)
                 .requireAuthenticated(auth);
 

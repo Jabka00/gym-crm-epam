@@ -3,6 +3,7 @@ package com.epam.gymcrm.service;
 import com.epam.gymcrm.entity.TraineeEntity;
 import com.epam.gymcrm.exception.AuthenticationException;
 import com.epam.gymcrm.exception.EntityNotFoundException;
+import com.epam.gymcrm.exception.ValidationException;
 import com.epam.gymcrm.repository.TraineeRepository;
 import com.epam.gymcrm.repository.TrainerRepository;
 import com.epam.gymcrm.support.TestDataFactory;
@@ -62,7 +63,7 @@ class UserServiceTest {
 
         assertThatThrownBy(() -> userService.changePassword("Alice.Walker", "wrong", "NewPass1!"))
                 .isInstanceOf(AuthenticationException.class)
-                .hasMessage("Invalid credentials for username: Alice.Walker");
+                .hasMessage("Invalid credentials");
 
         verify(passwordValidator, times(1)).validate("NewPass1!");
         verify(authenticationService, times(1)).authenticate("Alice.Walker", "wrong");
@@ -123,7 +124,7 @@ class UserServiceTest {
     @Test
     void shouldRejectBlankUsernameOnToggleActivation() {
         assertThatThrownBy(() -> userService.toggleActivation(" "))
-                .isInstanceOf(IllegalArgumentException.class);
+                .isInstanceOf(ValidationException.class);
     }
 
     @Test

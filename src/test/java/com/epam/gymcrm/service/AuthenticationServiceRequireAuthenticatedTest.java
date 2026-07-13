@@ -1,7 +1,7 @@
 package com.epam.gymcrm.service;
 
 import com.epam.gymcrm.exception.AuthenticationException;
-import com.epam.gymcrm.security.Credentials;
+import com.epam.gymcrm.dto.Credentials;
 import com.epam.gymcrm.util.DtoValidator;
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
@@ -63,7 +63,7 @@ class AuthenticationServiceRequireAuthenticatedTest {
 
         assertThatThrownBy(() -> authenticationService.requireAuthenticated(credentials))
                 .isInstanceOf(AuthenticationException.class)
-                .hasMessage("Invalid credentials for username: Inactive.User");
+                .hasMessage("Invalid credentials");
 
         verify(session, times(1)).createQuery(anyString(), eq(Long.class));
     }

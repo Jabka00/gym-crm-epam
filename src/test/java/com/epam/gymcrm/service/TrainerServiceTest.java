@@ -17,7 +17,7 @@ import com.epam.gymcrm.mapper.TrainerMapper;
 import com.epam.gymcrm.model.TrainingType;
 import com.epam.gymcrm.repository.TrainerRepository;
 import com.epam.gymcrm.repository.TrainingTypeRepository;
-import com.epam.gymcrm.security.Credentials;
+import com.epam.gymcrm.dto.Credentials;
 import com.epam.gymcrm.support.TestDataFactory;
 import com.epam.gymcrm.util.DtoValidator;
 import org.junit.jupiter.api.BeforeEach;
@@ -201,7 +201,7 @@ class TrainerServiceTest {
 
     @Test
     void shouldRejectUnauthenticatedTrainerLookup() {
-        doThrow(new AuthenticationException("Invalid credentials for username: John.Smith"))
+        doThrow(new AuthenticationException("Invalid credentials"))
                 .when(authenticationService)
                 .requireAuthenticated(auth);
 
@@ -229,7 +229,7 @@ class TrainerServiceTest {
     @Test
     void shouldRejectUnauthenticatedUpdateTrainer() {
         UpdateTrainerRequest request = TestDataFactory.updateTrainerRequest(1L, TrainingType.YOGA);
-        doThrow(new AuthenticationException("Invalid credentials for username: John.Smith"))
+        doThrow(new AuthenticationException("Invalid credentials"))
                 .when(authenticationService)
                 .requireAuthenticated(auth);
 
@@ -243,7 +243,7 @@ class TrainerServiceTest {
 
     @Test
     void shouldRejectUnauthenticatedToggleActivation() {
-        doThrow(new AuthenticationException("Invalid credentials for username: John.Smith"))
+        doThrow(new AuthenticationException("Invalid credentials"))
                 .when(authenticationService)
                 .requireAuthenticated(auth);
 
@@ -264,7 +264,7 @@ class TrainerServiceTest {
 
     @Test
     void shouldRejectUnauthenticatedChangePassword() {
-        doThrow(new AuthenticationException("Invalid credentials for username: John.Smith"))
+        doThrow(new AuthenticationException("Invalid credentials"))
                 .when(authenticationService)
                 .requireAuthenticated(auth);
 
@@ -277,7 +277,7 @@ class TrainerServiceTest {
 
     @Test
     void shouldPropagateAuthenticationFailureFromUserServiceOnChangePassword() {
-        doThrow(new AuthenticationException("Invalid credentials for username: John.Smith"))
+        doThrow(new AuthenticationException("Invalid credentials"))
                 .when(userService)
                 .changePassword("John.Smith", "wrong", "NewPass1!");
 

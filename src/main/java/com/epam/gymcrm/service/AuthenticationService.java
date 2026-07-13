@@ -1,7 +1,7 @@
 package com.epam.gymcrm.service;
 
+import com.epam.gymcrm.dto.Credentials;
 import com.epam.gymcrm.exception.AuthenticationException;
-import com.epam.gymcrm.security.Credentials;
 import com.epam.gymcrm.util.DtoValidator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -30,8 +30,7 @@ public class AuthenticationService {
         dtoValidator.validate(credentials);
         boolean authenticated = authenticate(
                 credentials.username(), credentials.password(), AuthenticationTarget.TRAINEE);
-        log.info("Trainee password verification for username={}: {}",
-                credentials.username(), authenticated ? "success" : "failed");
+        log.info("Trainee password verification: {}", authenticated ? "success" : "failed");
         return authenticated;
     }
 
@@ -40,18 +39,16 @@ public class AuthenticationService {
         dtoValidator.validate(credentials);
         boolean authenticated = authenticate(
                 credentials.username(), credentials.password(), AuthenticationTarget.TRAINER);
-        log.info("Trainer password verification for username={}: {}",
-                credentials.username(), authenticated ? "success" : "failed");
+        log.info("Trainer password verification: {}", authenticated ? "success" : "failed");
         return authenticated;
     }
 
     public void requireAuthenticated(Credentials credentials) {
         dtoValidator.validate(credentials);
         if (!authenticate(credentials.username(), credentials.password(), AuthenticationTarget.USER)) {
-            throw new AuthenticationException(
-                    "Invalid credentials for username: " + credentials.username());
+            throw new AuthenticationException("Invalid credentials");
         }
-        log.debug("Authentication succeeded for username={}", credentials.username());
+        log.debug("Authentication succeeded");
     }
 
     private boolean authenticate(String username, String password, AuthenticationTarget target) {
@@ -62,16 +59,16 @@ public class AuthenticationService {
                 .getSingleResult();
 
         boolean authenticated = count > 0;
-        logAuthentication(target, username, authenticated);
+        logAuthentication(target, authenticated);
         return authenticated;
     }
 
-    private void logAuthentication(AuthenticationTarget target, String username, boolean authenticated) {
+    private void logAuthentication(AuthenticationTarget target, boolean authenticated) {
         String outcome = authenticated ? "success" : "failed";
         switch (target) {
-            case USER -> log.debug("Authentication for username={}: {}", username, outcome);
-            case TRAINEE -> log.debug("trainee authentication for username={}: {}", username, outcome);
-            case TRAINER -> log.debug("trainer authentication for username={}: {}", username, outcome);
+            case USER -> log.debug("Authentication: {}", outcome);
+            case TRAINEE -> log.debug("Trainee authentication: {}", outcome);
+            case TRAINER -> log.debug("Trainer authentication: {}", outcome);
         }
     }
 

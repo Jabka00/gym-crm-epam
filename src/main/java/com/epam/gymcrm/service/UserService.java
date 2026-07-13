@@ -4,6 +4,7 @@ import com.epam.gymcrm.entity.TraineeEntity;
 import com.epam.gymcrm.entity.TrainerEntity;
 import com.epam.gymcrm.exception.AuthenticationException;
 import com.epam.gymcrm.exception.EntityNotFoundException;
+import com.epam.gymcrm.exception.ValidationException;
 import com.epam.gymcrm.repository.TraineeRepository;
 import com.epam.gymcrm.repository.TrainerRepository;
 import com.epam.gymcrm.util.PasswordValidator;
@@ -28,7 +29,7 @@ public class UserService {
         passwordValidator.validate(newPassword);
 
         if (!authenticationService.authenticate(username, oldPassword)) {
-            throw new AuthenticationException("Invalid credentials for username: " + username);
+            throw new AuthenticationException("Invalid credentials");
         }
 
         var traineeOpt = traineeRepository.findByUsername(username);
@@ -36,7 +37,7 @@ public class UserService {
             TraineeEntity trainee = traineeOpt.get();
             trainee.getUser().setPassword(newPassword);
             traineeRepository.save(trainee);
-            log.info("Password changed for trainee username={}", username);
+            log.info("Password changed for trainee");
             return;
         }
 
@@ -45,7 +46,7 @@ public class UserService {
             TrainerEntity trainer = trainerOpt.get();
             trainer.getUser().setPassword(newPassword);
             trainerRepository.save(trainer);
-            log.info("Password changed for trainer username={}", username);
+            log.info("Password changed for trainer");
             return;
         }
 
@@ -60,7 +61,7 @@ public class UserService {
             TraineeEntity trainee = traineeOpt.get();
             trainee.getUser().setActive(!trainee.getUser().isActive());
             traineeRepository.save(trainee);
-            log.info("Toggled activation for trainee username={}, active={}", username, trainee.getUser().isActive());
+            log.info("Toggled activation for trainee, active={}", trainee.getUser().isActive());
             return;
         }
 
@@ -69,7 +70,7 @@ public class UserService {
             TrainerEntity trainer = trainerOpt.get();
             trainer.getUser().setActive(!trainer.getUser().isActive());
             trainerRepository.save(trainer);
-            log.info("Toggled activation for trainer username={}, active={}", username, trainer.getUser().isActive());
+            log.info("Toggled activation for trainer, active={}", trainer.getUser().isActive());
             return;
         }
 
@@ -78,17 +79,17 @@ public class UserService {
 
     private void validateUsername(String username) {
         if (username == null || username.isBlank()) {
-            throw new IllegalArgumentException("Username cannot be null or empty");
+            throw new ValidationException("Username cannot be null or empty");
         }
     }
 
     private void validatePasswordChangeInput(String username, String oldPassword, String newPassword) {
         validateUsername(username);
         if (oldPassword == null || oldPassword.isBlank()) {
-            throw new IllegalArgumentException("Old password cannot be null or empty");
+            throw new ValidationException("Old password cannot be null or empty");
         }
         if (newPassword == null || newPassword.isBlank()) {
-            throw new IllegalArgumentException("New password cannot be null or empty");
+            throw new ValidationException("New password cannot be null or empty");
         }
     }
 }

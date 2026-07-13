@@ -12,11 +12,12 @@ import com.epam.gymcrm.entity.TrainerEntity;
 import com.epam.gymcrm.exception.AuthenticationException;
 import com.epam.gymcrm.exception.EntityNotFoundException;
 import com.epam.gymcrm.exception.InvalidOperationException;
+import com.epam.gymcrm.exception.ValidationException;
 import com.epam.gymcrm.mapper.TraineeMapper;
 import com.epam.gymcrm.mapper.TrainerMapper;
 import com.epam.gymcrm.repository.TraineeRepository;
 import com.epam.gymcrm.repository.TrainerRepository;
-import com.epam.gymcrm.security.Credentials;
+import com.epam.gymcrm.dto.Credentials;
 import com.epam.gymcrm.service.UserCredentialService;
 import com.epam.gymcrm.support.TestDataFactory;
 import com.epam.gymcrm.util.DtoValidator;
@@ -221,7 +222,7 @@ class TraineeServiceTest {
 
     @Test
     void shouldRejectUnauthenticatedTraineeLookup() {
-        doThrow(new AuthenticationException("Invalid credentials for username: Alice.Walker"))
+        doThrow(new AuthenticationException("Invalid credentials"))
                 .when(authenticationService)
                 .requireAuthenticated(auth);
 
@@ -249,7 +250,7 @@ class TraineeServiceTest {
     @Test
     void shouldRejectUnauthenticatedUpdateTrainee() {
         UpdateTraineeRequest request = TestDataFactory.updateTraineeRequest(1L);
-        doThrow(new AuthenticationException("Invalid credentials for username: Alice.Walker"))
+        doThrow(new AuthenticationException("Invalid credentials"))
                 .when(authenticationService)
                 .requireAuthenticated(auth);
 
@@ -263,7 +264,7 @@ class TraineeServiceTest {
 
     @Test
     void shouldRejectUnauthenticatedNotAssignedTrainersLookup() {
-        doThrow(new AuthenticationException("Invalid credentials for username: Alice.Walker"))
+        doThrow(new AuthenticationException("Invalid credentials"))
                 .when(authenticationService)
                 .requireAuthenticated(auth);
 
@@ -276,7 +277,7 @@ class TraineeServiceTest {
 
     @Test
     void shouldRejectUnauthenticatedToggleActivation() {
-        doThrow(new AuthenticationException("Invalid credentials for username: Alice.Walker"))
+        doThrow(new AuthenticationException("Invalid credentials"))
                 .when(authenticationService)
                 .requireAuthenticated(auth);
 
@@ -301,7 +302,7 @@ class TraineeServiceTest {
 
     @Test
     void shouldRejectUnauthenticatedTraineeDeletion() {
-        doThrow(new AuthenticationException("Invalid credentials for username: Alice.Walker"))
+        doThrow(new AuthenticationException("Invalid credentials"))
                 .when(authenticationService)
                 .requireAuthenticated(auth);
 
@@ -343,7 +344,7 @@ class TraineeServiceTest {
 
     @Test
     void shouldRejectUnauthenticatedTrainersListUpdate() {
-        doThrow(new AuthenticationException("Invalid credentials for username: Alice.Walker"))
+        doThrow(new AuthenticationException("Invalid credentials"))
                 .when(authenticationService)
                 .requireAuthenticated(auth);
 
@@ -372,7 +373,7 @@ class TraineeServiceTest {
 
     @Test
     void shouldRejectUnauthenticatedChangePassword() {
-        doThrow(new AuthenticationException("Invalid credentials for username: Alice.Walker"))
+        doThrow(new AuthenticationException("Invalid credentials"))
                 .when(authenticationService)
                 .requireAuthenticated(auth);
 
@@ -385,7 +386,7 @@ class TraineeServiceTest {
 
     @Test
     void shouldPropagateAuthenticationFailureFromUserServiceOnChangePassword() {
-        doThrow(new AuthenticationException("Invalid credentials for username: Alice.Walker"))
+        doThrow(new AuthenticationException("Invalid credentials"))
                 .when(userService)
                 .changePassword("Alice.Walker", "wrong", "NewPass1!");
 
@@ -409,7 +410,7 @@ class TraineeServiceTest {
     @Test
     void shouldRejectBlankUsernameOnDelete() {
         assertThatThrownBy(() -> traineeService.deleteTraineeByUsername(auth, " "))
-                .isInstanceOf(IllegalArgumentException.class);
+                .isInstanceOf(ValidationException.class);
 
         verify(traineeRepository, never()).findByUsername(any());
     }
@@ -448,7 +449,7 @@ class TraineeServiceTest {
     @Test
     void shouldRejectNullTrainerSetInUpdateTrainersList() {
         assertThatThrownBy(() -> traineeService.updateTrainersList(auth, "Alice.Walker", null))
-                .isInstanceOf(IllegalArgumentException.class);
+                .isInstanceOf(ValidationException.class);
     }
 
     @Test
