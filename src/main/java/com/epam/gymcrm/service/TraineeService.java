@@ -60,7 +60,7 @@ public class TraineeService {
                 .orElseThrow(() -> new EntityNotFoundException("Trainee not found with id: " + request.id()));
 
         TraineeEntity trainee = traineeMapper.toEntity(
-                request, existing.getUsername(), existing.getPassword());
+                request, existing.getUser().getUsername(), existing.getUser().getPassword());
         TraineeEntity updated = traineeRepository.save(trainee);
         return traineeMapper.toResponse(updated);
     }
@@ -87,7 +87,7 @@ public class TraineeService {
     @Transactional(readOnly = true)
     public List<Trainee> getAllTrainees() {
         return traineeRepository.findAll()
-                .filter(TraineeEntity::isActive)
+                .filter(trainee -> trainee.getUser().isActive())
                 .map(traineeMapper::toResponse)
                 .toList();
     }
@@ -98,7 +98,7 @@ public class TraineeService {
 
         TraineeEntity trainee = traineeRepository.findByUsername(username)
                 .orElseThrow(() -> new EntityNotFoundException("Trainee not found with username: " + username));
-        if (!trainee.isActive()) {
+        if (!trainee.getUser().isActive()) {
             throw new InvalidOperationException("Trainee is inactive: username=" + username);
         }
         return traineeMapper.toResponse(trainee);
@@ -132,7 +132,7 @@ public class TraineeService {
         List<TrainerEntity> trainers = trainerRepository.findByUsernames(trainerUsernames);
         if (trainers.size() != trainerUsernames.size()) {
             Set<String> foundUsernames = trainers.stream()
-                    .map(TrainerEntity::getUsername)
+                    .map(trainer -> trainer.getUser().getUsername())
                     .collect(Collectors.toSet());
             String missingUsername = trainerUsernames.stream()
                     .filter(trainerUsername -> !foundUsernames.contains(trainerUsername))
@@ -142,8 +142,9 @@ public class TraineeService {
         }
 
         for (TrainerEntity trainer : trainers) {
-            if (!trainer.isActive()) {
-                throw new InvalidOperationException("Trainer is inactive: username=" + trainer.getUsername());
+            if (!trainer.getUser().isActive()) {
+                throw new InvalidOperationException(
+                        "Trainer is inactive: username=" + trainer.getUser().getUsername());
             }
             trainee.getTrainers().add(trainer);
         }
@@ -168,7 +169,7 @@ public class TraineeService {
     private TraineeEntity requireActiveTrainee(Long id) {
         TraineeEntity trainee = traineeRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Trainee not found with id: " + id));
-        if (!trainee.isActive()) {
+        if (!trainee.getUser().isActive()) {
             throw new InvalidOperationException("Trainee is inactive: id=" + id);
         }
         return trainee;

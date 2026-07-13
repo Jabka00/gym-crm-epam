@@ -60,6 +60,7 @@ class TraineeRepositoryTest {
         TraineeEntity saved = traineeRepository.save(input);
         TraineeEntity expected = TestDataFactory.trainee("First.User");
         expected.setId(saved.getId());
+        expected.getUser().setId(saved.getId());
 
         assertThat(saved).usingRecursiveComparison()
                 .ignoringFields("trainers", "trainings")
@@ -79,6 +80,7 @@ class TraineeRepositoryTest {
         TraineeEntity updated = traineeRepository.save(saved);
         TraineeEntity expected = TestDataFactory.trainee("Second.User");
         expected.setId(saved.getId());
+        expected.getUser().setId(saved.getId());
         expected.setAddress("Odesa");
 
         assertThat(updated).usingRecursiveComparison()
@@ -129,6 +131,7 @@ class TraineeRepositoryTest {
         TraineeEntity saved = traineeRepository.save(TestDataFactory.trainee("Find.User"));
         TraineeEntity expected = TestDataFactory.trainee("Find.User");
         expected.setId(saved.getId());
+        expected.getUser().setId(saved.getId());
 
         assertThat(traineeRepository.findByUsername("Find.User"))
                 .get()

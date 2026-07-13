@@ -1,5 +1,6 @@
 package com.epam.gymcrm.dto.request;
 
+import com.epam.gymcrm.model.TrainingType;
 import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -19,9 +20,8 @@ public record ScheduleTrainingRequest(
         @Size(max = 200, message = "Name must not exceed 200 characters")
         String name,
 
-        @NotBlank(message = "Type is required")
-        @Size(max = 50, message = "Type must not exceed 50 characters")
-        String type,
+        @NotNull(message = "Type is required")
+        TrainingType type,
 
         @NotNull(message = "Date is required")
         LocalDate date,

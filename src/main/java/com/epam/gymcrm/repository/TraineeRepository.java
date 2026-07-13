@@ -56,7 +56,7 @@ public class TraineeRepository {
         TraineeEntity trainee = currentSession()
                 .createQuery(
                         "FROM TraineeEntity t LEFT JOIN FETCH t.trainers LEFT JOIN FETCH t.trainings "
-                                + "WHERE t.username = :username",
+                                + "WHERE t.user.username = :username",
                         TraineeEntity.class)
                 .setParameter("username", username)
                 .uniqueResult();
@@ -83,7 +83,7 @@ public class TraineeRepository {
     public Optional<TraineeEntity> findByUsername(String username) {
         return currentSession()
                 .createQuery(
-                        "FROM TraineeEntity t LEFT JOIN FETCH t.trainers WHERE t.username = :username",
+                        "FROM TraineeEntity t LEFT JOIN FETCH t.trainers WHERE t.user.username = :username",
                         TraineeEntity.class)
                 .setParameter("username", username)
                 .uniqueResultOptional();
@@ -101,7 +101,9 @@ public class TraineeRepository {
     @Transactional(readOnly = true)
     public boolean existsByUsername(String username) {
         Long count = currentSession()
-                .createQuery("SELECT COUNT(t) FROM TraineeEntity t WHERE t.username = :username", Long.class)
+                .createQuery(
+                        "SELECT COUNT(t) FROM TraineeEntity t WHERE t.user.username = :username",
+                        Long.class)
                 .setParameter("username", username)
                 .getSingleResult();
         return count > 0;

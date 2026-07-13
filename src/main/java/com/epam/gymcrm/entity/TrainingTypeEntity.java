@@ -1,7 +1,10 @@
 package com.epam.gymcrm.entity;
 
+import com.epam.gymcrm.model.TrainingType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -19,6 +22,7 @@ public class TrainingTypeEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "type_name", unique = true, nullable = false, length = 50)
-    private String typeName;
+    private TrainingType typeName;
 }

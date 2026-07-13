@@ -87,13 +87,13 @@ class UserServiceTest {
     @Test
     void shouldToggleTraineeActivation() {
         TraineeEntity trainee = TestDataFactory.traineeWithId(1L, "Alice.Walker");
-        trainee.setActive(true);
+        trainee.getUser().setActive(true);
         when(traineeRepository.findByUsername("Alice.Walker")).thenReturn(Optional.of(trainee));
         when(traineeRepository.save(trainee)).thenReturn(trainee);
 
         userService.toggleActivation("Alice.Walker");
 
-        assertThat(trainee.isActive()).isFalse();
+        assertThat(trainee.getUser().isActive()).isFalse();
         verify(traineeRepository, times(1)).save(trainee);
     }
 
@@ -101,13 +101,13 @@ class UserServiceTest {
     void shouldToggleTrainerActivation() {
         when(traineeRepository.findByUsername("John.Smith")).thenReturn(Optional.empty());
         var trainer = TestDataFactory.trainerWithId(2L, "John.Smith");
-        trainer.setActive(true);
+        trainer.getUser().setActive(true);
         when(trainerRepository.findByUsername("John.Smith")).thenReturn(Optional.of(trainer));
         when(trainerRepository.save(trainer)).thenReturn(trainer);
 
         userService.toggleActivation("John.Smith");
 
-        assertThat(trainer.isActive()).isFalse();
+        assertThat(trainer.getUser().isActive()).isFalse();
         verify(trainerRepository, times(1)).save(trainer);
     }
 

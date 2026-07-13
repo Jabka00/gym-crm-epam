@@ -1,6 +1,7 @@
 package com.epam.gymcrm.repository;
 
 import com.epam.gymcrm.entity.TrainerEntity;
+import com.epam.gymcrm.model.TrainingType;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.hibernate.Session;
@@ -52,7 +53,8 @@ public class TrainerRepository {
     public Optional<TrainerEntity> findByUsername(String username) {
         return currentSession()
                 .createQuery(
-                        "FROM TrainerEntity t LEFT JOIN FETCH t.specialization WHERE t.username = :username",
+                        "FROM TrainerEntity t LEFT JOIN FETCH t.specialization "
+                                + "WHERE t.user.username = :username",
                         TrainerEntity.class)
                 .setParameter("username", username)
                 .uniqueResultOptional();
@@ -65,7 +67,8 @@ public class TrainerRepository {
         }
         return currentSession()
                 .createQuery(
-                        "FROM TrainerEntity t LEFT JOIN FETCH t.specialization WHERE t.username IN :usernames",
+                        "FROM TrainerEntity t LEFT JOIN FETCH t.specialization "
+                                + "WHERE t.user.username IN :usernames",
                         TrainerEntity.class)
                 .setParameter("usernames", usernames)
                 .getResultList();
@@ -85,18 +88,20 @@ public class TrainerRepository {
     @Transactional(readOnly = true)
     public boolean existsByUsername(String username) {
         Long count = currentSession()
-                .createQuery("SELECT COUNT(t) FROM TrainerEntity t WHERE t.username = :username", Long.class)
+                .createQuery(
+                        "SELECT COUNT(t) FROM TrainerEntity t WHERE t.user.username = :username",
+                        Long.class)
                 .setParameter("username", username)
                 .getSingleResult();
         return count > 0;
     }
 
     @Transactional(readOnly = true)
-    public Optional<TrainerEntity> findActiveBySpecialization(String typeName) {
+    public Optional<TrainerEntity> findActiveBySpecialization(TrainingType typeName) {
         return currentSession()
                 .createQuery(
                         "FROM TrainerEntity tr LEFT JOIN FETCH tr.specialization "
-                                + "WHERE tr.active = true AND tr.specialization.typeName = :typeName",
+                                + "WHERE tr.user.active = true AND tr.specialization.typeName = :typeName",
                         TrainerEntity.class)
                 .setParameter("typeName", typeName)
                 .setMaxResults(1)
@@ -108,8 +113,9 @@ public class TrainerRepository {
         return currentSession()
                 .createQuery(
                         "FROM TrainerEntity tr LEFT JOIN FETCH tr.specialization "
-                                + "WHERE tr.active = true AND tr.id NOT IN "
-                                + "(SELECT t.id FROM TraineeEntity te JOIN te.trainers t WHERE te.username = :username)",
+                                + "WHERE tr.user.active = true AND tr.id NOT IN "
+                                + "(SELECT t.id FROM TraineeEntity te JOIN te.trainers t "
+                                + "WHERE te.user.username = :username)",
                         TrainerEntity.class)
                 .setParameter("username", traineeUsername)
                 .getResultList();

@@ -8,6 +8,7 @@ import com.epam.gymcrm.entity.TrainingEntity;
 import com.epam.gymcrm.entity.TrainingTypeEntity;
 import com.epam.gymcrm.exception.EntityNotFoundException;
 import com.epam.gymcrm.mapper.TrainingMapper;
+import com.epam.gymcrm.model.TrainingType;
 import com.epam.gymcrm.repository.TraineeRepository;
 import com.epam.gymcrm.repository.TrainerRepository;
 import com.epam.gymcrm.repository.TrainingRepository;
@@ -89,7 +90,7 @@ public class TrainingService {
             LocalDate fromDate,
             LocalDate toDate,
             String trainerUsername,
-            String trainingTypeName) {
+            TrainingType trainingTypeName) {
 
         authenticationService.requireAuthenticated(auth);
 

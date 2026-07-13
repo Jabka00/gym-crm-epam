@@ -1,6 +1,7 @@
 package com.epam.gymcrm.repository;
 
 import com.epam.gymcrm.entity.TrainingEntity;
+import com.epam.gymcrm.model.TrainingType;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.hibernate.Session;
@@ -79,9 +80,10 @@ public class TrainingRepository {
             LocalDate fromDate,
             LocalDate toDate,
             String trainerUsername,
-            String trainingTypeName) {
+            TrainingType trainingTypeName) {
 
-        StringBuilder hql = new StringBuilder(FETCH_TRAINING + " WHERE t.trainee.username = :traineeUsername");
+        StringBuilder hql = new StringBuilder(
+                FETCH_TRAINING + " WHERE t.trainee.user.username = :traineeUsername");
 
         if (fromDate != null) {
             hql.append(" AND t.trainingDate >= :fromDate");
@@ -90,9 +92,9 @@ public class TrainingRepository {
             hql.append(" AND t.trainingDate <= :toDate");
         }
         if (trainerUsername != null && !trainerUsername.isBlank()) {
-            hql.append(" AND t.trainer.username = :trainerUsername");
+            hql.append(" AND t.trainer.user.username = :trainerUsername");
         }
-        if (trainingTypeName != null && !trainingTypeName.isBlank()) {
+        if (trainingTypeName != null) {
             hql.append(" AND t.trainingType.typeName = :trainingTypeName");
         }
 
@@ -109,7 +111,7 @@ public class TrainingRepository {
         if (trainerUsername != null && !trainerUsername.isBlank()) {
             query.setParameter("trainerUsername", trainerUsername);
         }
-        if (trainingTypeName != null && !trainingTypeName.isBlank()) {
+        if (trainingTypeName != null) {
             query.setParameter("trainingTypeName", trainingTypeName);
         }
 
@@ -137,7 +139,8 @@ public class TrainingRepository {
             LocalDate toDate,
             String traineeUsername) {
 
-        StringBuilder hql = new StringBuilder(FETCH_TRAINING + " WHERE t.trainer.username = :trainerUsername");
+        StringBuilder hql = new StringBuilder(
+                FETCH_TRAINING + " WHERE t.trainer.user.username = :trainerUsername");
 
         if (fromDate != null) {
             hql.append(" AND t.trainingDate >= :fromDate");
@@ -146,7 +149,7 @@ public class TrainingRepository {
             hql.append(" AND t.trainingDate <= :toDate");
         }
         if (traineeUsername != null && !traineeUsername.isBlank()) {
-            hql.append(" AND t.trainee.username = :traineeUsername");
+            hql.append(" AND t.trainee.user.username = :traineeUsername");
         }
 
         var query = currentSession()

@@ -8,6 +8,7 @@ import com.epam.gymcrm.entity.TrainingTypeEntity;
 import com.epam.gymcrm.exception.EntityNotFoundException;
 import com.epam.gymcrm.exception.InvalidOperationException;
 import com.epam.gymcrm.mapper.TrainerMapper;
+import com.epam.gymcrm.model.TrainingType;
 import com.epam.gymcrm.repository.TrainerRepository;
 import com.epam.gymcrm.repository.TrainingTypeRepository;
 
@@ -63,7 +64,7 @@ public class TrainerService {
                         "Training type not found: " + request.specialization()));
 
         TrainerEntity trainer = trainerMapper.toEntity(
-                request, specialization, existing.getUsername(), existing.getPassword());
+                request, specialization, existing.getUser().getUsername(), existing.getUser().getPassword());
         TrainerEntity updated = trainerRepository.save(trainer);
         log.info("Trainer profile updated successfully: {}", request.id());
         return trainerMapper.toResponse(updated);
@@ -77,7 +78,7 @@ public class TrainerService {
     @Transactional(readOnly = true)
     public List<Trainer> getAllTrainers() {
         return trainerRepository.findAll()
-                .filter(TrainerEntity::isActive)
+                .filter(trainer -> trainer.getUser().isActive())
                 .map(trainerMapper::toResponse)
                 .toList();
     }
@@ -88,7 +89,7 @@ public class TrainerService {
 
         TrainerEntity trainer = trainerRepository.findByUsername(username)
                 .orElseThrow(() -> new EntityNotFoundException("Trainer not found with username: " + username));
-        if (!trainer.isActive()) {
+        if (!trainer.getUser().isActive()) {
             throw new InvalidOperationException("Trainer is inactive: username=" + username);
         }
         return trainerMapper.toResponse(trainer);
@@ -105,7 +106,7 @@ public class TrainerService {
     }
 
     @Transactional(readOnly = true)
-    public Trainer getActiveTrainerForSpecialization(Long id, String typeName) {
+    public Trainer getActiveTrainerForSpecialization(Long id, TrainingType typeName) {
         TrainerEntity trainer = getActiveEntity(id);
         if (!trainer.matchesSpecialization(typeName)) {
             throw new InvalidOperationException(
@@ -117,7 +118,7 @@ public class TrainerService {
     private TrainerEntity getActiveEntity(Long id) {
         TrainerEntity trainer = trainerRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Trainer not found with id: " + id));
-        if (!trainer.isActive()) {
+        if (!trainer.getUser().isActive()) {
             throw new InvalidOperationException("Trainer is inactive: id=" + id);
         }
         return trainer;

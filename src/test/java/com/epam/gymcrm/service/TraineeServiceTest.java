@@ -153,7 +153,7 @@ class TraineeServiceTest {
                 "Odesa");
 
         when(traineeRepository.findById(1L)).thenReturn(Optional.of(existing));
-        when(traineeMapper.toEntity(request, existing.getUsername(), existing.getPassword()))
+        when(traineeMapper.toEntity(request, existing.getUser().getUsername(), existing.getUser().getPassword()))
                 .thenReturn(entityToSave);
         when(traineeRepository.save(entityToSave)).thenReturn(entityToSave);
         when(traineeMapper.toResponse(entityToSave)).thenReturn(expected);
@@ -163,7 +163,7 @@ class TraineeServiceTest {
         assertThat(actual).usingRecursiveComparison().isEqualTo(expected);
         verify(traineeRepository, times(1)).findById(1L);
         verify(traineeMapper, times(1))
-                .toEntity(request, existing.getUsername(), existing.getPassword());
+                .toEntity(request, existing.getUser().getUsername(), existing.getUser().getPassword());
         verify(traineeRepository, times(1)).save(entityToSave);
         verify(authenticationService, times(1)).requireAuthenticated(auth);
     }
@@ -197,7 +197,7 @@ class TraineeServiceTest {
     @Test
     void shouldThrowWhenTraineeInactive() {
         TraineeEntity trainee = TestDataFactory.traineeWithId(2L, "Inactive.User");
-        trainee.setActive(false);
+        trainee.getUser().setActive(false);
         when(traineeRepository.findById(2L)).thenReturn(Optional.of(trainee));
 
         assertThatThrownBy(() -> traineeService.getActiveTrainee(2L))
@@ -211,7 +211,7 @@ class TraineeServiceTest {
     void shouldReturnOnlyActiveTrainees() {
         TraineeEntity active = TestDataFactory.traineeWithId(1L, "Active.User");
         TraineeEntity inactive = TestDataFactory.traineeWithId(2L, "Inactive.User");
-        inactive.setActive(false);
+        inactive.getUser().setActive(false);
         Trainee activeResponse = TestDataFactory.traineeResponse(1L, "Active.User");
         when(traineeRepository.findAll()).thenReturn(Stream.of(active, inactive));
         when(traineeMapper.toResponse(active)).thenReturn(activeResponse);
@@ -225,7 +225,7 @@ class TraineeServiceTest {
     @Test
     void shouldThrowWhenGettingInactiveTraineeByUsername() {
         TraineeEntity trainee = TestDataFactory.traineeWithId(2L, "Inactive.User");
-        trainee.setActive(false);
+        trainee.getUser().setActive(false);
         when(traineeRepository.findByUsername("Inactive.User")).thenReturn(Optional.of(trainee));
 
         assertThatThrownBy(() -> traineeService.getTraineeByUsername(auth, "Inactive.User"))
@@ -453,7 +453,7 @@ class TraineeServiceTest {
     void shouldRejectInactiveTrainerInUpdateTrainersList() {
         TraineeEntity trainee = TestDataFactory.traineeWithId(1L, "Alice.Walker");
         TrainerEntity inactiveTrainer = TestDataFactory.trainerWithId(2L, "John.Smith");
-        inactiveTrainer.setActive(false);
+        inactiveTrainer.getUser().setActive(false);
         when(traineeRepository.findByUsername("Alice.Walker")).thenReturn(Optional.of(trainee));
         when(trainerRepository.findByUsernames(Set.of("John.Smith"))).thenReturn(List.of(inactiveTrainer));
 
@@ -483,8 +483,8 @@ class TraineeServiceTest {
     void traineeMapperShouldMapEntityToResponse() {
         TraineeMapper mapper = new TraineeMapper(org.mockito.Mockito.mock(UserCredentialService.class));
         TraineeEntity entity = TestDataFactory.traineeWithId(5L, "Jane.Doe");
-        entity.setFirstName("Jane");
-        entity.setLastName("Doe");
+        entity.getUser().setFirstName("Jane");
+        entity.getUser().setLastName("Doe");
         entity.setDateOfBirth(LocalDate.of(1998, 5, 20));
         entity.setAddress("Kyiv");
 
@@ -507,11 +507,11 @@ class TraineeServiceTest {
 
         TraineeEntity actual = mapper.toEntity(request);
 
-        assertThat(actual.getFirstName()).isEqualTo("Jane");
-        assertThat(actual.getLastName()).isEqualTo("Doe");
-        assertThat(actual.getUsername()).isEqualTo("Jane.Doe");
-        assertThat(actual.getPassword()).isEqualTo("Pass1234");
-        assertThat(actual.isActive()).isTrue();
+        assertThat(actual.getUser().getFirstName()).isEqualTo("Jane");
+        assertThat(actual.getUser().getLastName()).isEqualTo("Doe");
+        assertThat(actual.getUser().getUsername()).isEqualTo("Jane.Doe");
+        assertThat(actual.getUser().getPassword()).isEqualTo("Pass1234");
+        assertThat(actual.getUser().isActive()).isTrue();
         assertThat(actual.getDateOfBirth()).isEqualTo(LocalDate.of(1998, 5, 20));
         assertThat(actual.getAddress()).isEqualTo("Kyiv");
     }
@@ -525,9 +525,9 @@ class TraineeServiceTest {
         TraineeEntity actual = mapper.toEntity(request, "Jane.Doe", "storedPass");
 
         assertThat(actual.getId()).isEqualTo(3L);
-        assertThat(actual.getUsername()).isEqualTo("Jane.Doe");
-        assertThat(actual.getPassword()).isEqualTo("storedPass");
-        assertThat(actual.isActive()).isFalse();
+        assertThat(actual.getUser().getUsername()).isEqualTo("Jane.Doe");
+        assertThat(actual.getUser().getPassword()).isEqualTo("storedPass");
+        assertThat(actual.getUser().isActive()).isFalse();
         assertThat(actual.getAddress()).isEqualTo("Lviv");
     }
 }

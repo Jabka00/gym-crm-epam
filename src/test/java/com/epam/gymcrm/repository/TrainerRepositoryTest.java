@@ -24,6 +24,7 @@ class TrainerRepositoryTest {
         TrainerEntity saved = trainerRepository.save(input);
         TrainerEntity expected = TestDataFactory.trainer("Trainer.One");
         expected.setId(saved.getId());
+        expected.getUser().setId(saved.getId());
 
         assertThat(saved).usingRecursiveComparison()
                 .ignoringFields("trainees", "trainings")
@@ -38,12 +39,13 @@ class TrainerRepositoryTest {
     @Test
     void shouldOverwriteExistingTrainerOnSave() {
         TrainerEntity saved = trainerRepository.save(TestDataFactory.trainer("Trainer.Two"));
-        saved.setFirstName("Jonathan");
+        saved.getUser().setFirstName("Jonathan");
 
         TrainerEntity updated = trainerRepository.save(saved);
         TrainerEntity expected = TestDataFactory.trainer("Trainer.Two");
         expected.setId(saved.getId());
-        expected.setFirstName("Jonathan");
+        expected.getUser().setId(saved.getId());
+        expected.getUser().setFirstName("Jonathan");
 
         assertThat(updated).usingRecursiveComparison()
                 .ignoringFields("trainees", "trainings")
@@ -65,6 +67,7 @@ class TrainerRepositoryTest {
         TrainerEntity saved = trainerRepository.save(TestDataFactory.trainer("Find.ByUsername"));
         TrainerEntity expected = TestDataFactory.trainer("Find.ByUsername");
         expected.setId(saved.getId());
+        expected.getUser().setId(saved.getId());
 
         assertThat(trainerRepository.findByUsername("Find.ByUsername"))
                 .get()
@@ -120,11 +123,11 @@ class TrainerRepositoryTest {
     @Test
     void shouldFindActiveTrainerBySpecialization() {
         TrainerEntity saved = trainerRepository.save(TestDataFactory.trainer("Active.Yoga"));
-        assertThat(saved.isActive()).isTrue();
+        assertThat(saved.getUser().isActive()).isTrue();
 
         TrainerEntity found = trainerRepository.findActiveBySpecialization("YOGA").orElseThrow();
 
-        assertThat(found.isActive()).isTrue();
+        assertThat(found.getUser().isActive()).isTrue();
         assertThat(found.getSpecialization().getTypeName()).isEqualTo("YOGA");
     }
 
@@ -133,13 +136,13 @@ class TrainerRepositoryTest {
         trainerRepository.save(TestDataFactory.trainer("Active.Yoga.Only"));
 
         TrainerEntity inactive = TestDataFactory.trainer("Inactive.Yoga");
-        inactive.setActive(false);
+        inactive.getUser().setActive(false);
         trainerRepository.save(inactive);
 
         TrainerEntity found = trainerRepository.findActiveBySpecialization("YOGA").orElseThrow();
 
-        assertThat(found.isActive()).isTrue();
-        assertThat(found.getUsername()).isNotEqualTo("Inactive.Yoga");
+        assertThat(found.getUser().isActive()).isTrue();
+        assertThat(found.getUser().getUsername()).isNotEqualTo("Inactive.Yoga");
     }
 
     @Test

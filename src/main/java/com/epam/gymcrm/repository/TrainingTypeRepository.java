@@ -1,6 +1,7 @@
 package com.epam.gymcrm.repository;
 
 import com.epam.gymcrm.entity.TrainingTypeEntity;
+import com.epam.gymcrm.model.TrainingType;
 import lombok.RequiredArgsConstructor;
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
@@ -26,7 +27,7 @@ public class TrainingTypeRepository {
     }
 
     @Transactional(readOnly = true)
-    public Optional<TrainingTypeEntity> findByTypeName(String typeName) {
+    public Optional<TrainingTypeEntity> findByTypeName(TrainingType typeName) {
         return currentSession()
                 .createQuery(
                         "FROM TrainingTypeEntity t WHERE t.typeName = :typeName",

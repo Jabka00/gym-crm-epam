@@ -19,6 +19,7 @@ import com.epam.gymcrm.service.TraineeService;
 import com.epam.gymcrm.service.TrainerService;
 import com.epam.gymcrm.service.TrainingService;
 import com.epam.gymcrm.service.TrainingTypeService;
+import com.epam.gymcrm.model.TrainingType;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
@@ -62,12 +63,12 @@ public class GymCrmApp {
             gymService.removeTraineeProfile(disposableAuth, disposableTrainee.username());
             log.info("Removed trainee username={}", disposableTrainee.username());
 
-            trainingTypeService.getTrainingTypeByName("PILATES");
-            trainingTypeService.getTrainingTypeByName("YOGA");
+            trainingTypeService.getTrainingTypeByName(TrainingType.PILATES);
+            trainingTypeService.getTrainingTypeByName(TrainingType.YOGA);
 
             CreateTrainerRequest pilatesTrainerRequest = new CreateTrainerRequest(
                     new UserInfo("Emma", "Pilates"),
-                    "PILATES"
+                    TrainingType.PILATES
             );
             Trainer pilatesTrainer = trainerService.createTrainer(pilatesTrainerRequest);
             Credentials pilatesAuth = credentialsOf(pilatesTrainer, trainerRepository);
@@ -88,7 +89,7 @@ public class GymCrmApp {
                     kate.userId(),
                     pilatesTrainer.userId(),
                     "Evening Pilates",
-                    "PILATES",
+                    TrainingType.PILATES,
                     LocalDate.now(),
                     Duration.ofMinutes(60)
             );
@@ -98,7 +99,7 @@ public class GymCrmApp {
             AutoScheduleTrainingRequest autoScheduleRequest = new AutoScheduleTrainingRequest(
                     kate.userId(),
                     "Morning Yoga",
-                    "YOGA",
+                    TrainingType.YOGA,
                     LocalDate.now().plusDays(1),
                     Duration.ofMinutes(45)
             );
@@ -124,7 +125,7 @@ public class GymCrmApp {
                     LocalDate.of(2024, 3, 1),
                     LocalDate.of(2024, 3, 31),
                     "John.Smith",
-                    "YOGA");
+                    TrainingType.YOGA);
             log.info("Alice.Walker YOGA trainings with John.Smith in March 2024: {}", aliceTrainings.size());
 
             List<Training> johnTrainings = trainingService.getTrainerTrainings(
@@ -167,6 +168,7 @@ public class GymCrmApp {
     private static Credentials credentialsOf(Trainee trainee, TraineeRepository traineeRepository) {
         String password = traineeRepository.findByUsername(trainee.username())
                 .orElseThrow(() -> new IllegalStateException("Trainee not found: " + trainee.username()))
+                .getUser()
                 .getPassword();
         return new Credentials(trainee.username(), password);
     }
@@ -174,6 +176,7 @@ public class GymCrmApp {
     private static Credentials credentialsOf(Trainer trainer, TrainerRepository trainerRepository) {
         String password = trainerRepository.findByUsername(trainer.username())
                 .orElseThrow(() -> new IllegalStateException("Trainer not found: " + trainer.username()))
+                .getUser()
                 .getPassword();
         return new Credentials(trainer.username(), password);
     }

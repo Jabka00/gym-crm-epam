@@ -7,6 +7,7 @@ import com.epam.gymcrm.dto.response.Training;
 import com.epam.gymcrm.entity.TrainerEntity;
 import com.epam.gymcrm.exception.EntityNotFoundException;
 import com.epam.gymcrm.mapper.TrainerMapper;
+import com.epam.gymcrm.model.TrainingType;
 import com.epam.gymcrm.repository.TrainerRepository;
 import com.epam.gymcrm.security.Credentials;
 import lombok.RequiredArgsConstructor;
@@ -50,7 +51,7 @@ public class GymService {
         log.info("Removed trainee profile username={}", username);
     }
 
-    private Trainer findActiveTrainerBySpecialization(String typeName) {
+    private Trainer findActiveTrainerBySpecialization(TrainingType typeName) {
         TrainerEntity trainer = trainerRepository.findActiveBySpecialization(typeName)
                 .orElseThrow(() -> new EntityNotFoundException(
                         "No active trainer found for type: " + typeName));

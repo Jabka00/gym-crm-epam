@@ -34,7 +34,7 @@ public class UserService {
         var traineeOpt = traineeRepository.findByUsername(username);
         if (traineeOpt.isPresent()) {
             TraineeEntity trainee = traineeOpt.get();
-            trainee.setPassword(newPassword);
+            trainee.getUser().setPassword(newPassword);
             traineeRepository.save(trainee);
             log.info("Password changed for trainee username={}", username);
             return;
@@ -43,7 +43,7 @@ public class UserService {
         var trainerOpt = trainerRepository.findByUsername(username);
         if (trainerOpt.isPresent()) {
             TrainerEntity trainer = trainerOpt.get();
-            trainer.setPassword(newPassword);
+            trainer.getUser().setPassword(newPassword);
             trainerRepository.save(trainer);
             log.info("Password changed for trainer username={}", username);
             return;
@@ -58,18 +58,18 @@ public class UserService {
         var traineeOpt = traineeRepository.findByUsername(username);
         if (traineeOpt.isPresent()) {
             TraineeEntity trainee = traineeOpt.get();
-            trainee.setActive(!trainee.isActive());
+            trainee.getUser().setActive(!trainee.getUser().isActive());
             traineeRepository.save(trainee);
-            log.info("Toggled activation for trainee username={}, active={}", username, trainee.isActive());
+            log.info("Toggled activation for trainee username={}, active={}", username, trainee.getUser().isActive());
             return;
         }
 
         var trainerOpt = trainerRepository.findByUsername(username);
         if (trainerOpt.isPresent()) {
             TrainerEntity trainer = trainerOpt.get();
-            trainer.setActive(!trainer.isActive());
+            trainer.getUser().setActive(!trainer.getUser().isActive());
             trainerRepository.save(trainer);
-            log.info("Toggled activation for trainer username={}, active={}", username, trainer.isActive());
+            log.info("Toggled activation for trainer username={}, active={}", username, trainer.getUser().isActive());
             return;
         }
 

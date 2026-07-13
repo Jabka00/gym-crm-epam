@@ -12,10 +12,6 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class UserAuthenticationRepository {
 
-    private static final String HQL_AUTHENTICATE =
-            "SELECT COUNT(e) FROM %s e "
-                    + "WHERE e.username = :username AND e.password = :password AND e.active = true";
-
     private final SessionFactory sessionFactory;
 
     @Transactional(readOnly = true)
@@ -59,14 +55,17 @@ public class UserAuthenticationRepository {
     }
 
     private enum AuthenticationTarget {
-        USER("UserEntity"),
-        TRAINEE("TraineeEntity"),
-        TRAINER("TrainerEntity");
+        USER("SELECT COUNT(e) FROM UserEntity e "
+                + "WHERE e.username = :username AND e.password = :password AND e.active = true"),
+        TRAINEE("SELECT COUNT(e) FROM TraineeEntity e "
+                + "WHERE e.user.username = :username AND e.user.password = :password AND e.user.active = true"),
+        TRAINER("SELECT COUNT(e) FROM TrainerEntity e "
+                + "WHERE e.user.username = :username AND e.user.password = :password AND e.user.active = true");
 
         private final String hql;
 
-        AuthenticationTarget(String entityName) {
-            this.hql = HQL_AUTHENTICATE.formatted(entityName);
+        AuthenticationTarget(String hql) {
+            this.hql = hql;
         }
 
         String hql() {

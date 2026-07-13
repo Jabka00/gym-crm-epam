@@ -138,7 +138,7 @@ class TrainerServiceTest {
 
         when(trainingTypeRepository.findByTypeName("BOXING")).thenReturn(Optional.of(specialization));
         when(trainerRepository.findById(1L)).thenReturn(Optional.of(existing));
-        when(trainerMapper.toEntity(request, specialization, existing.getUsername(), existing.getPassword()))
+        when(trainerMapper.toEntity(request, specialization, existing.getUser().getUsername(), existing.getUser().getPassword()))
                 .thenReturn(entityToSave);
         when(trainerRepository.save(entityToSave)).thenReturn(entityToSave);
         when(trainerMapper.toResponse(entityToSave)).thenReturn(expected);
@@ -150,7 +150,7 @@ class TrainerServiceTest {
         verify(trainingTypeRepository, times(1)).findByTypeName("BOXING");
         verify(trainerRepository, times(1)).findById(1L);
         verify(trainerMapper, times(1))
-                .toEntity(request, specialization, existing.getUsername(), existing.getPassword());
+                .toEntity(request, specialization, existing.getUser().getUsername(), existing.getUser().getPassword());
         verify(trainerRepository, times(1)).save(entityToSave);
     }
 
@@ -170,7 +170,7 @@ class TrainerServiceTest {
     @Test
     void shouldThrowWhenTrainerInactive() {
         TrainerEntity trainer = TestDataFactory.trainerWithId(2L, "Inactive.Trainer");
-        trainer.setActive(false);
+        trainer.getUser().setActive(false);
         when(trainerRepository.findById(2L)).thenReturn(Optional.of(trainer));
 
         assertThatThrownBy(() -> trainerService.getTrainer(2L))
@@ -185,7 +185,7 @@ class TrainerServiceTest {
     void shouldReturnOnlyActiveTrainers() {
         TrainerEntity active = TestDataFactory.trainerWithId(1L, "Active.Trainer");
         TrainerEntity inactive = TestDataFactory.trainerWithId(2L, "Inactive.Trainer");
-        inactive.setActive(false);
+        inactive.getUser().setActive(false);
         Trainer activeResponse = TestDataFactory.trainerResponse(1L, "Active.Trainer");
         when(trainerRepository.findAll()).thenReturn(Stream.of(active, inactive));
         when(trainerMapper.toResponse(active)).thenReturn(activeResponse);
@@ -201,7 +201,7 @@ class TrainerServiceTest {
     @Test
     void shouldThrowWhenGettingInactiveTrainerByUsername() {
         TrainerEntity trainer = TestDataFactory.trainerWithId(2L, "Inactive.Trainer");
-        trainer.setActive(false);
+        trainer.getUser().setActive(false);
         when(trainerRepository.findByUsername("Inactive.Trainer")).thenReturn(Optional.of(trainer));
 
         assertThatThrownBy(() -> trainerService.getTrainerByUsername(auth, "Inactive.Trainer"))
@@ -313,7 +313,7 @@ class TrainerServiceTest {
     @Test
     void shouldThrowWhenInactiveTrainerForSpecialization() {
         TrainerEntity trainer = TestDataFactory.trainerWithId(2L, "Inactive.Trainer");
-        trainer.setActive(false);
+        trainer.getUser().setActive(false);
         when(trainerRepository.findById(2L)).thenReturn(Optional.of(trainer));
 
         assertThatThrownBy(() -> trainerService.getActiveTrainerForSpecialization(2L, "YOGA"))
@@ -405,8 +405,8 @@ class TrainerServiceTest {
     void trainerMapperShouldMapEntityToResponse() {
         TrainerMapper mapper = new TrainerMapper(org.mockito.Mockito.mock(UserCredentialService.class));
         TrainerEntity entity = TestDataFactory.trainerWithId(2L, "John.Smith");
-        entity.setFirstName("John");
-        entity.setLastName("Smith");
+        entity.getUser().setFirstName("John");
+        entity.getUser().setLastName("Smith");
 
         Trainer actual = mapper.toResponse(entity);
 
@@ -427,9 +427,9 @@ class TrainerServiceTest {
 
         TrainerEntity actual = mapper.toEntity(request, specialization);
 
-        assertThat(actual.getUsername()).isEqualTo("John.Smith");
-        assertThat(actual.getPassword()).isEqualTo("Pass1234");
-        assertThat(actual.isActive()).isTrue();
+        assertThat(actual.getUser().getUsername()).isEqualTo("John.Smith");
+        assertThat(actual.getUser().getPassword()).isEqualTo("Pass1234");
+        assertThat(actual.getUser().isActive()).isTrue();
         assertThat(actual.getSpecialization()).isEqualTo(specialization);
     }
 
