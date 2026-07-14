@@ -2,7 +2,7 @@ package com.epam.gymcrm.config;
 
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
-import org.springframework.beans.factory.annotation.Value;
+import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.orm.hibernate5.HibernateTransactionManager;
@@ -15,39 +15,19 @@ import java.util.Properties;
 
 @Configuration
 @EnableTransactionManagement
+@RequiredArgsConstructor
 public class HibernateConfig {
 
-    @Value("${db.url}")
-    private String dbUrl;
-
-    @Value("${db.username}")
-    private String dbUsername;
-
-    @Value("${db.password}")
-    private String dbPassword;
-
-    @Value("${db.driver}")
-    private String dbDriver;
-
-    @Value("${hibernate.dialect}")
-    private String hibernateDialect;
-
-    @Value("${hibernate.show_sql}")
-    private boolean showSql;
-
-    @Value("${hibernate.format_sql}")
-    private boolean formatSql;
-
-    @Value("${hibernate.hbm2ddl.auto}")
-    private String hbm2ddlAuto;
+    private final DatabaseProperties dbProps;
+    private final HibernateProperties hibernateProps;
 
     @Bean
     public DataSource dataSource() {
         HikariConfig config = new HikariConfig();
-        config.setJdbcUrl(dbUrl);
-        config.setUsername(dbUsername);
-        config.setPassword(dbPassword);
-        config.setDriverClassName(dbDriver);
+        config.setJdbcUrl(dbProps.getUrl());
+        config.setUsername(dbProps.getUsername());
+        config.setPassword(dbProps.getPassword());
+        config.setDriverClassName(dbProps.getDriver());
         return new HikariDataSource(config);
     }
 
@@ -69,10 +49,10 @@ public class HibernateConfig {
 
     private Properties hibernateProperties() {
         Properties properties = new Properties();
-        properties.put("hibernate.dialect", hibernateDialect);
-        properties.put("hibernate.show_sql", showSql);
-        properties.put("hibernate.format_sql", formatSql);
-        properties.put("hibernate.hbm2ddl.auto", hbm2ddlAuto);
+        properties.put("hibernate.dialect", hibernateProps.getDialect());
+        properties.put("hibernate.show_sql", hibernateProps.isShowSql());
+        properties.put("hibernate.format_sql", hibernateProps.isFormatSql());
+        properties.put("hibernate.hbm2ddl.auto", hibernateProps.getHbm2ddlAuto());
         return properties;
     }
 }

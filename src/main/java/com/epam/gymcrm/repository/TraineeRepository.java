@@ -18,13 +18,13 @@ public class TraineeRepository {
 
     private final SessionFactory sessionFactory;
 
-    private Session currentSession() {
+    private Session getSession() {
         return sessionFactory.getCurrentSession();
     }
 
     @Transactional
     public TraineeEntity save(TraineeEntity trainee) {
-        Session session = currentSession();
+        Session session = getSession();
         if (trainee.getId() == null) {
             session.persist(trainee);
         } else {
@@ -37,7 +37,7 @@ public class TraineeRepository {
 
     @Transactional
     public void delete(Long id) {
-        TraineeEntity trainee = currentSession()
+        TraineeEntity trainee = getSession()
                 .createQuery(
                         "FROM TraineeEntity t LEFT JOIN FETCH t.trainers WHERE t.id = :id",
                         TraineeEntity.class)
@@ -46,14 +46,14 @@ public class TraineeRepository {
 
         if (trainee != null) {
             trainee.getTrainers().clear();
-            currentSession().remove(trainee);
+            getSession().remove(trainee);
             log.debug("Deleted trainee id={}", id);
         }
     }
 
     @Transactional
     public void deleteByUsername(String username) {
-        TraineeEntity trainee = currentSession()
+        TraineeEntity trainee = getSession()
                 .createQuery(
                         "FROM TraineeEntity t LEFT JOIN FETCH t.trainers LEFT JOIN FETCH t.trainings "
                                 + "WHERE t.user.username = :username",
@@ -63,15 +63,15 @@ public class TraineeRepository {
 
         if (trainee != null) {
             trainee.getTrainers().clear();
-            currentSession().remove(trainee);
-            log.debug("Deleted trainee username={}", username);
+            getSession().remove(trainee);
+            log.debug("Deleted trainee");
         }
     }
 
     @Transactional(readOnly = true)
     public Optional<TraineeEntity> findById(Long id) {
         log.debug("findById trainee id={}", id);
-        return currentSession()
+        return getSession()
                 .createQuery(
                         "FROM TraineeEntity t LEFT JOIN FETCH t.trainers WHERE t.id = :id",
                         TraineeEntity.class)
@@ -81,7 +81,7 @@ public class TraineeRepository {
 
     @Transactional(readOnly = true)
     public Optional<TraineeEntity> findByUsername(String username) {
-        return currentSession()
+        return getSession()
                 .createQuery(
                         "FROM TraineeEntity t LEFT JOIN FETCH t.trainers WHERE t.user.username = :username",
                         TraineeEntity.class)
@@ -91,7 +91,7 @@ public class TraineeRepository {
 
     @Transactional(readOnly = true)
     public Stream<TraineeEntity> findAll() {
-        var trainees = currentSession()
+        var trainees = getSession()
                 .createQuery("FROM TraineeEntity t LEFT JOIN FETCH t.trainers", TraineeEntity.class)
                 .getResultList();
         log.debug("findAll trainees, count={}", trainees.size());
@@ -100,7 +100,7 @@ public class TraineeRepository {
 
     @Transactional(readOnly = true)
     public boolean existsByUsername(String username) {
-        Long count = currentSession()
+        Long count = getSession()
                 .createQuery(
                         "SELECT COUNT(t) FROM TraineeEntity t WHERE t.user.username = :username",
                         Long.class)

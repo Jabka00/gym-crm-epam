@@ -21,7 +21,7 @@ public class TraineeMapper {
         UserEntity user = entity.getUser();
         return new Trainee(
                 entity.getId(),
-                toFullName(user.getFirstName(), user.getLastName()),
+                user.getFirstName() + " " + user.getLastName(),
                 user.getUsername(),
                 entity.getDateOfBirth(),
                 entity.getAddress()
@@ -59,9 +59,5 @@ public class TraineeMapper {
         entity.setDateOfBirth(request.dateOfBirth());
         entity.setAddress(request.address());
         return entity;
-    }
-
-    private static String toFullName(String firstName, String lastName) {
-        return firstName + " " + lastName;
     }
 }

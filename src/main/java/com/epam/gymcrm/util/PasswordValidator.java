@@ -1,5 +1,6 @@
 package com.epam.gymcrm.util;
 
+import com.epam.gymcrm.exception.ValidationException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -22,10 +23,10 @@ public class PasswordValidator {
 
     public void validate(String password) {
         if (password == null) {
-            throw new IllegalArgumentException("Password cannot be null");
+            throw new ValidationException("Password cannot be null");
         }
         if (!passwordPattern.matcher(password).matches()) {
-            throw new IllegalArgumentException(validationMessage);
+            throw new ValidationException(validationMessage);
         }
         log.debug("Password validation successful");
     }

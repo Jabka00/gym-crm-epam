@@ -1,6 +1,5 @@
 package com.epam.gymcrm.service;
 
-import com.epam.gymcrm.entity.TraineeEntity;
 import com.epam.gymcrm.entity.TrainerEntity;
 import com.epam.gymcrm.exception.AuthenticationException;
 import com.epam.gymcrm.exception.EntityNotFoundException;
@@ -28,53 +27,45 @@ public class UserService {
         validatePasswordChangeInput(username, oldPassword, newPassword);
         passwordValidator.validate(newPassword);
 
-        if (!authenticationService.authenticate(username, oldPassword)) {
+        if (!authenticationService.authenticate(username, oldPassword).isSuccess()) {
             throw new AuthenticationException("Invalid credentials");
         }
 
-        var traineeOpt = traineeRepository.findByUsername(username);
-        if (traineeOpt.isPresent()) {
-            TraineeEntity trainee = traineeOpt.get();
-            trainee.getUser().setPassword(newPassword);
-            traineeRepository.save(trainee);
-            log.info("Password changed for trainee");
-            return;
-        }
-
-        var trainerOpt = trainerRepository.findByUsername(username);
-        if (trainerOpt.isPresent()) {
-            TrainerEntity trainer = trainerOpt.get();
-            trainer.getUser().setPassword(newPassword);
-            trainerRepository.save(trainer);
-            log.info("Password changed for trainer");
-            return;
-        }
-
-        throw new EntityNotFoundException("User not found with username: " + username);
+        traineeRepository.findByUsername(username).ifPresentOrElse(
+                trainee -> {
+                    trainee.getUser().setPassword(newPassword);
+                    traineeRepository.save(trainee);
+                    log.info("Password changed for trainee");
+                },
+                () -> {
+                    TrainerEntity trainer = trainerRepository.findByUsername(username)
+                            .orElseThrow(() -> new EntityNotFoundException(
+                                    "User not found with username: " + username));
+                    trainer.getUser().setPassword(newPassword);
+                    trainerRepository.save(trainer);
+                    log.info("Password changed for trainer");
+                }
+        );
     }
 
     public void toggleActivation(String username) {
         validateUsername(username);
 
-        var traineeOpt = traineeRepository.findByUsername(username);
-        if (traineeOpt.isPresent()) {
-            TraineeEntity trainee = traineeOpt.get();
-            trainee.getUser().setActive(!trainee.getUser().isActive());
-            traineeRepository.save(trainee);
-            log.info("Toggled activation for trainee, active={}", trainee.getUser().isActive());
-            return;
-        }
-
-        var trainerOpt = trainerRepository.findByUsername(username);
-        if (trainerOpt.isPresent()) {
-            TrainerEntity trainer = trainerOpt.get();
-            trainer.getUser().setActive(!trainer.getUser().isActive());
-            trainerRepository.save(trainer);
-            log.info("Toggled activation for trainer, active={}", trainer.getUser().isActive());
-            return;
-        }
-
-        throw new EntityNotFoundException("User not found with username: " + username);
+        traineeRepository.findByUsername(username).ifPresentOrElse(
+                trainee -> {
+                    trainee.getUser().setActive(!trainee.getUser().isActive());
+                    traineeRepository.save(trainee);
+                    log.info("Toggled activation for trainee, active={}", trainee.getUser().isActive());
+                },
+                () -> {
+                    TrainerEntity trainer = trainerRepository.findByUsername(username)
+                            .orElseThrow(() -> new EntityNotFoundException(
+                                    "User not found with username: " + username));
+                    trainer.getUser().setActive(!trainer.getUser().isActive());
+                    trainerRepository.save(trainer);
+                    log.info("Toggled activation for trainer, active={}", trainer.getUser().isActive());
+                }
+        );
     }
 
     private void validateUsername(String username) {

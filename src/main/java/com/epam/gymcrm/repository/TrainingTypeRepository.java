@@ -17,18 +17,18 @@ public class TrainingTypeRepository {
 
     private final SessionFactory sessionFactory;
 
-    private Session currentSession() {
+    private Session getSession() {
         return sessionFactory.getCurrentSession();
     }
 
     @Transactional(readOnly = true)
     public Optional<TrainingTypeEntity> findById(Long id) {
-        return Optional.ofNullable(currentSession().get(TrainingTypeEntity.class, id));
+        return Optional.ofNullable(getSession().get(TrainingTypeEntity.class, id));
     }
 
     @Transactional(readOnly = true)
     public Optional<TrainingTypeEntity> findByTypeName(TrainingType typeName) {
-        return currentSession()
+        return getSession()
                 .createQuery(
                         "FROM TrainingTypeEntity t WHERE t.typeName = :typeName",
                         TrainingTypeEntity.class)
@@ -38,7 +38,7 @@ public class TrainingTypeRepository {
 
     @Transactional(readOnly = true)
     public List<TrainingTypeEntity> findAll() {
-        return currentSession()
+        return getSession()
                 .createQuery("FROM TrainingTypeEntity", TrainingTypeEntity.class)
                 .getResultList();
     }

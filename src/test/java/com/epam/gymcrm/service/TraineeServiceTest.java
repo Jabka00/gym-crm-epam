@@ -86,7 +86,7 @@ class TraineeServiceTest {
         CreateTraineeRequest request = TestDataFactory.createTraineeRequest("", "Doe");
 
         assertThatThrownBy(() -> traineeService.createTrainee(request))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(ValidationException.class)
                 .hasMessageContaining("First name is required");
 
         verifyNoInteractions(traineeMapper);

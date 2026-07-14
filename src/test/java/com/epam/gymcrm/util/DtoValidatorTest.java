@@ -1,6 +1,7 @@
 package com.epam.gymcrm.util;
 
 import com.epam.gymcrm.model.TrainingType;
+import com.epam.gymcrm.exception.ValidationException;
 
 import com.epam.gymcrm.dto.request.CreateTraineeRequest;
 import com.epam.gymcrm.dto.request.CreateTrainerRequest;
@@ -31,7 +32,7 @@ class DtoValidatorTest {
     @Test
     void shouldRejectNullDto() {
         assertThatThrownBy(() -> dtoValidator.validate(null))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(ValidationException.class)
                 .hasMessage("DTO cannot be null");
     }
 
@@ -40,7 +41,7 @@ class DtoValidatorTest {
         CreateTraineeRequest dto = TestDataFactory.createTraineeRequest("", "Doe");
 
         assertThatThrownBy(() -> dtoValidator.validate(dto))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(ValidationException.class)
                 .hasMessageContaining("First name is required");
     }
 
@@ -49,7 +50,7 @@ class DtoValidatorTest {
         CreateTrainerRequest dto = new CreateTrainerRequest(new UserInfo("John", "Smith"), null);
 
         assertThatThrownBy(() -> dtoValidator.validate(dto))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(ValidationException.class)
                 .hasMessageContaining("Specialization is required");
     }
 
@@ -57,7 +58,7 @@ class DtoValidatorTest {
     void shouldRejectTrainingWithoutName() {
         assertThatThrownBy(() -> dtoValidator.validate(
                         TestDataFactory.scheduleTrainingRequestWithoutName(1L, 2L)))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(ValidationException.class)
                 .hasMessageContaining("Name is required");
     }
 
@@ -66,7 +67,7 @@ class DtoValidatorTest {
         UpdateTraineeRequest dto = TestDataFactory.updateTraineeRequestWithoutId();
 
         assertThatThrownBy(() -> dtoValidator.validateForUpdate(dto, UpdateTraineeRequest::id, "Trainee"))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(ValidationException.class)
                 .hasMessage("Trainee id is required");
     }
 
@@ -84,21 +85,21 @@ class DtoValidatorTest {
                 "Kyiv");
 
         assertThatThrownBy(() -> dtoValidator.validate(dto))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(ValidationException.class)
                 .hasMessageContaining("Date of birth must be in the past");
     }
 
     @Test
     void shouldRejectBlankCredentialsUsername() {
         assertThatThrownBy(() -> dtoValidator.validate(new Credentials("", "secret1234")))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(ValidationException.class)
                 .hasMessageContaining("Username cannot be null or empty");
     }
 
     @Test
     void shouldRejectBlankCredentialsPassword() {
         assertThatThrownBy(() -> dtoValidator.validate(new Credentials("Alice.Walker", "")))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(ValidationException.class)
                 .hasMessageContaining("Password cannot be null or empty");
     }
 
@@ -108,7 +109,7 @@ class DtoValidatorTest {
                 1L, 2L, "Morning Yoga", TrainingType.YOGA, LocalDate.of(2024, 3, 1), Duration.ofSeconds(30));
 
         assertThatThrownBy(() -> dtoValidator.validate(dto))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(ValidationException.class)
                 .hasMessageContaining("Duration must be at least 1 minute");
     }
 
@@ -118,7 +119,7 @@ class DtoValidatorTest {
                 null, new UserInfo("John", "Smith"), true, TrainingType.YOGA);
 
         assertThatThrownBy(() -> dtoValidator.validateForUpdate(dto, UpdateTrainerRequest::id, "Trainer"))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(ValidationException.class)
                 .hasMessage("Trainer id is required");
     }
 }

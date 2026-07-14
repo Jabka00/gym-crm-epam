@@ -23,7 +23,7 @@ public class TrainerMapper {
         UserEntity user = entity.getUser();
         return new Trainer(
                 entity.getId(),
-                toFullName(user.getFirstName(), user.getLastName()),
+                user.getFirstName() + " " + user.getLastName(),
                 user.getUsername(),
                 toTrainingTypeResponse(entity.getSpecialization())
         );
@@ -66,9 +66,5 @@ public class TrainerMapper {
         entity.setUser(user);
         entity.setSpecialization(specialization);
         return entity;
-    }
-
-    private static String toFullName(String firstName, String lastName) {
-        return firstName + " " + lastName;
     }
 }

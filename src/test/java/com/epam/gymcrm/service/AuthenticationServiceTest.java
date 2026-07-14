@@ -1,5 +1,7 @@
 package com.epam.gymcrm.service;
 
+import com.epam.gymcrm.exception.ValidationException;
+import com.epam.gymcrm.model.AuthenticationResult;
 import com.epam.gymcrm.util.DtoValidator;
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
@@ -50,7 +52,8 @@ class AuthenticationServiceTest {
     void shouldAuthenticateActiveUser() {
         stubSuccessfulQuery(1L);
 
-        assertThat(authenticationService.authenticate("Alice.Walker", "secret1234")).isTrue();
+        assertThat(authenticationService.authenticate("Alice.Walker", "secret1234"))
+                .isEqualTo(AuthenticationResult.SUCCESS);
         verify(session, times(1)).createQuery(anyString(), eq(Long.class));
     }
 
@@ -58,41 +61,46 @@ class AuthenticationServiceTest {
     void shouldRejectInactiveUser() {
         stubSuccessfulQuery(0L);
 
-        assertThat(authenticationService.authenticate("Inactive.User", "secret1234")).isFalse();
+        assertThat(authenticationService.authenticate("Inactive.User", "secret1234"))
+                .isEqualTo(AuthenticationResult.FAILURE);
     }
 
     @Test
     void shouldAuthenticateActiveTrainee() {
         stubSuccessfulQuery(1L);
 
-        assertThat(authenticationService.authenticateTrainee("Kate.Doe", "secret1234")).isTrue();
+        assertThat(authenticationService.authenticateTrainee("Kate.Doe", "secret1234"))
+                .isEqualTo(AuthenticationResult.SUCCESS);
     }
 
     @Test
     void shouldRejectTrainerCredentialsForTraineeAuthentication() {
         stubSuccessfulQuery(0L);
 
-        assertThat(authenticationService.authenticateTrainee("John.Smith", "pass1234AB")).isFalse();
+        assertThat(authenticationService.authenticateTrainee("John.Smith", "pass1234AB"))
+                .isEqualTo(AuthenticationResult.FAILURE);
     }
 
     @Test
     void shouldAuthenticateActiveTrainer() {
         stubSuccessfulQuery(1L);
 
-        assertThat(authenticationService.authenticateTrainer("John.Smith", "pass1234AB")).isTrue();
+        assertThat(authenticationService.authenticateTrainer("John.Smith", "pass1234AB"))
+                .isEqualTo(AuthenticationResult.SUCCESS);
     }
 
     @Test
     void shouldRejectTraineeCredentialsForTrainerAuthentication() {
         stubSuccessfulQuery(0L);
 
-        assertThat(authenticationService.authenticateTrainer("Kate.Doe", "secret1234")).isFalse();
+        assertThat(authenticationService.authenticateTrainer("Kate.Doe", "secret1234"))
+                .isEqualTo(AuthenticationResult.FAILURE);
     }
 
     @Test
     void shouldRejectBlankUsernameForTraineeAuthentication() {
         assertThatThrownBy(() -> authenticationService.authenticateTrainee("", "secret1234"))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(ValidationException.class)
                 .hasMessage("Username cannot be null or empty");
 
         verify(sessionFactory, never()).getCurrentSession();
@@ -101,7 +109,7 @@ class AuthenticationServiceTest {
     @Test
     void shouldRejectBlankPasswordForTrainerAuthentication() {
         assertThatThrownBy(() -> authenticationService.authenticateTrainer("John.Smith", ""))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(ValidationException.class)
                 .hasMessage("Password cannot be null or empty");
 
         verify(sessionFactory, never()).getCurrentSession();
@@ -110,7 +118,7 @@ class AuthenticationServiceTest {
     @Test
     void shouldRejectBlankUsernameForAuthentication() {
         assertThatThrownBy(() -> authenticationService.authenticate("", "secret1234"))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(ValidationException.class)
                 .hasMessage("Username cannot be null or empty");
 
         verify(sessionFactory, never()).getCurrentSession();

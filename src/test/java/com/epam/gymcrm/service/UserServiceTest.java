@@ -4,6 +4,7 @@ import com.epam.gymcrm.entity.TraineeEntity;
 import com.epam.gymcrm.exception.AuthenticationException;
 import com.epam.gymcrm.exception.EntityNotFoundException;
 import com.epam.gymcrm.exception.ValidationException;
+import com.epam.gymcrm.model.AuthenticationResult;
 import com.epam.gymcrm.repository.TraineeRepository;
 import com.epam.gymcrm.repository.TrainerRepository;
 import com.epam.gymcrm.support.TestDataFactory;
@@ -46,7 +47,8 @@ class UserServiceTest {
     @Test
     void shouldChangePasswordWhenOldPasswordIsValid() {
         TraineeEntity trainee = TestDataFactory.traineeWithId(1L, "Alice.Walker");
-        when(authenticationService.authenticate("Alice.Walker", "secret1234")).thenReturn(true);
+        when(authenticationService.authenticate("Alice.Walker", "secret1234"))
+                .thenReturn(AuthenticationResult.SUCCESS);
         when(traineeRepository.findByUsername("Alice.Walker")).thenReturn(Optional.of(trainee));
         when(traineeRepository.save(trainee)).thenReturn(trainee);
 
@@ -59,7 +61,8 @@ class UserServiceTest {
 
     @Test
     void shouldRejectPasswordChangeWhenOldPasswordIsInvalid() {
-        when(authenticationService.authenticate("Alice.Walker", "wrong")).thenReturn(false);
+        when(authenticationService.authenticate("Alice.Walker", "wrong"))
+                .thenReturn(AuthenticationResult.FAILURE);
 
         assertThatThrownBy(() -> userService.changePassword("Alice.Walker", "wrong", "NewPass1!"))
                 .isInstanceOf(AuthenticationException.class)
@@ -74,7 +77,8 @@ class UserServiceTest {
 
     @Test
     void shouldThrowWhenUserNotFoundDuringPasswordChange() {
-        when(authenticationService.authenticate("Missing.User", "secret1234")).thenReturn(true);
+        when(authenticationService.authenticate("Missing.User", "secret1234"))
+                .thenReturn(AuthenticationResult.SUCCESS);
         when(traineeRepository.findByUsername("Missing.User")).thenReturn(Optional.empty());
         when(trainerRepository.findByUsername("Missing.User")).thenReturn(Optional.empty());
 
@@ -130,7 +134,8 @@ class UserServiceTest {
     @Test
     void shouldChangeTrainerPasswordWhenOldPasswordIsValid() {
         var trainer = TestDataFactory.trainerWithId(2L, "John.Smith");
-        when(authenticationService.authenticate("John.Smith", "secret1234")).thenReturn(true);
+        when(authenticationService.authenticate("John.Smith", "secret1234"))
+                .thenReturn(AuthenticationResult.SUCCESS);
         when(traineeRepository.findByUsername("John.Smith")).thenReturn(Optional.empty());
         when(trainerRepository.findByUsername("John.Smith")).thenReturn(Optional.of(trainer));
         when(trainerRepository.save(trainer)).thenReturn(trainer);
@@ -147,7 +152,7 @@ class UserServiceTest {
                 "Password must be at least 8 characters and contain uppercase, lowercase, and digit");
 
         assertThatThrownBy(() -> passwordValidator.validate(null))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(ValidationException.class)
                 .hasMessage("Password cannot be null");
     }
 
@@ -158,7 +163,7 @@ class UserServiceTest {
                 "Password must be at least 8 characters and contain uppercase, lowercase, and digit");
 
         assertThatThrownBy(() -> passwordValidator.validate("weak"))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(ValidationException.class)
                 .hasMessage("Password must be at least 8 characters and contain uppercase, lowercase, and digit");
     }
 

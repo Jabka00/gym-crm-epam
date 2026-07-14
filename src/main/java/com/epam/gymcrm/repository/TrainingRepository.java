@@ -28,13 +28,13 @@ public class TrainingRepository {
 
     private final SessionFactory sessionFactory;
 
-    private Session currentSession() {
+    private Session getSession() {
         return sessionFactory.getCurrentSession();
     }
 
     @Transactional
     public TrainingEntity save(TrainingEntity training) {
-        Session session = currentSession();
+        Session session = getSession();
         TrainingEntity persisted;
         if (training.getId() == null) {
             session.persist(training);
@@ -49,17 +49,17 @@ public class TrainingRepository {
 
     @Transactional
     public void delete(Long id) {
-        TrainingEntity training = currentSession().get(TrainingEntity.class, id);
-        if (training != null) {
-            currentSession().remove(training);
-            log.debug("Deleted training id={}", id);
-        }
+        Optional.ofNullable(getSession().get(TrainingEntity.class, id))
+                .ifPresent(training -> {
+                    getSession().remove(training);
+                    log.debug("Deleted training id={}", id);
+                });
     }
 
     @Transactional(readOnly = true)
     public Optional<TrainingEntity> findById(Long id) {
         log.debug("findById training id={}", id);
-        return currentSession()
+        return getSession()
                 .createQuery(FETCH_TRAINING + " WHERE t.id = :id", TrainingEntity.class)
                 .setParameter("id", id)
                 .uniqueResultOptional();
@@ -67,7 +67,7 @@ public class TrainingRepository {
 
     @Transactional(readOnly = true)
     public Stream<TrainingEntity> findAll() {
-        var trainings = currentSession()
+        var trainings = getSession()
                 .createQuery(FETCH_TRAINING, TrainingEntity.class)
                 .getResultList();
         log.debug("findAll trainings, count={}", trainings.size());
@@ -98,7 +98,7 @@ public class TrainingRepository {
             hql.append(" AND t.trainingType.typeName = :trainingTypeName");
         }
 
-        var query = currentSession()
+        var query = getSession()
                 .createQuery(hql.toString(), TrainingEntity.class)
                 .setParameter("traineeUsername", traineeUsername);
 
@@ -122,7 +122,7 @@ public class TrainingRepository {
 
     @Transactional(readOnly = true)
     public boolean existsByTraineeId(Long traineeId) {
-        Long count = currentSession()
+        Long count = getSession()
                 .createQuery(
                         "SELECT COUNT(t) FROM TrainingEntity t WHERE t.trainee.id = :traineeId",
                         Long.class)
@@ -152,7 +152,7 @@ public class TrainingRepository {
             hql.append(" AND t.trainee.user.username = :traineeUsername");
         }
 
-        var query = currentSession()
+        var query = getSession()
                 .createQuery(hql.toString(), TrainingEntity.class)
                 .setParameter("trainerUsername", trainerUsername);
 

@@ -85,7 +85,7 @@ class TrainingServiceTest {
                 1L, 2L, null, TrainingType.YOGA, LocalDate.of(2024, 3, 1), Duration.ofMinutes(60));
 
         assertThatThrownBy(() -> trainingService.createTraining(auth, request))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(ValidationException.class)
                 .hasMessageContaining("Name is required");
 
         verify(trainingMapper, never()).toEntity(
@@ -98,7 +98,7 @@ class TrainingServiceTest {
                 1L, null, "Morning Yoga", TrainingType.YOGA, LocalDate.of(2024, 3, 1), Duration.ofMinutes(60));
 
         assertThatThrownBy(() -> trainingService.createTraining(auth, request))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(ValidationException.class)
                 .hasMessageContaining("Trainer id is required");
 
         verify(trainingMapper, never()).toEntity(
@@ -111,7 +111,7 @@ class TrainingServiceTest {
                 null, 2L, "Morning Yoga", TrainingType.YOGA, LocalDate.of(2024, 3, 1), Duration.ofMinutes(60));
 
         assertThatThrownBy(() -> trainingService.createTraining(auth, request))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(ValidationException.class)
                 .hasMessageContaining("Trainee id is required");
 
         verify(trainingMapper, never()).toEntity(
@@ -373,7 +373,7 @@ class TrainingServiceTest {
                 1L, 2L, "Morning Yoga", TrainingType.YOGA, LocalDate.of(2024, 3, 1), Duration.ofSeconds(30));
 
         assertThatThrownBy(() -> trainingService.createTraining(auth, request))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(ValidationException.class)
                 .hasMessageContaining("Duration must be at least 1 minute");
     }
 

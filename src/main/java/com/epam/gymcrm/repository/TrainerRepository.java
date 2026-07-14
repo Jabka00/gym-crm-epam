@@ -21,13 +21,13 @@ public class TrainerRepository {
 
     private final SessionFactory sessionFactory;
 
-    private Session currentSession() {
+    private Session getSession() {
         return sessionFactory.getCurrentSession();
     }
 
     @Transactional
     public TrainerEntity save(TrainerEntity trainer) {
-        Session session = currentSession();
+        Session session = getSession();
         if (trainer.getId() == null) {
             session.persist(trainer);
         } else {
@@ -41,7 +41,7 @@ public class TrainerRepository {
     @Transactional(readOnly = true)
     public Optional<TrainerEntity> findById(Long id) {
         log.debug("findById trainer id={}", id);
-        return currentSession()
+        return getSession()
                 .createQuery(
                         "FROM TrainerEntity t LEFT JOIN FETCH t.specialization WHERE t.id = :id",
                         TrainerEntity.class)
@@ -51,7 +51,7 @@ public class TrainerRepository {
 
     @Transactional(readOnly = true)
     public Optional<TrainerEntity> findByUsername(String username) {
-        return currentSession()
+        return getSession()
                 .createQuery(
                         "FROM TrainerEntity t LEFT JOIN FETCH t.specialization "
                                 + "WHERE t.user.username = :username",
@@ -65,7 +65,7 @@ public class TrainerRepository {
         if (usernames == null || usernames.isEmpty()) {
             return List.of();
         }
-        return currentSession()
+        return getSession()
                 .createQuery(
                         "FROM TrainerEntity t LEFT JOIN FETCH t.specialization "
                                 + "WHERE t.user.username IN :usernames",
@@ -76,7 +76,7 @@ public class TrainerRepository {
 
     @Transactional(readOnly = true)
     public Stream<TrainerEntity> findAll() {
-        var trainers = currentSession()
+        var trainers = getSession()
                 .createQuery(
                         "FROM TrainerEntity t LEFT JOIN FETCH t.specialization",
                         TrainerEntity.class)
@@ -87,7 +87,7 @@ public class TrainerRepository {
 
     @Transactional(readOnly = true)
     public boolean existsByUsername(String username) {
-        Long count = currentSession()
+        Long count = getSession()
                 .createQuery(
                         "SELECT COUNT(t) FROM TrainerEntity t WHERE t.user.username = :username",
                         Long.class)
@@ -98,7 +98,7 @@ public class TrainerRepository {
 
     @Transactional(readOnly = true)
     public Optional<TrainerEntity> findActiveBySpecialization(TrainingType typeName) {
-        return currentSession()
+        return getSession()
                 .createQuery(
                         "FROM TrainerEntity tr LEFT JOIN FETCH tr.specialization "
                                 + "WHERE tr.user.active = true AND tr.specialization.typeName = :typeName",
@@ -110,7 +110,7 @@ public class TrainerRepository {
 
     @Transactional(readOnly = true)
     public List<TrainerEntity> findNotAssignedToTrainee(String traineeUsername) {
-        return currentSession()
+        return getSession()
                 .createQuery(
                         "FROM TrainerEntity tr LEFT JOIN FETCH tr.specialization "
                                 + "WHERE tr.user.active = true AND tr.id NOT IN "

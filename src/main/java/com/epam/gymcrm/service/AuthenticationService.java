@@ -2,6 +2,7 @@ package com.epam.gymcrm.service;
 
 import com.epam.gymcrm.dto.Credentials;
 import com.epam.gymcrm.exception.AuthenticationException;
+import com.epam.gymcrm.model.AuthenticationResult;
 import com.epam.gymcrm.util.DtoValidator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -19,52 +20,52 @@ public class AuthenticationService {
     private final SessionFactory sessionFactory;
     private final DtoValidator dtoValidator;
 
-    public boolean authenticate(String username, String password) {
+    public AuthenticationResult authenticate(String username, String password) {
         Credentials credentials = new Credentials(username, password);
         dtoValidator.validate(credentials);
         return authenticate(credentials.username(), credentials.password(), AuthenticationTarget.USER);
     }
 
-    public boolean authenticateTrainee(String username, String password) {
+    public AuthenticationResult authenticateTrainee(String username, String password) {
         Credentials credentials = new Credentials(username, password);
         dtoValidator.validate(credentials);
-        boolean authenticated = authenticate(
+        AuthenticationResult result = authenticate(
                 credentials.username(), credentials.password(), AuthenticationTarget.TRAINEE);
-        log.info("Trainee password verification: {}", authenticated ? "success" : "failed");
-        return authenticated;
+        log.info("Trainee password verification: {}", result.isSuccess() ? "success" : "failed");
+        return result;
     }
 
-    public boolean authenticateTrainer(String username, String password) {
+    public AuthenticationResult authenticateTrainer(String username, String password) {
         Credentials credentials = new Credentials(username, password);
         dtoValidator.validate(credentials);
-        boolean authenticated = authenticate(
+        AuthenticationResult result = authenticate(
                 credentials.username(), credentials.password(), AuthenticationTarget.TRAINER);
-        log.info("Trainer password verification: {}", authenticated ? "success" : "failed");
-        return authenticated;
+        log.info("Trainer password verification: {}", result.isSuccess() ? "success" : "failed");
+        return result;
     }
 
     public void requireAuthenticated(Credentials credentials) {
         dtoValidator.validate(credentials);
-        if (!authenticate(credentials.username(), credentials.password(), AuthenticationTarget.USER)) {
+        if (!authenticate(credentials.username(), credentials.password(), AuthenticationTarget.USER).isSuccess()) {
             throw new AuthenticationException("Invalid credentials");
         }
         log.debug("Authentication succeeded");
     }
 
-    private boolean authenticate(String username, String password, AuthenticationTarget target) {
-        Long count = currentSession()
+    private AuthenticationResult authenticate(String username, String password, AuthenticationTarget target) {
+        Long count = getSession()
                 .createQuery(target.hql(), Long.class)
                 .setParameter("username", username)
                 .setParameter("password", password)
                 .getSingleResult();
 
-        boolean authenticated = count > 0;
-        logAuthentication(target, authenticated);
-        return authenticated;
+        AuthenticationResult result = AuthenticationResult.from(count > 0);
+        logAuthentication(target, result);
+        return result;
     }
 
-    private void logAuthentication(AuthenticationTarget target, boolean authenticated) {
-        String outcome = authenticated ? "success" : "failed";
+    private void logAuthentication(AuthenticationTarget target, AuthenticationResult result) {
+        String outcome = result.isSuccess() ? "success" : "failed";
         switch (target) {
             case USER -> log.debug("Authentication: {}", outcome);
             case TRAINEE -> log.debug("Trainee authentication: {}", outcome);
@@ -72,7 +73,7 @@ public class AuthenticationService {
         }
     }
 
-    private Session currentSession() {
+    private Session getSession() {
         return sessionFactory.getCurrentSession();
     }
 

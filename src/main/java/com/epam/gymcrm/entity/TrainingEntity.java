@@ -9,6 +9,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -18,6 +19,7 @@ import java.time.LocalDate;
 @Table(name = "trainings")
 @Getter
 @Setter
+@EqualsAndHashCode(of = {"trainee", "trainer", "trainingName", "trainingDate", "durationMinutes"})
 public class TrainingEntity {
 
     @Id

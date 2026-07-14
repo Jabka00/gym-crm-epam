@@ -13,6 +13,7 @@ import com.epam.gymcrm.entity.TrainingTypeEntity;
 import com.epam.gymcrm.exception.AuthenticationException;
 import com.epam.gymcrm.exception.EntityNotFoundException;
 import com.epam.gymcrm.exception.InvalidOperationException;
+import com.epam.gymcrm.exception.ValidationException;
 import com.epam.gymcrm.mapper.TrainerMapper;
 import com.epam.gymcrm.model.TrainingType;
 import com.epam.gymcrm.repository.TrainerRepository;
@@ -79,7 +80,7 @@ class TrainerServiceTest {
         CreateTrainerRequest request = new CreateTrainerRequest(new UserInfo("John", "Smith"), null);
 
         assertThatThrownBy(() -> trainerService.createTrainer(request))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(ValidationException.class)
                 .hasMessageContaining("Specialization is required");
 
         verifyNoInteractions(trainerMapper, trainingTypeRepository);

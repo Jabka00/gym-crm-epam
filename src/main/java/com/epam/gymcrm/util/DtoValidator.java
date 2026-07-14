@@ -1,5 +1,6 @@
 package com.epam.gymcrm.util;
 
+import com.epam.gymcrm.exception.ValidationException;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validation;
 import jakarta.validation.Validator;
@@ -16,12 +17,12 @@ public class DtoValidator {
 
     public <T> void validate(T dto) {
         if (dto == null) {
-            throw new IllegalArgumentException("DTO cannot be null");
+            throw new ValidationException("DTO cannot be null");
         }
 
         Set<ConstraintViolation<T>> violations = validator.validate(dto);
         if (!violations.isEmpty()) {
-            throw new IllegalArgumentException(
+            throw new ValidationException(
                     violations.stream()
                             .map(ConstraintViolation::getMessage)
                             .collect(Collectors.joining(", "))
@@ -32,7 +33,7 @@ public class DtoValidator {
     public <T> void validateForUpdate(T dto, Function<T, Long> idGetter, String entityName) {
         validate(dto);
         if (idGetter.apply(dto) == null) {
-            throw new IllegalArgumentException(entityName + " id is required");
+            throw new ValidationException(entityName + " id is required");
         }
     }
 }

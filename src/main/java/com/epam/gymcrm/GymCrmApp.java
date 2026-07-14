@@ -19,6 +19,7 @@ import com.epam.gymcrm.service.TraineeService;
 import com.epam.gymcrm.service.TrainerService;
 import com.epam.gymcrm.service.TrainingService;
 import com.epam.gymcrm.service.TrainingTypeService;
+import com.epam.gymcrm.model.AuthenticationResult;
 import com.epam.gymcrm.model.TrainingType;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationContext;
@@ -182,14 +183,14 @@ public class GymCrmApp {
     }
 
     private static void logTraineeAuthentication(AuthenticationService authenticationService, Credentials credentials) {
-        boolean authenticated = authenticationService.authenticateTrainee(
+        AuthenticationResult result = authenticationService.authenticateTrainee(
                 credentials.username(), credentials.password());
-        log.info("Trainee authentication: {}", authenticated ? "success" : "failed");
+        log.info("Trainee authentication: {}", result.isSuccess() ? "success" : "failed");
     }
 
     private static void logTrainerAuthentication(AuthenticationService authenticationService, Credentials credentials) {
-        boolean authenticated = authenticationService.authenticateTrainer(
+        AuthenticationResult result = authenticationService.authenticateTrainer(
                 credentials.username(), credentials.password());
-        log.info("Trainer authentication: {}", authenticated ? "success" : "failed");
+        log.info("Trainer authentication: {}", result.isSuccess() ? "success" : "failed");
     }
 }
