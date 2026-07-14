@@ -3,9 +3,11 @@ package com.epam.gymcrm;
 import com.epam.gymcrm.config.AppConfig;
 import com.epam.gymcrm.dto.Credentials;
 import com.epam.gymcrm.dto.request.AutoScheduleTrainingRequest;
+import com.epam.gymcrm.dto.request.ChangePasswordRequest;
 import com.epam.gymcrm.dto.request.CreateTraineeRequest;
 import com.epam.gymcrm.dto.request.CreateTrainerRequest;
 import com.epam.gymcrm.dto.request.ScheduleTrainingRequest;
+import com.epam.gymcrm.dto.request.ToggleActivationRequest;
 import com.epam.gymcrm.dto.request.UserInfo;
 import com.epam.gymcrm.dto.response.Trainee;
 import com.epam.gymcrm.dto.response.Trainer;
@@ -138,12 +140,14 @@ public class GymCrmApp {
             log.info("Trainer trainings in 2024: {}", johnTrainings.size());
 
             String newPassword = "SecurePass1";
-            traineeService.changePassword(kateAuth, kate.username(), kateAuth.password(), newPassword);
+            traineeService.changePassword(
+                    kateAuth,
+                    new ChangePasswordRequest(kate.username(), kateAuth.password(), newPassword));
             kateAuth = new Credentials(kate.username(), newPassword);
             log.info("Password changed for trainee id={}", kate.userId());
             logTraineeAuthentication(authenticationService, kateAuth);
 
-            traineeService.toggleActivation(kateAuth, kate.username());
+            traineeService.toggleActivation(kateAuth, new ToggleActivationRequest(kate.username()));
             log.info("Deactivated trainee id={}", kate.userId());
 
             try {

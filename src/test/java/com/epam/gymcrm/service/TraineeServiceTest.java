@@ -18,7 +18,8 @@ import com.epam.gymcrm.mapper.TrainerMapper;
 import com.epam.gymcrm.repository.TraineeRepository;
 import com.epam.gymcrm.repository.TrainerRepository;
 import com.epam.gymcrm.dto.Credentials;
-import com.epam.gymcrm.service.UserCredentialService;
+import com.epam.gymcrm.dto.request.ChangePasswordRequest;
+import com.epam.gymcrm.dto.request.ToggleActivationRequest;
 import com.epam.gymcrm.support.TestDataFactory;
 import com.epam.gymcrm.util.DtoValidator;
 import org.junit.jupiter.api.BeforeEach;
@@ -280,12 +281,13 @@ class TraineeServiceTest {
         doThrow(new AuthenticationException("Invalid credentials"))
                 .when(authenticationService)
                 .requireAuthenticated(auth);
+        ToggleActivationRequest request = new ToggleActivationRequest("Alice.Walker");
 
-        assertThatThrownBy(() -> traineeService.toggleActivation(auth, "Alice.Walker"))
+        assertThatThrownBy(() -> traineeService.toggleActivation(auth, request))
                 .isInstanceOf(AuthenticationException.class);
 
         verify(authenticationService, times(1)).requireAuthenticated(auth);
-        verify(userService, never()).toggleActivation("Alice.Walker");
+        verify(userService, never()).toggleActivation(request);
     }
 
     @Test
@@ -357,18 +359,22 @@ class TraineeServiceTest {
 
     @Test
     void shouldToggleActivation() {
-        traineeService.toggleActivation(auth, "Alice.Walker");
+        ToggleActivationRequest request = new ToggleActivationRequest("Alice.Walker");
+
+        traineeService.toggleActivation(auth, request);
 
         verify(authenticationService, times(1)).requireAuthenticated(auth);
-        verify(userService, times(1)).toggleActivation("Alice.Walker");
+        verify(userService, times(1)).toggleActivation(request);
     }
 
     @Test
-    void shouldDelegateChangePasswordToUserService() {
-        traineeService.changePassword(auth, "Alice.Walker", "oldPass1", "NewPass1!");
+    void shouldChangePassword() {
+        ChangePasswordRequest request = new ChangePasswordRequest("Alice.Walker", "oldPass1", "NewPass1!");
+
+        traineeService.changePassword(auth, request);
 
         verify(authenticationService, times(1)).requireAuthenticated(auth);
-        verify(userService, times(1)).changePassword("Alice.Walker", "oldPass1", "NewPass1!");
+        verify(userService, times(1)).changePassword(request);
     }
 
     @Test
@@ -376,25 +382,27 @@ class TraineeServiceTest {
         doThrow(new AuthenticationException("Invalid credentials"))
                 .when(authenticationService)
                 .requireAuthenticated(auth);
+        ChangePasswordRequest request = new ChangePasswordRequest("Alice.Walker", "oldPass1", "NewPass1!");
 
-        assertThatThrownBy(() -> traineeService.changePassword(auth, "Alice.Walker", "oldPass1", "NewPass1!"))
+        assertThatThrownBy(() -> traineeService.changePassword(auth, request))
                 .isInstanceOf(AuthenticationException.class);
 
         verify(authenticationService, times(1)).requireAuthenticated(auth);
-        verify(userService, never()).changePassword("Alice.Walker", "oldPass1", "NewPass1!");
+        verify(userService, never()).changePassword(request);
     }
 
     @Test
     void shouldPropagateAuthenticationFailureFromUserServiceOnChangePassword() {
+        ChangePasswordRequest request = new ChangePasswordRequest("Alice.Walker", "wrongPass1", "NewPass1!");
         doThrow(new AuthenticationException("Invalid credentials"))
                 .when(userService)
-                .changePassword("Alice.Walker", "wrong", "NewPass1!");
+                .changePassword(request);
 
-        assertThatThrownBy(() -> traineeService.changePassword(auth, "Alice.Walker", "wrong", "NewPass1!"))
+        assertThatThrownBy(() -> traineeService.changePassword(auth, request))
                 .isInstanceOf(AuthenticationException.class);
 
         verify(authenticationService, times(1)).requireAuthenticated(auth);
-        verify(userService, times(1)).changePassword("Alice.Walker", "wrong", "NewPass1!");
+        verify(userService, times(1)).changePassword(request);
     }
 
     @Test

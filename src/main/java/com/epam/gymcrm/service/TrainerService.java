@@ -1,6 +1,9 @@
 package com.epam.gymcrm.service;
 
+import com.epam.gymcrm.dto.Credentials;
+import com.epam.gymcrm.dto.request.ChangePasswordRequest;
 import com.epam.gymcrm.dto.request.CreateTrainerRequest;
+import com.epam.gymcrm.dto.request.ToggleActivationRequest;
 import com.epam.gymcrm.dto.request.UpdateTrainerRequest;
 import com.epam.gymcrm.dto.response.Trainer;
 import com.epam.gymcrm.entity.TrainerEntity;
@@ -11,7 +14,6 @@ import com.epam.gymcrm.mapper.TrainerMapper;
 import com.epam.gymcrm.model.TrainingType;
 import com.epam.gymcrm.repository.TrainerRepository;
 import com.epam.gymcrm.repository.TrainingTypeRepository;
-import com.epam.gymcrm.dto.Credentials;
 import com.epam.gymcrm.util.DtoValidator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -89,14 +91,14 @@ public class TrainerService {
         return trainerMapper.toResponse(trainer);
     }
 
-    public void changePassword(Credentials auth, String username, String oldPassword, String newPassword) {
+    public void changePassword(Credentials auth, ChangePasswordRequest request) {
         authenticationService.requireAuthenticated(auth);
-        userService.changePassword(username, oldPassword, newPassword);
+        userService.changePassword(request);
     }
 
-    public void toggleActivation(Credentials auth, String username) {
+    public void toggleActivation(Credentials auth, ToggleActivationRequest request) {
         authenticationService.requireAuthenticated(auth);
-        userService.toggleActivation(username);
+        userService.toggleActivation(request);
     }
 
     @Transactional(readOnly = true)

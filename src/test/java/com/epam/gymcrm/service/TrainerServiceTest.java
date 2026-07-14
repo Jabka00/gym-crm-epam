@@ -19,6 +19,8 @@ import com.epam.gymcrm.model.TrainingType;
 import com.epam.gymcrm.repository.TrainerRepository;
 import com.epam.gymcrm.repository.TrainingTypeRepository;
 import com.epam.gymcrm.dto.Credentials;
+import com.epam.gymcrm.dto.request.ChangePasswordRequest;
+import com.epam.gymcrm.dto.request.ToggleActivationRequest;
 import com.epam.gymcrm.support.TestDataFactory;
 import com.epam.gymcrm.util.DtoValidator;
 import org.junit.jupiter.api.BeforeEach;
@@ -247,20 +249,23 @@ class TrainerServiceTest {
         doThrow(new AuthenticationException("Invalid credentials"))
                 .when(authenticationService)
                 .requireAuthenticated(auth);
+        ToggleActivationRequest request = new ToggleActivationRequest("John.Smith");
 
-        assertThatThrownBy(() -> trainerService.toggleActivation(auth, "John.Smith"))
+        assertThatThrownBy(() -> trainerService.toggleActivation(auth, request))
                 .isInstanceOf(AuthenticationException.class);
 
         verify(authenticationService, times(1)).requireAuthenticated(auth);
-        verify(userService, never()).toggleActivation("John.Smith");
+        verify(userService, never()).toggleActivation(request);
     }
 
     @Test
-    void shouldDelegateChangePasswordToUserService() {
-        trainerService.changePassword(auth, "John.Smith", "oldPass1", "NewPass1!");
+    void shouldChangePassword() {
+        ChangePasswordRequest request = new ChangePasswordRequest("John.Smith", "oldPass1", "NewPass1!");
+
+        trainerService.changePassword(auth, request);
 
         verify(authenticationService, times(1)).requireAuthenticated(auth);
-        verify(userService, times(1)).changePassword("John.Smith", "oldPass1", "NewPass1!");
+        verify(userService, times(1)).changePassword(request);
     }
 
     @Test
@@ -268,33 +273,37 @@ class TrainerServiceTest {
         doThrow(new AuthenticationException("Invalid credentials"))
                 .when(authenticationService)
                 .requireAuthenticated(auth);
+        ChangePasswordRequest request = new ChangePasswordRequest("John.Smith", "oldPass1", "NewPass1!");
 
-        assertThatThrownBy(() -> trainerService.changePassword(auth, "John.Smith", "oldPass1", "NewPass1!"))
+        assertThatThrownBy(() -> trainerService.changePassword(auth, request))
                 .isInstanceOf(AuthenticationException.class);
 
         verify(authenticationService, times(1)).requireAuthenticated(auth);
-        verify(userService, never()).changePassword("John.Smith", "oldPass1", "NewPass1!");
+        verify(userService, never()).changePassword(request);
     }
 
     @Test
     void shouldPropagateAuthenticationFailureFromUserServiceOnChangePassword() {
+        ChangePasswordRequest request = new ChangePasswordRequest("John.Smith", "wrongPass1", "NewPass1!");
         doThrow(new AuthenticationException("Invalid credentials"))
                 .when(userService)
-                .changePassword("John.Smith", "wrong", "NewPass1!");
+                .changePassword(request);
 
-        assertThatThrownBy(() -> trainerService.changePassword(auth, "John.Smith", "wrong", "NewPass1!"))
+        assertThatThrownBy(() -> trainerService.changePassword(auth, request))
                 .isInstanceOf(AuthenticationException.class);
 
         verify(authenticationService, times(1)).requireAuthenticated(auth);
-        verify(userService, times(1)).changePassword("John.Smith", "wrong", "NewPass1!");
+        verify(userService, times(1)).changePassword(request);
     }
 
     @Test
-    void shouldDelegateToggleActivationToUserService() {
-        trainerService.toggleActivation(auth, "John.Smith");
+    void shouldToggleActivation() {
+        ToggleActivationRequest request = new ToggleActivationRequest("John.Smith");
+
+        trainerService.toggleActivation(auth, request);
 
         verify(authenticationService, times(1)).requireAuthenticated(auth);
-        verify(userService, times(1)).toggleActivation("John.Smith");
+        verify(userService, times(1)).toggleActivation(request);
     }
 
     @Test
