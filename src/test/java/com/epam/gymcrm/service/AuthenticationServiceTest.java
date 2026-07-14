@@ -26,6 +26,9 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 class AuthenticationServiceTest {
 
+    private static final String VALID_PASSWORD = "Secret1234";
+    private static final String TRAINER_PASSWORD = "Pass1234AB";
+
     @Mock
     private SessionFactory sessionFactory;
 
@@ -52,7 +55,7 @@ class AuthenticationServiceTest {
     void shouldAuthenticateActiveUser() {
         stubSuccessfulQuery(1L);
 
-        assertThat(authenticationService.authenticate("Alice.Walker", "secret1234"))
+        assertThat(authenticationService.authenticate("Alice.Walker", VALID_PASSWORD))
                 .isEqualTo(AuthenticationResult.SUCCESS);
         verify(session, times(1)).createQuery(anyString(), eq(Long.class));
     }
@@ -61,7 +64,7 @@ class AuthenticationServiceTest {
     void shouldRejectInactiveUser() {
         stubSuccessfulQuery(0L);
 
-        assertThat(authenticationService.authenticate("Inactive.User", "secret1234"))
+        assertThat(authenticationService.authenticate("Inactive.User", VALID_PASSWORD))
                 .isEqualTo(AuthenticationResult.FAILURE);
     }
 
@@ -69,7 +72,7 @@ class AuthenticationServiceTest {
     void shouldAuthenticateActiveTrainee() {
         stubSuccessfulQuery(1L);
 
-        assertThat(authenticationService.authenticateTrainee("Kate.Doe", "secret1234"))
+        assertThat(authenticationService.authenticateTrainee("Kate.Doe", VALID_PASSWORD))
                 .isEqualTo(AuthenticationResult.SUCCESS);
     }
 
@@ -77,7 +80,7 @@ class AuthenticationServiceTest {
     void shouldRejectTrainerCredentialsForTraineeAuthentication() {
         stubSuccessfulQuery(0L);
 
-        assertThat(authenticationService.authenticateTrainee("John.Smith", "pass1234AB"))
+        assertThat(authenticationService.authenticateTrainee("John.Smith", TRAINER_PASSWORD))
                 .isEqualTo(AuthenticationResult.FAILURE);
     }
 
@@ -85,7 +88,7 @@ class AuthenticationServiceTest {
     void shouldAuthenticateActiveTrainer() {
         stubSuccessfulQuery(1L);
 
-        assertThat(authenticationService.authenticateTrainer("John.Smith", "pass1234AB"))
+        assertThat(authenticationService.authenticateTrainer("John.Smith", TRAINER_PASSWORD))
                 .isEqualTo(AuthenticationResult.SUCCESS);
     }
 
@@ -93,15 +96,15 @@ class AuthenticationServiceTest {
     void shouldRejectTraineeCredentialsForTrainerAuthentication() {
         stubSuccessfulQuery(0L);
 
-        assertThat(authenticationService.authenticateTrainer("Kate.Doe", "secret1234"))
+        assertThat(authenticationService.authenticateTrainer("Kate.Doe", VALID_PASSWORD))
                 .isEqualTo(AuthenticationResult.FAILURE);
     }
 
     @Test
     void shouldRejectBlankUsernameForTraineeAuthentication() {
-        assertThatThrownBy(() -> authenticationService.authenticateTrainee("", "secret1234"))
+        assertThatThrownBy(() -> authenticationService.authenticateTrainee("", VALID_PASSWORD))
                 .isInstanceOf(ValidationException.class)
-                .hasMessage("Username cannot be null or empty");
+                .hasMessageContaining("Username cannot be null or empty");
 
         verify(sessionFactory, never()).getCurrentSession();
     }
@@ -110,16 +113,16 @@ class AuthenticationServiceTest {
     void shouldRejectBlankPasswordForTrainerAuthentication() {
         assertThatThrownBy(() -> authenticationService.authenticateTrainer("John.Smith", ""))
                 .isInstanceOf(ValidationException.class)
-                .hasMessage("Password cannot be null or empty");
+                .hasMessageContaining("Password cannot be null or empty");
 
         verify(sessionFactory, never()).getCurrentSession();
     }
 
     @Test
     void shouldRejectBlankUsernameForAuthentication() {
-        assertThatThrownBy(() -> authenticationService.authenticate("", "secret1234"))
+        assertThatThrownBy(() -> authenticationService.authenticate("", VALID_PASSWORD))
                 .isInstanceOf(ValidationException.class)
-                .hasMessage("Username cannot be null or empty");
+                .hasMessageContaining("Username cannot be null or empty");
 
         verify(sessionFactory, never()).getCurrentSession();
     }

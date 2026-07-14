@@ -41,7 +41,7 @@ class TraineeRepositoryTest {
 
     @Test
     void shouldRejectWrongPasswordForTrainee() {
-        assertThat(authenticationService.authenticateTrainee("Alice.Walker", "wrong"))
+        assertThat(authenticationService.authenticateTrainee("Alice.Walker", "WrongPass1"))
                 .isEqualTo(AuthenticationResult.FAILURE);
     }
 

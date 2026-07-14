@@ -41,7 +41,7 @@ class AuthenticationServiceRequireAuthenticatedTest {
 
     @Test
     void shouldRequireAuthenticatedWhenCredentialsAreValid() {
-        Credentials credentials = new Credentials("Alice.Walker", "secret1234");
+        Credentials credentials = new Credentials("Alice.Walker", "Secret1234");
         when(sessionFactory.getCurrentSession()).thenReturn(session);
         when(session.createQuery(anyString(), eq(Long.class))).thenReturn(query);
         when(query.setParameter(anyString(), anyString())).thenReturn(query);
@@ -55,7 +55,7 @@ class AuthenticationServiceRequireAuthenticatedTest {
 
     @Test
     void shouldThrowWhenCredentialsAreInvalid() {
-        Credentials credentials = new Credentials("Inactive.User", "secret1234");
+        Credentials credentials = new Credentials("Inactive.User", "Secret1234");
         when(sessionFactory.getCurrentSession()).thenReturn(session);
         when(session.createQuery(anyString(), eq(Long.class))).thenReturn(query);
         when(query.setParameter(anyString(), anyString())).thenReturn(query);
