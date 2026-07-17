@@ -1,13 +1,13 @@
 package com.epam.gymcrm.service;
 
-import com.epam.gymcrm.service.UserCredentialService;
+import com.epam.gymcrm.service.UsernameGenerator;
 
 import com.epam.gymcrm.service.PasswordGenerator;
 
 import com.epam.gymcrm.dto.request.CreateTrainerRequest;
 import com.epam.gymcrm.dto.request.UpdateTrainerRequest;
 import com.epam.gymcrm.dto.request.UserInfo;
-import com.epam.gymcrm.dto.response.Trainer;
+import com.epam.gymcrm.dto.Trainer;
 import com.epam.gymcrm.entity.TrainerEntity;
 import com.epam.gymcrm.entity.TrainingTypeEntity;
 import com.epam.gymcrm.exception.AuthenticationException;
@@ -31,19 +31,16 @@ import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.util.List;
 import java.util.Optional;
-import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -75,6 +72,8 @@ class TrainerServiceTest {
     @BeforeEach
     void setUp() {
         auth = TestDataFactory.credentials();
+        lenient().when(authenticationService.matchesTrainerCredentials(auth.username(), auth.password()))
+                .thenReturn(true);
     }
 
     @Test
@@ -123,68 +122,22 @@ class TrainerServiceTest {
                 1L,
                 "John Smith",
                 "John.Smith",
-                TestDataFactory.trainingTypeResponse(3L, TrainingType.BOXING));
+                TrainingType.BOXING);
 
         when(trainingTypeRepository.findByTypeName(TrainingType.BOXING)).thenReturn(Optional.of(specialization));
         when(trainerRepository.findById(1L)).thenReturn(Optional.of(existing));
-        when(trainerMapper.toEntity(request, specialization, existing.getUser().getUsername(), existing.getUser().getPassword()))
-                .thenReturn(entityToSave);
+        when(trainerMapper.toEntity(existing, request, specialization)).thenReturn(entityToSave);
         when(trainerRepository.save(entityToSave)).thenReturn(entityToSave);
         when(trainerMapper.toResponse(entityToSave)).thenReturn(expected);
 
         Trainer actual = trainerService.updateTrainer(auth, request);
 
         assertThat(actual).usingRecursiveComparison().isEqualTo(expected);
-        verify(authenticationService, times(1)).requireAuthenticated(auth);
+        verify(authenticationService, times(1)).matchesTrainerCredentials(auth.username(), auth.password());
         verify(trainingTypeRepository, times(1)).findByTypeName(TrainingType.BOXING);
         verify(trainerRepository, times(1)).findById(1L);
-        verify(trainerMapper, times(1))
-                .toEntity(request, specialization, existing.getUser().getUsername(), existing.getUser().getPassword());
+        verify(trainerMapper, times(1)).toEntity(existing, request, specialization);
         verify(trainerRepository, times(1)).save(entityToSave);
-    }
-
-    @Test
-    void shouldGetTrainerById() {
-        TrainerEntity trainer = TestDataFactory.trainerWithId(1L, "John.Smith");
-        Trainer expected = TestDataFactory.trainerResponse(1L, "John.Smith");
-        when(trainerRepository.findById(1L)).thenReturn(Optional.of(trainer));
-        when(trainerMapper.toResponse(trainer)).thenReturn(expected);
-
-        Trainer actual = trainerService.getTrainer(1L);
-
-        assertThat(actual).usingRecursiveComparison().isEqualTo(expected);
-        verify(trainerRepository, times(1)).findById(1L);
-    }
-
-    @Test
-    void shouldThrowWhenTrainerInactive() {
-        TrainerEntity trainer = TestDataFactory.trainerWithId(2L, "Inactive.Trainer");
-        trainer.getUser().setActive(false);
-        when(trainerRepository.findById(2L)).thenReturn(Optional.of(trainer));
-
-        assertThatThrownBy(() -> trainerService.getTrainer(2L))
-                .isInstanceOf(InvalidOperationException.class)
-                .hasMessageContaining("inactive");
-
-        verify(trainerRepository, times(1)).findById(2L);
-        verify(trainerMapper, never()).toResponse(trainer);
-    }
-
-    @Test
-    void shouldReturnOnlyActiveTrainers() {
-        TrainerEntity active = TestDataFactory.trainerWithId(1L, "Active.Trainer");
-        TrainerEntity inactive = TestDataFactory.trainerWithId(2L, "Inactive.Trainer");
-        inactive.getUser().setActive(false);
-        Trainer activeResponse = TestDataFactory.trainerResponse(1L, "Active.Trainer");
-        when(trainerRepository.findAll()).thenReturn(Stream.of(active, inactive));
-        when(trainerMapper.toResponse(active)).thenReturn(activeResponse);
-
-        List<Trainer> actual = trainerService.getAllTrainers();
-
-        assertThat(actual)
-                .usingRecursiveFieldByFieldElementComparator()
-                .containsExactly(activeResponse);
-        verify(trainerRepository, times(1)).findAll();
     }
 
     @Test
@@ -197,21 +150,19 @@ class TrainerServiceTest {
                 .isInstanceOf(InvalidOperationException.class)
                 .hasMessageContaining("inactive");
 
-        verify(authenticationService, times(1)).requireAuthenticated(auth);
+        verify(authenticationService, times(1)).matchesTrainerCredentials(auth.username(), auth.password());
         verify(trainerRepository, times(1)).findByUsername("Inactive.Trainer");
         verify(trainerMapper, never()).toResponse(trainer);
     }
 
     @Test
     void shouldRejectUnauthenticatedTrainerLookup() {
-        doThrow(new AuthenticationException("Invalid credentials"))
-                .when(authenticationService)
-                .requireAuthenticated(auth);
+        when(authenticationService.matchesTrainerCredentials(auth.username(), auth.password())).thenReturn(false);
 
         assertThatThrownBy(() -> trainerService.getTrainerByUsername(auth, "John.Smith"))
                 .isInstanceOf(AuthenticationException.class);
 
-        verify(authenticationService, times(1)).requireAuthenticated(auth);
+        verify(authenticationService, times(1)).matchesTrainerCredentials(auth.username(), auth.password());
         verify(trainerRepository, never()).findByUsername("John.Smith");
     }
 
@@ -225,36 +176,32 @@ class TrainerServiceTest {
         Trainer actual = trainerService.getTrainerByUsername(auth, "John.Smith");
 
         assertThat(actual).usingRecursiveComparison().isEqualTo(expected);
-        verify(authenticationService, times(1)).requireAuthenticated(auth);
+        verify(authenticationService, times(1)).matchesTrainerCredentials(auth.username(), auth.password());
         verify(trainerRepository, times(1)).findByUsername("John.Smith");
     }
 
     @Test
     void shouldRejectUnauthenticatedUpdateTrainer() {
         UpdateTrainerRequest request = TestDataFactory.updateTrainerRequest(1L, TrainingType.YOGA);
-        doThrow(new AuthenticationException("Invalid credentials"))
-                .when(authenticationService)
-                .requireAuthenticated(auth);
+        when(authenticationService.matchesTrainerCredentials(auth.username(), auth.password())).thenReturn(false);
 
         assertThatThrownBy(() -> trainerService.updateTrainer(auth, request))
                 .isInstanceOf(AuthenticationException.class);
 
-        verify(authenticationService, times(1)).requireAuthenticated(auth);
+        verify(authenticationService, times(1)).matchesTrainerCredentials(auth.username(), auth.password());
         verify(trainerRepository, never()).findById(1L);
         verify(trainerRepository, never()).save(any());
     }
 
     @Test
     void shouldRejectUnauthenticatedToggleActivation() {
-        doThrow(new AuthenticationException("Invalid credentials"))
-                .when(authenticationService)
-                .requireAuthenticated(auth);
-        ToggleActivationRequest request = new ToggleActivationRequest("John.Smith");
+        when(authenticationService.matchesTrainerCredentials(auth.username(), auth.password())).thenReturn(false);
+        ToggleActivationRequest request = new ToggleActivationRequest("John.Smith", false);
 
         assertThatThrownBy(() -> trainerService.toggleActivation(auth, request))
                 .isInstanceOf(AuthenticationException.class);
 
-        verify(authenticationService, times(1)).requireAuthenticated(auth);
+        verify(authenticationService, times(1)).matchesTrainerCredentials(auth.username(), auth.password());
         verify(userService, never()).toggleActivation(request);
     }
 
@@ -264,97 +211,43 @@ class TrainerServiceTest {
 
         trainerService.changePassword(auth, request);
 
-        verify(authenticationService, times(1)).requireAuthenticated(auth);
+        verify(authenticationService, times(1)).matchesTrainerCredentials(auth.username(), auth.password());
         verify(userService, times(1)).changePassword(request);
     }
 
     @Test
     void shouldRejectUnauthenticatedChangePassword() {
-        doThrow(new AuthenticationException("Invalid credentials"))
-                .when(authenticationService)
-                .requireAuthenticated(auth);
+        when(authenticationService.matchesTrainerCredentials(auth.username(), auth.password())).thenReturn(false);
         ChangePasswordRequest request = new ChangePasswordRequest("John.Smith", "oldPass1", "NewPass1!");
 
         assertThatThrownBy(() -> trainerService.changePassword(auth, request))
                 .isInstanceOf(AuthenticationException.class);
 
-        verify(authenticationService, times(1)).requireAuthenticated(auth);
+        verify(authenticationService, times(1)).matchesTrainerCredentials(auth.username(), auth.password());
         verify(userService, never()).changePassword(request);
     }
 
     @Test
     void shouldPropagateAuthenticationFailureFromUserServiceOnChangePassword() {
         ChangePasswordRequest request = new ChangePasswordRequest("John.Smith", "wrongPass1", "NewPass1!");
-        doThrow(new AuthenticationException("Invalid credentials"))
-                .when(userService)
-                .changePassword(request);
+        org.mockito.Mockito.doThrow(new AuthenticationException("Invalid credentials"))
+                .when(userService).changePassword(request);
 
         assertThatThrownBy(() -> trainerService.changePassword(auth, request))
                 .isInstanceOf(AuthenticationException.class);
 
-        verify(authenticationService, times(1)).requireAuthenticated(auth);
+        verify(authenticationService, times(1)).matchesTrainerCredentials(auth.username(), auth.password());
         verify(userService, times(1)).changePassword(request);
     }
 
     @Test
     void shouldToggleActivation() {
-        ToggleActivationRequest request = new ToggleActivationRequest("John.Smith");
+        ToggleActivationRequest request = new ToggleActivationRequest("John.Smith", false);
 
         trainerService.toggleActivation(auth, request);
 
-        verify(authenticationService, times(1)).requireAuthenticated(auth);
+        verify(authenticationService, times(1)).matchesTrainerCredentials(auth.username(), auth.password());
         verify(userService, times(1)).toggleActivation(request);
-    }
-
-    @Test
-    void shouldThrowWhenInactiveTrainerForSpecialization() {
-        TrainerEntity trainer = TestDataFactory.trainerWithId(2L, "Inactive.Trainer");
-        trainer.getUser().setActive(false);
-        when(trainerRepository.findById(2L)).thenReturn(Optional.of(trainer));
-
-        assertThatThrownBy(() -> trainerService.getActiveTrainerForSpecialization(2L, TrainingType.YOGA))
-                .isInstanceOf(InvalidOperationException.class)
-                .hasMessageContaining("inactive");
-
-        verify(trainerRepository, times(1)).findById(2L);
-        verify(trainerMapper, never()).toResponse(trainer);
-    }
-
-    @Test
-    void shouldThrowWhenSpecializationDoesNotMatch() {
-        TrainerEntity trainer = TestDataFactory.trainerWithId(2L, "John.Smith");
-        trainer.setSpecialization(TestDataFactory.trainingType(TrainingType.BOXING));
-        trainer.getSpecialization().setId(3L);
-        when(trainerRepository.findById(2L)).thenReturn(Optional.of(trainer));
-
-        assertThatThrownBy(() -> trainerService.getActiveTrainerForSpecialization(2L, TrainingType.YOGA))
-                .isInstanceOf(InvalidOperationException.class)
-                .hasMessageContaining("specialization");
-
-        verify(trainerRepository, times(1)).findById(2L);
-        verify(trainerMapper, never()).toResponse(trainer);
-    }
-
-    @Test
-    void shouldReturnActiveTrainerMatchingSpecialization() {
-        TrainerEntity trainer = TestDataFactory.trainerWithId(2L, "John.Smith");
-        Trainer expected = TestDataFactory.trainerResponse(2L, "John.Smith");
-        when(trainerRepository.findById(2L)).thenReturn(Optional.of(trainer));
-        when(trainerMapper.toResponse(trainer)).thenReturn(expected);
-
-        Trainer actual = trainerService.getActiveTrainerForSpecialization(2L, TrainingType.YOGA);
-
-        assertThat(actual).usingRecursiveComparison().isEqualTo(expected);
-        verify(trainerRepository, times(1)).findById(2L);
-        verify(trainerMapper, times(1)).toResponse(trainer);
-    }
-
-    @Test
-    void shouldThrowWhenTrainerNotFoundById() {
-        when(trainerRepository.findById(99L)).thenReturn(Optional.empty());
-
-        assertThatThrownBy(() -> trainerService.getTrainer(99L))
-                .isInstanceOf(EntityNotFoundException.class);
     }
 
     @Test
@@ -388,7 +281,7 @@ class TrainerServiceTest {
     @Test
     void trainerMapperShouldMapEntityToResponse() {
         TrainerMapper mapper = new TrainerMapper(
-                org.mockito.Mockito.mock(UserCredentialService.class),
+                org.mockito.Mockito.mock(UsernameGenerator.class),
                 org.mockito.Mockito.mock(PasswordGenerator.class));
         TrainerEntity entity = TestDataFactory.trainerWithId(2L, "John.Smith");
         entity.getUser().setFirstName("John");
@@ -399,16 +292,16 @@ class TrainerServiceTest {
         assertThat(actual.userId()).isEqualTo(2L);
         assertThat(actual.fullName()).isEqualTo("John Smith");
         assertThat(actual.username()).isEqualTo("John.Smith");
-        assertThat(actual.specialization().typeName()).isEqualTo(TrainingType.YOGA);
+        assertThat(actual.specialization()).isEqualTo(TrainingType.YOGA);
     }
 
     @Test
     void trainerMapperShouldMapCreateRequestToEntity() {
-        UserCredentialService credentialService = org.mockito.Mockito.mock(UserCredentialService.class);
+        UsernameGenerator usernameGenerator = org.mockito.Mockito.mock(UsernameGenerator.class);
         PasswordGenerator passwordGenerator = org.mockito.Mockito.mock(PasswordGenerator.class);
-        when(credentialService.generateUniqueUsername("John", "Smith")).thenReturn("John.Smith");
+        when(usernameGenerator.generateUniqueUsername("John", "Smith")).thenReturn("John.Smith");
         when(passwordGenerator.generatePassword()).thenReturn("Pass1234");
-        TrainerMapper mapper = new TrainerMapper(credentialService, passwordGenerator);
+        TrainerMapper mapper = new TrainerMapper(usernameGenerator, passwordGenerator);
         CreateTrainerRequest request = TestDataFactory.createTrainerRequest(TrainingType.YOGA);
         TrainingTypeEntity specialization = TestDataFactory.yogaTypeEntity();
 
@@ -421,12 +314,24 @@ class TrainerServiceTest {
     }
 
     @Test
-    void trainerMapperShouldMapTrainingTypeEntityToResponse() {
+    void trainerMapperShouldMapUpdateRequestOntoExistingEntity() {
         TrainerMapper mapper = new TrainerMapper(
-                org.mockito.Mockito.mock(UserCredentialService.class),
+                org.mockito.Mockito.mock(UsernameGenerator.class),
                 org.mockito.Mockito.mock(PasswordGenerator.class));
+        TrainerEntity existing = TestDataFactory.trainerWithId(2L, "John.Smith");
+        existing.getUser().setPassword("storedPass");
+        existing.getUser().setActive(false);
+        UpdateTrainerRequest request = TestDataFactory.updateTrainerRequest(2L, TrainingType.BOXING);
+        TrainingTypeEntity specialization = TestDataFactory.boxingTypeEntity();
 
-        assertThat(mapper.toTrainingTypeResponse(TestDataFactory.yogaTypeEntity()))
-                .isEqualTo(TestDataFactory.trainingTypeResponse(1L, TrainingType.YOGA));
+        TrainerEntity actual = mapper.toEntity(existing, request, specialization);
+
+        assertThat(actual).isSameAs(existing);
+        assertThat(actual.getUser().getFirstName()).isEqualTo("John");
+        assertThat(actual.getUser().getLastName()).isEqualTo("Smith");
+        assertThat(actual.getUser().getUsername()).isEqualTo("John.Smith");
+        assertThat(actual.getUser().getPassword()).isEqualTo("storedPass");
+        assertThat(actual.getUser().isActive()).isFalse();
+        assertThat(actual.getSpecialization()).isEqualTo(specialization);
     }
 }

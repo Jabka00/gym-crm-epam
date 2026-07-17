@@ -19,7 +19,9 @@ import java.time.LocalDate;
 @Table(name = "trainings")
 @Getter
 @Setter
-@EqualsAndHashCode(of = {"trainee", "trainer", "trainingName", "trainingDate", "durationMinutes"})
+@EqualsAndHashCode(of = {
+        "trainee", "trainer", "trainingName", "trainingType", "trainingDate", "durationMinutes"
+})
 public class TrainingEntity {
 
     @Id

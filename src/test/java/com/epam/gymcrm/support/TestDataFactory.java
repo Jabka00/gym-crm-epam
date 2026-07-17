@@ -1,23 +1,21 @@
 package com.epam.gymcrm.support;
 
-import com.epam.gymcrm.dto.request.AutoScheduleTrainingRequest;
+import com.epam.gymcrm.dto.Credentials;
+import com.epam.gymcrm.dto.Trainee;
+import com.epam.gymcrm.dto.Trainer;
+import com.epam.gymcrm.dto.Training;
 import com.epam.gymcrm.dto.request.CreateTraineeRequest;
 import com.epam.gymcrm.dto.request.CreateTrainerRequest;
 import com.epam.gymcrm.dto.request.ScheduleTrainingRequest;
 import com.epam.gymcrm.dto.request.UpdateTraineeRequest;
 import com.epam.gymcrm.dto.request.UpdateTrainerRequest;
 import com.epam.gymcrm.dto.request.UserInfo;
-import com.epam.gymcrm.dto.response.Trainee;
-import com.epam.gymcrm.dto.response.Trainer;
-import com.epam.gymcrm.dto.response.Training;
-import com.epam.gymcrm.dto.response.TrainingTypeResponse;
 import com.epam.gymcrm.entity.TraineeEntity;
 import com.epam.gymcrm.entity.TrainerEntity;
 import com.epam.gymcrm.entity.TrainingEntity;
 import com.epam.gymcrm.entity.TrainingTypeEntity;
 import com.epam.gymcrm.entity.UserEntity;
 import com.epam.gymcrm.model.TrainingType;
-import com.epam.gymcrm.dto.Credentials;
 
 import java.time.Duration;
 import java.time.LocalDate;
@@ -174,7 +172,6 @@ public final class TestDataFactory {
         return new UpdateTraineeRequest(
                 id,
                 new UserInfo("Alice", "Walker"),
-                true,
                 LocalDate.of(1995, 4, 12),
                 "Kyiv");
     }
@@ -193,7 +190,7 @@ public final class TestDataFactory {
                 id,
                 "John Smith",
                 username,
-                trainingTypeResponse(1L, TrainingType.YOGA));
+                TrainingType.YOGA);
     }
 
     public static CreateTrainerRequest createTrainerRequest(TrainingType specialization) {
@@ -201,11 +198,7 @@ public final class TestDataFactory {
     }
 
     public static UpdateTrainerRequest updateTrainerRequest(long id, TrainingType specialization) {
-        return new UpdateTrainerRequest(id, new UserInfo("John", "Smith"), true, specialization);
-    }
-
-    public static TrainingTypeResponse trainingTypeResponse(long id, TrainingType typeName) {
-        return new TrainingTypeResponse(id, typeName);
+        return new UpdateTrainerRequest(id, new UserInfo("John", "Smith"), specialization);
     }
 
     public static ScheduleTrainingRequest scheduleTrainingRequest(
@@ -224,25 +217,11 @@ public final class TestDataFactory {
                 Duration.ofMinutes(60));
     }
 
-    public static AutoScheduleTrainingRequest autoScheduleTrainingRequest(long traineeId, TrainingType type) {
-        return autoScheduleTrainingRequest(traineeId, type, LocalDate.of(2024, 3, 1));
-    }
-
-    public static AutoScheduleTrainingRequest autoScheduleTrainingRequest(
-            long traineeId, TrainingType type, LocalDate date) {
-        return new AutoScheduleTrainingRequest(
-                traineeId,
-                "Morning Yoga",
-                type,
-                date,
-                Duration.ofMinutes(60));
-    }
-
     public static Training trainingResponse(long id) {
         return new Training(
                 id,
                 "Morning Yoga",
-                trainingTypeResponse(1L, TrainingType.YOGA),
+                TrainingType.YOGA,
                 LocalDate.of(2024, 3, 1),
                 Duration.ofMinutes(60),
                 1L,
@@ -264,7 +243,6 @@ public final class TestDataFactory {
         return new UpdateTraineeRequest(
                 null,
                 new UserInfo("Jane", "Doe"),
-                true,
                 LocalDate.of(1998, 5, 20),
                 "Kyiv");
     }

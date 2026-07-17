@@ -12,8 +12,6 @@ public record UpdateTrainerRequest(
         @Valid
         UserInfo user,
 
-        boolean active,
-
         @NotNull(message = "Specialization is required")
         TrainingType specialization
 ) {

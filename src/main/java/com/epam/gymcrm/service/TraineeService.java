@@ -1,14 +1,15 @@
 package com.epam.gymcrm.service;
 
 import com.epam.gymcrm.dto.Credentials;
+import com.epam.gymcrm.dto.Trainee;
+import com.epam.gymcrm.dto.Trainer;
 import com.epam.gymcrm.dto.request.ChangePasswordRequest;
 import com.epam.gymcrm.dto.request.CreateTraineeRequest;
 import com.epam.gymcrm.dto.request.ToggleActivationRequest;
 import com.epam.gymcrm.dto.request.UpdateTraineeRequest;
-import com.epam.gymcrm.dto.response.Trainee;
-import com.epam.gymcrm.dto.response.Trainer;
 import com.epam.gymcrm.entity.TraineeEntity;
 import com.epam.gymcrm.entity.TrainerEntity;
+import com.epam.gymcrm.exception.AuthenticationException;
 import com.epam.gymcrm.exception.EntityNotFoundException;
 import com.epam.gymcrm.exception.InvalidOperationException;
 import com.epam.gymcrm.exception.ValidationException;
@@ -23,8 +24,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -45,74 +46,57 @@ public class TraineeService {
 
         TraineeEntity trainee = traineeMapper.toEntity(request);
         TraineeEntity created = traineeRepository.save(trainee);
+        log.info("Trainee profile created");
         return traineeMapper.toResponse(created);
     }
 
     public Trainee updateTrainee(Credentials auth, UpdateTraineeRequest request) {
-        authenticationService.requireAuthenticated(auth);
-
-        dtoValidator.validateForUpdate(request, UpdateTraineeRequest::id, "Trainee");
+        requireTraineeAuthenticated(auth);
+        dtoValidator.validate(request);
 
         TraineeEntity existing = traineeRepository.findById(request.id())
                 .orElseThrow(() -> new EntityNotFoundException("Trainee not found with id: " + request.id()));
 
-        TraineeEntity trainee = traineeMapper.toEntity(
-                request, existing.getUser().getUsername(), existing.getUser().getPassword());
+        TraineeEntity trainee = traineeMapper.toEntity(existing, request);
         TraineeEntity updated = traineeRepository.save(trainee);
+        log.info("Trainee profile updated");
         return traineeMapper.toResponse(updated);
     }
 
     public void deleteTraineeByUsername(Credentials auth, String username) {
-        authenticationService.requireAuthenticated(auth);
+        requireTraineeAuthenticated(auth);
 
         if (username == null || username.isBlank()) {
             throw new ValidationException("Trainee username cannot be null or empty");
         }
 
-        traineeRepository.findByUsername(username)
-                .orElseThrow(() -> new EntityNotFoundException("Trainee not found with username: " + username));
-
         traineeRepository.deleteByUsername(username);
-        log.info("Deleted trainee");
-    }
-
-    @Transactional(readOnly = true)
-    public Trainee getActiveTrainee(Long id) {
-        return traineeMapper.toResponse(requireActiveTrainee(id));
-    }
-
-    @Transactional(readOnly = true)
-    public List<Trainee> getAllTrainees() {
-        return traineeRepository.findAll()
-                .filter(trainee -> trainee.getUser().isActive())
-                .map(traineeMapper::toResponse)
-                .toList();
+        log.info("Trainee profile delete requested");
     }
 
     @Transactional(readOnly = true)
     public Trainee getTraineeByUsername(Credentials auth, String username) {
-        authenticationService.requireAuthenticated(auth);
+        requireTraineeAuthenticated(auth);
 
-        TraineeEntity trainee = traineeRepository.findByUsername(username)
-                .orElseThrow(() -> new EntityNotFoundException("Trainee not found with username: " + username));
-        if (!trainee.getUser().isActive()) {
-            throw new InvalidOperationException("Trainee is inactive: username=" + username);
-        }
-        return traineeMapper.toResponse(trainee);
+        return Optional.of(traineeRepository.findByUsername(username)
+                        .orElseThrow(() -> new EntityNotFoundException("Trainee not found")))
+                .filter(trainee -> trainee.getUser().isActive())
+                .map(traineeMapper::toResponse)
+                .orElseThrow(() -> new InvalidOperationException("Trainee is inactive"));
     }
 
     public void changePassword(Credentials auth, ChangePasswordRequest request) {
-        authenticationService.requireAuthenticated(auth);
+        requireTraineeAuthenticated(auth);
         userService.changePassword(request);
     }
 
     public void toggleActivation(Credentials auth, ToggleActivationRequest request) {
-        authenticationService.requireAuthenticated(auth);
+        requireTraineeAuthenticated(auth);
         userService.toggleActivation(request);
     }
 
     public void updateTrainersList(Credentials auth, String traineeUsername, Set<String> trainerUsernames) {
-        authenticationService.requireAuthenticated(auth);
+        requireTraineeAuthenticated(auth);
 
         if (traineeUsername == null || traineeUsername.isBlank()) {
             throw new ValidationException("Trainee username cannot be null or empty");
@@ -122,37 +106,29 @@ public class TraineeService {
         }
 
         TraineeEntity trainee = traineeRepository.findByUsername(traineeUsername)
-                .orElseThrow(() -> new EntityNotFoundException("Trainee not found with username: " + traineeUsername));
+                .orElseThrow(() -> new EntityNotFoundException("Trainee not found"));
 
         trainee.getTrainers().clear();
 
         List<TrainerEntity> trainers = trainerRepository.findByUsernames(trainerUsernames);
         if (trainers.size() != trainerUsernames.size()) {
-            Set<String> foundUsernames = trainers.stream()
-                    .map(trainer -> trainer.getUser().getUsername())
-                    .collect(Collectors.toSet());
-            String missingUsername = trainerUsernames.stream()
-                    .filter(trainerUsername -> !foundUsernames.contains(trainerUsername))
-                    .findFirst()
-                    .orElseThrow();
-            throw new EntityNotFoundException("Trainer not found with username: " + missingUsername);
+            throw new EntityNotFoundException("Trainer not found");
         }
 
         for (TrainerEntity trainer : trainers) {
             if (!trainer.getUser().isActive()) {
-                throw new InvalidOperationException(
-                        "Trainer is inactive: username=" + trainer.getUser().getUsername());
+                throw new InvalidOperationException("Trainer is inactive");
             }
             trainee.getTrainers().add(trainer);
         }
 
         traineeRepository.save(trainee);
-        log.info("Updated trainers list for trainee");
+        log.info("Trainee trainers list updated");
     }
 
     @Transactional(readOnly = true)
     public List<Trainer> getNotAssignedTrainers(Credentials auth, String traineeUsername) {
-        authenticationService.requireAuthenticated(auth);
+        requireTraineeAuthenticated(auth);
 
         if (traineeUsername == null || traineeUsername.isBlank()) {
             throw new ValidationException("Trainee username cannot be null or empty");
@@ -163,12 +139,9 @@ public class TraineeService {
                 .toList();
     }
 
-    private TraineeEntity requireActiveTrainee(Long id) {
-        TraineeEntity trainee = traineeRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Trainee not found with id: " + id));
-        if (!trainee.getUser().isActive()) {
-            throw new InvalidOperationException("Trainee is inactive: id=" + id);
+    private void requireTraineeAuthenticated(Credentials auth) {
+        if (!authenticationService.matchesTraineeCredentials(auth.username(), auth.password())) {
+            throw new AuthenticationException("Authentication failed");
         }
-        return trainee;
     }
 }

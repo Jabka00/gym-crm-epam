@@ -1,7 +1,6 @@
 package com.epam.gymcrm.repository;
 
 import com.epam.gymcrm.entity.TrainerEntity;
-import com.epam.gymcrm.model.TrainingType;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.hibernate.Session;
@@ -12,7 +11,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Stream;
 
 @Slf4j
 @Repository
@@ -34,13 +32,12 @@ public class TrainerRepository {
             trainer = session.merge(trainer);
         }
         session.flush();
-        log.debug("Saved trainer id={}", trainer.getId());
+        log.debug("Trainer saved");
         return trainer;
     }
 
     @Transactional(readOnly = true)
     public Optional<TrainerEntity> findById(Long id) {
-        log.debug("findById trainer id={}", id);
         return getSession()
                 .createQuery(
                         "FROM TrainerEntity t LEFT JOIN FETCH t.specialization WHERE t.id = :id",
@@ -72,40 +69,6 @@ public class TrainerRepository {
                         TrainerEntity.class)
                 .setParameter("usernames", usernames)
                 .getResultList();
-    }
-
-    @Transactional(readOnly = true)
-    public Stream<TrainerEntity> findAll() {
-        var trainers = getSession()
-                .createQuery(
-                        "FROM TrainerEntity t LEFT JOIN FETCH t.specialization",
-                        TrainerEntity.class)
-                .getResultList();
-        log.debug("findAll trainers, count={}", trainers.size());
-        return trainers.stream();
-    }
-
-    @Transactional(readOnly = true)
-    public boolean existsByUsername(String username) {
-        Long count = getSession()
-                .createQuery(
-                        "SELECT COUNT(t) FROM TrainerEntity t WHERE t.user.username = :username",
-                        Long.class)
-                .setParameter("username", username)
-                .getSingleResult();
-        return count > 0;
-    }
-
-    @Transactional(readOnly = true)
-    public Optional<TrainerEntity> findActiveBySpecialization(TrainingType typeName) {
-        return getSession()
-                .createQuery(
-                        "FROM TrainerEntity tr LEFT JOIN FETCH tr.specialization "
-                                + "WHERE tr.user.active = true AND tr.specialization.typeName = :typeName",
-                        TrainerEntity.class)
-                .setParameter("typeName", typeName)
-                .setMaxResults(1)
-                .uniqueResultOptional();
     }
 
     @Transactional(readOnly = true)

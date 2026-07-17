@@ -5,8 +5,8 @@ import com.epam.gymcrm.service.PasswordGenerator;
 import com.epam.gymcrm.dto.request.CreateTraineeRequest;
 import com.epam.gymcrm.dto.request.UpdateTraineeRequest;
 import com.epam.gymcrm.dto.request.UserInfo;
-import com.epam.gymcrm.dto.response.Trainee;
-import com.epam.gymcrm.dto.response.Trainer;
+import com.epam.gymcrm.dto.Trainee;
+import com.epam.gymcrm.dto.Trainer;
 import com.epam.gymcrm.entity.TraineeEntity;
 import com.epam.gymcrm.entity.TrainerEntity;
 import com.epam.gymcrm.exception.AuthenticationException;
@@ -33,19 +33,17 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
-import java.util.stream.Stream;
 
 import java.time.LocalDate;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -80,6 +78,8 @@ class TraineeServiceTest {
     @BeforeEach
     void setUp() {
         auth = TestDataFactory.credentials();
+        lenient().when(authenticationService.matchesTraineeCredentials(auth.username(), auth.password()))
+                .thenReturn(true);
     }
 
     @Test
@@ -124,7 +124,6 @@ class TraineeServiceTest {
         UpdateTraineeRequest request = new UpdateTraineeRequest(
                 1L,
                 new UserInfo("Alice", "Walker"),
-                true,
                 LocalDate.of(1995, 4, 12),
                 "Odesa");
         TraineeEntity existing = TestDataFactory.traineeWithId(1L, "Alice.Walker");
@@ -138,8 +137,7 @@ class TraineeServiceTest {
                 "Odesa");
 
         when(traineeRepository.findById(1L)).thenReturn(Optional.of(existing));
-        when(traineeMapper.toEntity(request, existing.getUser().getUsername(), existing.getUser().getPassword()))
-                .thenReturn(entityToSave);
+        when(traineeMapper.toEntity(existing, request)).thenReturn(entityToSave);
         when(traineeRepository.save(entityToSave)).thenReturn(entityToSave);
         when(traineeMapper.toResponse(entityToSave)).thenReturn(expected);
 
@@ -147,10 +145,9 @@ class TraineeServiceTest {
 
         assertThat(actual).usingRecursiveComparison().isEqualTo(expected);
         verify(traineeRepository, times(1)).findById(1L);
-        verify(traineeMapper, times(1))
-                .toEntity(request, existing.getUser().getUsername(), existing.getUser().getPassword());
+        verify(traineeMapper, times(1)).toEntity(existing, request);
         verify(traineeRepository, times(1)).save(entityToSave);
-        verify(authenticationService, times(1)).requireAuthenticated(auth);
+        verify(authenticationService, times(1)).matchesTraineeCredentials(auth.username(), auth.password());
     }
 
     @Test
@@ -167,47 +164,6 @@ class TraineeServiceTest {
     }
 
     @Test
-    void shouldGetActiveTraineeById() {
-        TraineeEntity trainee = TestDataFactory.traineeWithId(1L, "Alice.Walker");
-        Trainee expected = TestDataFactory.traineeResponse(1L, "Alice.Walker");
-        when(traineeRepository.findById(1L)).thenReturn(Optional.of(trainee));
-        when(traineeMapper.toResponse(trainee)).thenReturn(expected);
-
-        Trainee actual = traineeService.getActiveTrainee(1L);
-
-        assertThat(actual).usingRecursiveComparison().isEqualTo(expected);
-        verify(traineeRepository, times(1)).findById(1L);
-    }
-
-    @Test
-    void shouldThrowWhenTraineeInactive() {
-        TraineeEntity trainee = TestDataFactory.traineeWithId(2L, "Inactive.User");
-        trainee.getUser().setActive(false);
-        when(traineeRepository.findById(2L)).thenReturn(Optional.of(trainee));
-
-        assertThatThrownBy(() -> traineeService.getActiveTrainee(2L))
-                .isInstanceOf(InvalidOperationException.class)
-                .hasMessageContaining("inactive");
-
-        verify(traineeRepository, times(1)).findById(2L);
-    }
-
-    @Test
-    void shouldReturnOnlyActiveTrainees() {
-        TraineeEntity active = TestDataFactory.traineeWithId(1L, "Active.User");
-        TraineeEntity inactive = TestDataFactory.traineeWithId(2L, "Inactive.User");
-        inactive.getUser().setActive(false);
-        Trainee activeResponse = TestDataFactory.traineeResponse(1L, "Active.User");
-        when(traineeRepository.findAll()).thenReturn(Stream.of(active, inactive));
-        when(traineeMapper.toResponse(active)).thenReturn(activeResponse);
-
-        List<Trainee> actual = traineeService.getAllTrainees();
-
-        assertThat(actual).containsExactly(activeResponse);
-        verify(traineeRepository, times(1)).findAll();
-    }
-
-    @Test
     void shouldThrowWhenGettingInactiveTraineeByUsername() {
         TraineeEntity trainee = TestDataFactory.traineeWithId(2L, "Inactive.User");
         trainee.getUser().setActive(false);
@@ -218,19 +174,17 @@ class TraineeServiceTest {
                 .hasMessageContaining("inactive");
 
         verify(traineeRepository, times(1)).findByUsername("Inactive.User");
-        verify(authenticationService, times(1)).requireAuthenticated(auth);
+        verify(authenticationService, times(1)).matchesTraineeCredentials(auth.username(), auth.password());
     }
 
     @Test
     void shouldRejectUnauthenticatedTraineeLookup() {
-        doThrow(new AuthenticationException("Invalid credentials"))
-                .when(authenticationService)
-                .requireAuthenticated(auth);
+        when(authenticationService.matchesTraineeCredentials(auth.username(), auth.password())).thenReturn(false);
 
         assertThatThrownBy(() -> traineeService.getTraineeByUsername(auth, "Alice.Walker"))
                 .isInstanceOf(AuthenticationException.class);
 
-        verify(authenticationService, times(1)).requireAuthenticated(auth);
+        verify(authenticationService, times(1)).matchesTraineeCredentials(auth.username(), auth.password());
         verify(traineeRepository, never()).findByUsername("Alice.Walker");
     }
 
@@ -244,74 +198,63 @@ class TraineeServiceTest {
         Trainee actual = traineeService.getTraineeByUsername(auth, "Alice.Walker");
 
         assertThat(actual).usingRecursiveComparison().isEqualTo(expected);
-        verify(authenticationService, times(1)).requireAuthenticated(auth);
+        verify(authenticationService, times(1)).matchesTraineeCredentials(auth.username(), auth.password());
         verify(traineeRepository, times(1)).findByUsername("Alice.Walker");
     }
 
     @Test
     void shouldRejectUnauthenticatedUpdateTrainee() {
         UpdateTraineeRequest request = TestDataFactory.updateTraineeRequest(1L);
-        doThrow(new AuthenticationException("Invalid credentials"))
-                .when(authenticationService)
-                .requireAuthenticated(auth);
+        when(authenticationService.matchesTraineeCredentials(auth.username(), auth.password())).thenReturn(false);
 
         assertThatThrownBy(() -> traineeService.updateTrainee(auth, request))
                 .isInstanceOf(AuthenticationException.class);
 
-        verify(authenticationService, times(1)).requireAuthenticated(auth);
+        verify(authenticationService, times(1)).matchesTraineeCredentials(auth.username(), auth.password());
         verify(traineeRepository, never()).findById(1L);
         verify(traineeRepository, never()).save(any());
     }
 
     @Test
     void shouldRejectUnauthenticatedNotAssignedTrainersLookup() {
-        doThrow(new AuthenticationException("Invalid credentials"))
-                .when(authenticationService)
-                .requireAuthenticated(auth);
+        when(authenticationService.matchesTraineeCredentials(auth.username(), auth.password())).thenReturn(false);
 
         assertThatThrownBy(() -> traineeService.getNotAssignedTrainers(auth, "Alice.Walker"))
                 .isInstanceOf(AuthenticationException.class);
 
-        verify(authenticationService, times(1)).requireAuthenticated(auth);
+        verify(authenticationService, times(1)).matchesTraineeCredentials(auth.username(), auth.password());
         verify(trainerRepository, never()).findNotAssignedToTrainee("Alice.Walker");
     }
 
     @Test
     void shouldRejectUnauthenticatedToggleActivation() {
-        doThrow(new AuthenticationException("Invalid credentials"))
-                .when(authenticationService)
-                .requireAuthenticated(auth);
-        ToggleActivationRequest request = new ToggleActivationRequest("Alice.Walker");
+        when(authenticationService.matchesTraineeCredentials(auth.username(), auth.password())).thenReturn(false);
+        ToggleActivationRequest request = new ToggleActivationRequest("Alice.Walker", false);
 
         assertThatThrownBy(() -> traineeService.toggleActivation(auth, request))
                 .isInstanceOf(AuthenticationException.class);
 
-        verify(authenticationService, times(1)).requireAuthenticated(auth);
+        verify(authenticationService, times(1)).matchesTraineeCredentials(auth.username(), auth.password());
         verify(userService, never()).toggleActivation(request);
     }
 
     @Test
     void shouldDeleteTraineeByUsername() {
-        TraineeEntity trainee = TestDataFactory.traineeWithId(1L, "Alice.Walker");
-        when(traineeRepository.findByUsername("Alice.Walker")).thenReturn(Optional.of(trainee));
-
         traineeService.deleteTraineeByUsername(auth, "Alice.Walker");
 
-        verify(authenticationService, times(1)).requireAuthenticated(auth);
-        verify(traineeRepository, times(1)).findByUsername("Alice.Walker");
+        verify(authenticationService, times(1)).matchesTraineeCredentials(auth.username(), auth.password());
         verify(traineeRepository, times(1)).deleteByUsername("Alice.Walker");
+        verify(traineeRepository, never()).findByUsername("Alice.Walker");
     }
 
     @Test
     void shouldRejectUnauthenticatedTraineeDeletion() {
-        doThrow(new AuthenticationException("Invalid credentials"))
-                .when(authenticationService)
-                .requireAuthenticated(auth);
+        when(authenticationService.matchesTraineeCredentials(auth.username(), auth.password())).thenReturn(false);
 
         assertThatThrownBy(() -> traineeService.deleteTraineeByUsername(auth, "Alice.Walker"))
                 .isInstanceOf(AuthenticationException.class);
 
-        verify(authenticationService, times(1)).requireAuthenticated(auth);
+        verify(authenticationService, times(1)).matchesTraineeCredentials(auth.username(), auth.password());
         verify(traineeRepository, never()).deleteByUsername("Alice.Walker");
     }
 
@@ -325,7 +268,7 @@ class TraineeServiceTest {
         List<Trainer> actual = traineeService.getNotAssignedTrainers(auth, "Alice.Walker");
 
         assertThat(actual).containsExactly(trainerResponse);
-        verify(authenticationService, times(1)).requireAuthenticated(auth);
+        verify(authenticationService, times(1)).matchesTraineeCredentials(auth.username(), auth.password());
         verify(trainerRepository, times(1)).findNotAssignedToTrainee("Alice.Walker");
     }
 
@@ -339,31 +282,29 @@ class TraineeServiceTest {
 
         traineeService.updateTrainersList(auth, "Alice.Walker", Set.of("John.Smith"));
 
-        verify(authenticationService, times(1)).requireAuthenticated(auth);
+        verify(authenticationService, times(1)).matchesTraineeCredentials(auth.username(), auth.password());
         verify(traineeRepository, times(1)).save(trainee);
         assertThat(trainee.getTrainers()).containsExactly(trainer);
     }
 
     @Test
     void shouldRejectUnauthenticatedTrainersListUpdate() {
-        doThrow(new AuthenticationException("Invalid credentials"))
-                .when(authenticationService)
-                .requireAuthenticated(auth);
+        when(authenticationService.matchesTraineeCredentials(auth.username(), auth.password())).thenReturn(false);
 
         assertThatThrownBy(() -> traineeService.updateTrainersList(auth, "Alice.Walker", Set.of("John.Smith")))
                 .isInstanceOf(AuthenticationException.class);
 
-        verify(authenticationService, times(1)).requireAuthenticated(auth);
+        verify(authenticationService, times(1)).matchesTraineeCredentials(auth.username(), auth.password());
         verify(traineeRepository, never()).findByUsername("Alice.Walker");
     }
 
     @Test
     void shouldToggleActivation() {
-        ToggleActivationRequest request = new ToggleActivationRequest("Alice.Walker");
+        ToggleActivationRequest request = new ToggleActivationRequest("Alice.Walker", false);
 
         traineeService.toggleActivation(auth, request);
 
-        verify(authenticationService, times(1)).requireAuthenticated(auth);
+        verify(authenticationService, times(1)).matchesTraineeCredentials(auth.username(), auth.password());
         verify(userService, times(1)).toggleActivation(request);
     }
 
@@ -373,46 +314,41 @@ class TraineeServiceTest {
 
         traineeService.changePassword(auth, request);
 
-        verify(authenticationService, times(1)).requireAuthenticated(auth);
+        verify(authenticationService, times(1)).matchesTraineeCredentials(auth.username(), auth.password());
         verify(userService, times(1)).changePassword(request);
     }
 
     @Test
     void shouldRejectUnauthenticatedChangePassword() {
-        doThrow(new AuthenticationException("Invalid credentials"))
-                .when(authenticationService)
-                .requireAuthenticated(auth);
+        when(authenticationService.matchesTraineeCredentials(auth.username(), auth.password())).thenReturn(false);
         ChangePasswordRequest request = new ChangePasswordRequest("Alice.Walker", "oldPass1", "NewPass1!");
 
         assertThatThrownBy(() -> traineeService.changePassword(auth, request))
                 .isInstanceOf(AuthenticationException.class);
 
-        verify(authenticationService, times(1)).requireAuthenticated(auth);
+        verify(authenticationService, times(1)).matchesTraineeCredentials(auth.username(), auth.password());
         verify(userService, never()).changePassword(request);
     }
 
     @Test
     void shouldPropagateAuthenticationFailureFromUserServiceOnChangePassword() {
         ChangePasswordRequest request = new ChangePasswordRequest("Alice.Walker", "wrongPass1", "NewPass1!");
-        doThrow(new AuthenticationException("Invalid credentials"))
-                .when(userService)
-                .changePassword(request);
+        org.mockito.Mockito.doThrow(new AuthenticationException("Invalid credentials"))
+                .when(userService).changePassword(request);
 
         assertThatThrownBy(() -> traineeService.changePassword(auth, request))
                 .isInstanceOf(AuthenticationException.class);
 
-        verify(authenticationService, times(1)).requireAuthenticated(auth);
+        verify(authenticationService, times(1)).matchesTraineeCredentials(auth.username(), auth.password());
         verify(userService, times(1)).changePassword(request);
     }
 
     @Test
-    void shouldThrowWhenDeletingMissingTrainee() {
-        when(traineeRepository.findByUsername("Missing.User")).thenReturn(Optional.empty());
+    void shouldSilentlyIgnoreDeletingMissingTrainee() {
+        traineeService.deleteTraineeByUsername(auth, "Missing.User");
 
-        assertThatThrownBy(() -> traineeService.deleteTraineeByUsername(auth, "Missing.User"))
-                .isInstanceOf(EntityNotFoundException.class);
-
-        verify(traineeRepository, never()).deleteByUsername("Missing.User");
+        verify(traineeRepository, times(1)).deleteByUsername("Missing.User");
+        verify(traineeRepository, never()).findByUsername("Missing.User");
     }
 
     @Test
@@ -420,7 +356,7 @@ class TraineeServiceTest {
         assertThatThrownBy(() -> traineeService.deleteTraineeByUsername(auth, " "))
                 .isInstanceOf(ValidationException.class);
 
-        verify(traineeRepository, never()).findByUsername(any());
+        verify(traineeRepository, never()).deleteByUsername(any());
     }
 
     @Test
@@ -467,13 +403,13 @@ class TraineeServiceTest {
         assertThatThrownBy(() -> traineeService.getTraineeByUsername(auth, "Missing.User"))
                 .isInstanceOf(EntityNotFoundException.class);
 
-        verify(authenticationService, times(1)).requireAuthenticated(auth);
+        verify(authenticationService, times(1)).matchesTraineeCredentials(auth.username(), auth.password());
     }
 
 
     @Test
     void traineeMapperShouldMapEntityToResponse() {
-        TraineeMapper mapper = new TraineeMapper(org.mockito.Mockito.mock(UserCredentialService.class), org.mockito.Mockito.mock(PasswordGenerator.class));
+        TraineeMapper mapper = new TraineeMapper(org.mockito.Mockito.mock(UsernameGenerator.class), org.mockito.Mockito.mock(PasswordGenerator.class));
         TraineeEntity entity = TestDataFactory.traineeWithId(5L, "Jane.Doe");
         entity.getUser().setFirstName("Jane");
         entity.getUser().setLastName("Doe");
@@ -491,11 +427,11 @@ class TraineeServiceTest {
 
     @Test
     void traineeMapperShouldMapCreateRequestToEntity() {
-        UserCredentialService credentialService = org.mockito.Mockito.mock(UserCredentialService.class);
-        when(credentialService.generateUniqueUsername("Jane", "Doe")).thenReturn("Jane.Doe");
+        UsernameGenerator usernameGenerator = org.mockito.Mockito.mock(UsernameGenerator.class);
+        when(usernameGenerator.generateUniqueUsername("Jane", "Doe")).thenReturn("Jane.Doe");
         PasswordGenerator passwordGenerator = org.mockito.Mockito.mock(PasswordGenerator.class);
         when(passwordGenerator.generatePassword()).thenReturn("Pass1234");
-        TraineeMapper mapper = new TraineeMapper(credentialService, passwordGenerator);
+        TraineeMapper mapper = new TraineeMapper(usernameGenerator, passwordGenerator);
         CreateTraineeRequest request = TestDataFactory.createTraineeRequest("Jane", "Doe");
 
         TraineeEntity actual = mapper.toEntity(request);
@@ -510,17 +446,26 @@ class TraineeServiceTest {
     }
 
     @Test
-    void traineeMapperShouldMapUpdateRequestToEntity() {
-        TraineeMapper mapper = new TraineeMapper(org.mockito.Mockito.mock(UserCredentialService.class), org.mockito.Mockito.mock(PasswordGenerator.class));
+    void traineeMapperShouldMapUpdateRequestOntoExistingEntity() {
+        TraineeMapper mapper = new TraineeMapper(
+                org.mockito.Mockito.mock(UsernameGenerator.class),
+                org.mockito.Mockito.mock(PasswordGenerator.class));
+        TraineeEntity existing = TestDataFactory.traineeWithId(3L, "Jane.Doe");
+        existing.getUser().setPassword("storedPass");
+        existing.getUser().setActive(false);
         UpdateTraineeRequest request = new UpdateTraineeRequest(
-                3L, new UserInfo("Jane", "Updated"), false, LocalDate.of(1990, 1, 1), "Lviv");
+                3L, new UserInfo("Jane", "Updated"), LocalDate.of(1990, 1, 1), "Lviv");
 
-        TraineeEntity actual = mapper.toEntity(request, "Jane.Doe", "storedPass");
+        TraineeEntity actual = mapper.toEntity(existing, request);
 
+        assertThat(actual).isSameAs(existing);
         assertThat(actual.getId()).isEqualTo(3L);
+        assertThat(actual.getUser().getFirstName()).isEqualTo("Jane");
+        assertThat(actual.getUser().getLastName()).isEqualTo("Updated");
         assertThat(actual.getUser().getUsername()).isEqualTo("Jane.Doe");
         assertThat(actual.getUser().getPassword()).isEqualTo("storedPass");
         assertThat(actual.getUser().isActive()).isFalse();
+        assertThat(actual.getDateOfBirth()).isEqualTo(LocalDate.of(1990, 1, 1));
         assertThat(actual.getAddress()).isEqualTo("Lviv");
     }
 }

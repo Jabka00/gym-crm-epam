@@ -66,9 +66,9 @@ class DtoValidatorTest {
     void shouldRejectUpdateWithoutId() {
         UpdateTraineeRequest dto = TestDataFactory.updateTraineeRequestWithoutId();
 
-        assertThatThrownBy(() -> dtoValidator.validateForUpdate(dto, UpdateTraineeRequest::id, "Trainee"))
+        assertThatThrownBy(() -> dtoValidator.validate(dto))
                 .isInstanceOf(ValidationException.class)
-                .hasMessage("Trainee id is required");
+                .hasMessageContaining("Trainee id is required");
     }
 
     @Test
@@ -110,16 +110,16 @@ class DtoValidatorTest {
 
         assertThatThrownBy(() -> dtoValidator.validate(dto))
                 .isInstanceOf(ValidationException.class)
-                .hasMessageContaining("Duration must be at least 1 minute");
+                .hasMessageContaining("Duration must be at least 15 minutes");
     }
 
     @Test
     void shouldRejectTrainerUpdateWithoutId() {
         UpdateTrainerRequest dto = new UpdateTrainerRequest(
-                null, new UserInfo("John", "Smith"), true, TrainingType.YOGA);
+                null, new UserInfo("John", "Smith"), TrainingType.YOGA);
 
-        assertThatThrownBy(() -> dtoValidator.validateForUpdate(dto, UpdateTrainerRequest::id, "Trainer"))
+        assertThatThrownBy(() -> dtoValidator.validate(dto))
                 .isInstanceOf(ValidationException.class)
-                .hasMessage("Trainer id is required");
+                .hasMessageContaining("Trainer id is required");
     }
 }

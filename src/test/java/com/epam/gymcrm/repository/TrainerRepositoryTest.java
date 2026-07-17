@@ -1,8 +1,8 @@
 package com.epam.gymcrm.repository;
 
-import com.epam.gymcrm.model.TrainingType;
-
+import com.epam.gymcrm.entity.TraineeEntity;
 import com.epam.gymcrm.entity.TrainerEntity;
+import com.epam.gymcrm.model.TrainingType;
 import com.epam.gymcrm.support.MySqlIntegrationTest;
 import com.epam.gymcrm.support.TestDataFactory;
 import org.junit.jupiter.api.Test;
@@ -18,6 +18,9 @@ class TrainerRepositoryTest {
 
     @Autowired
     private TrainerRepository trainerRepository;
+
+    @Autowired
+    private TraineeRepository traineeRepository;
 
     @Test
     void shouldSaveAndFindTrainerById() {
@@ -79,6 +82,16 @@ class TrainerRepositoryTest {
     }
 
     @Test
+    void shouldFindSeedTrainerByUsernameWithSpecialization() {
+        assertThat(trainerRepository.findByUsername("John.Smith"))
+                .get()
+                .satisfies(trainer -> {
+                    assertThat(trainer.getUser().getUsername()).isEqualTo("John.Smith");
+                    assertThat(trainer.getSpecialization().getTypeName()).isEqualTo(TrainingType.YOGA);
+                });
+    }
+
+    @Test
     void shouldReturnEmptyWhenFindByUsernameMissing() {
         assertThat(trainerRepository.findByUsername("No.Such.Trainer")).isEmpty();
     }
@@ -106,45 +119,13 @@ class TrainerRepositoryTest {
     }
 
     @Test
-    void shouldReturnAllTrainers() {
-        TrainerEntity saved = trainerRepository.save(TestDataFactory.trainer("All.Trainer"));
+    void shouldIgnoreMissingUsernamesWhenFindingByUsernames() {
+        List<TrainerEntity> actual = trainerRepository.findByUsernames(
+                Set.of("John.Smith", "Missing.Trainer"));
 
-        assertThat(trainerRepository.findAll())
-                .extracting(TrainerEntity::getId)
-                .contains(saved.getId());
-    }
-
-    @Test
-    void shouldDetectExistingTrainerByUsername() {
-        trainerRepository.save(TestDataFactory.trainer("Exists.Trainer"));
-
-        assertThat(trainerRepository.existsByUsername("Exists.Trainer")).isTrue();
-        assertThat(trainerRepository.existsByUsername("Missing.Trainer")).isFalse();
-    }
-
-    @Test
-    void shouldFindActiveTrainerBySpecialization() {
-        TrainerEntity saved = trainerRepository.save(TestDataFactory.trainer("Active.Yoga"));
-        assertThat(saved.getUser().isActive()).isTrue();
-
-        TrainerEntity found = trainerRepository.findActiveBySpecialization(TrainingType.YOGA).orElseThrow();
-
-        assertThat(found.getUser().isActive()).isTrue();
-        assertThat(found.getSpecialization().getTypeName()).isEqualTo(TrainingType.YOGA);
-    }
-
-    @Test
-    void shouldNotFindInactiveTrainerBySpecialization() {
-        trainerRepository.save(TestDataFactory.trainer("Active.Yoga.Only"));
-
-        TrainerEntity inactive = TestDataFactory.trainer("Inactive.Yoga");
-        inactive.getUser().setActive(false);
-        trainerRepository.save(inactive);
-
-        TrainerEntity found = trainerRepository.findActiveBySpecialization(TrainingType.YOGA).orElseThrow();
-
-        assertThat(found.getUser().isActive()).isTrue();
-        assertThat(found.getUser().getUsername()).isNotEqualTo("Inactive.Yoga");
+        assertThat(actual)
+                .extracting(trainer -> trainer.getUser().getUsername())
+                .containsExactly("John.Smith");
     }
 
     @Test
@@ -156,5 +137,38 @@ class TrainerRepositoryTest {
         assertThat(actual)
                 .extracting(TrainerEntity::getId)
                 .contains(trainer.getId());
+    }
+
+    @Test
+    void shouldExcludeAssignedTrainerFromNotAssignedList() {
+        List<TrainerEntity> actual = trainerRepository.findNotAssignedToTrainee("Alice.Walker");
+
+        assertThat(actual)
+                .extracting(trainer -> trainer.getUser().getUsername())
+                .doesNotContain("John.Smith")
+                .contains("Anna.Jones");
+    }
+
+    @Test
+    void shouldExcludeInactiveTrainerFromNotAssignedList() {
+        List<TrainerEntity> actual = trainerRepository.findNotAssignedToTrainee("Alice.Walker");
+
+        assertThat(actual)
+                .extracting(trainer -> trainer.getUser().getUsername())
+                .doesNotContain("Mike.Brown");
+    }
+
+    @Test
+    void shouldExcludeNewlyAssignedTrainerFromNotAssignedList() {
+        TraineeEntity trainee = traineeRepository.save(TestDataFactory.trainee("Assign.Check"));
+        TrainerEntity trainer = trainerRepository.save(TestDataFactory.trainer("Soon.Assigned"));
+        trainee.getTrainers().add(trainer);
+        traineeRepository.save(trainee);
+
+        List<TrainerEntity> actual = trainerRepository.findNotAssignedToTrainee("Assign.Check");
+
+        assertThat(actual)
+                .extracting(TrainerEntity::getId)
+                .doesNotContain(trainer.getId());
     }
 }

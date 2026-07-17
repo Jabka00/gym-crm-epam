@@ -1,14 +1,13 @@
 package com.epam.gymcrm.mapper;
 
+import com.epam.gymcrm.dto.Trainer;
 import com.epam.gymcrm.dto.request.CreateTrainerRequest;
 import com.epam.gymcrm.dto.request.UpdateTrainerRequest;
-import com.epam.gymcrm.dto.response.Trainer;
-import com.epam.gymcrm.dto.response.TrainingTypeResponse;
 import com.epam.gymcrm.entity.TrainerEntity;
 import com.epam.gymcrm.entity.TrainingTypeEntity;
 import com.epam.gymcrm.entity.UserEntity;
 import com.epam.gymcrm.service.PasswordGenerator;
-import com.epam.gymcrm.service.UserCredentialService;
+import com.epam.gymcrm.service.UsernameGenerator;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -16,7 +15,7 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class TrainerMapper {
 
-    private final UserCredentialService userCredentialService;
+    private final UsernameGenerator usernameGenerator;
     private final PasswordGenerator passwordGenerator;
 
     public Trainer toResponse(TrainerEntity entity) {
@@ -25,19 +24,15 @@ public class TrainerMapper {
                 entity.getId(),
                 user.getFirstName() + " " + user.getLastName(),
                 user.getUsername(),
-                toTrainingTypeResponse(entity.getSpecialization())
+                entity.getSpecialization().getTypeName()
         );
-    }
-
-    public TrainingTypeResponse toTrainingTypeResponse(TrainingTypeEntity entity) {
-        return new TrainingTypeResponse(entity.getId(), entity.getTypeName());
     }
 
     public TrainerEntity toEntity(CreateTrainerRequest request, TrainingTypeEntity specialization) {
         UserEntity user = new UserEntity();
         user.setFirstName(request.user().firstName());
         user.setLastName(request.user().lastName());
-        user.setUsername(userCredentialService.generateUniqueUsername(
+        user.setUsername(usernameGenerator.generateUniqueUsername(
                 request.user().firstName(), request.user().lastName()));
         user.setPassword(passwordGenerator.generatePassword());
         user.setActive(true);
@@ -49,22 +44,13 @@ public class TrainerMapper {
     }
 
     public TrainerEntity toEntity(
+            TrainerEntity existing,
             UpdateTrainerRequest request,
-            TrainingTypeEntity specialization,
-            String username,
-            String password) {
-        UserEntity user = new UserEntity();
-        user.setId(request.id());
+            TrainingTypeEntity specialization) {
+        UserEntity user = existing.getUser();
         user.setFirstName(request.user().firstName());
         user.setLastName(request.user().lastName());
-        user.setUsername(username);
-        user.setPassword(password);
-        user.setActive(request.active());
-
-        TrainerEntity entity = new TrainerEntity();
-        entity.setId(request.id());
-        entity.setUser(user);
-        entity.setSpecialization(specialization);
-        return entity;
+        existing.setSpecialization(specialization);
+        return existing;
     }
 }

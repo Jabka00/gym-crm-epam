@@ -1,4 +1,4 @@
-package com.epam.gymcrm.dto.response;
+package com.epam.gymcrm.dto;
 
 import java.time.LocalDate;
 

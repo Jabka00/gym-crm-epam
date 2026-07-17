@@ -7,6 +7,7 @@ import org.hibernate.SessionFactory;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
 import java.util.Optional;
 
 @Repository
@@ -20,14 +21,13 @@ public class UserRepository {
     }
 
     @Transactional(readOnly = true)
-    public boolean existsByUsername(String username) {
-        Long count = getSession()
+    public List<String> findUsernamesStartingWith(String prefix) {
+        return getSession()
                 .createQuery(
-                        "SELECT COUNT(u) FROM UserEntity u WHERE u.username = :username",
-                        Long.class)
-                .setParameter("username", username)
-                .getSingleResult();
-        return count > 0;
+                        "SELECT u.username FROM UserEntity u WHERE u.username LIKE :pattern",
+                        String.class)
+                .setParameter("pattern", prefix + "%")
+                .getResultList();
     }
 
     @Transactional(readOnly = true)

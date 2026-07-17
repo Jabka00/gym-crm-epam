@@ -29,8 +29,8 @@ public record ScheduleTrainingRequest(
         @NotNull(message = "Duration is required")
         Duration duration
 ) {
-    @AssertTrue(message = "Duration must be at least 1 minute")
+    @AssertTrue(message = "Duration must be at least 15 minutes")
     private boolean isDurationValid() {
-        return duration == null || duration.compareTo(Duration.ofMinutes(1)) >= 0;
+        return duration == null || duration.compareTo(Duration.ofMinutes(15)) >= 0;
     }
 }

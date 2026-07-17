@@ -7,7 +7,6 @@ import jakarta.validation.Validator;
 import org.springframework.stereotype.Component;
 
 import java.util.Set;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Component
@@ -27,13 +26,6 @@ public class DtoValidator {
                             .map(ConstraintViolation::getMessage)
                             .collect(Collectors.joining(", "))
             );
-        }
-    }
-
-    public <T> void validateForUpdate(T dto, Function<T, Long> idGetter, String entityName) {
-        validate(dto);
-        if (idGetter.apply(dto) == null) {
-            throw new ValidationException(entityName + " id is required");
         }
     }
 }

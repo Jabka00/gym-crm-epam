@@ -9,7 +9,6 @@ import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Optional;
-import java.util.stream.Stream;
 
 @Slf4j
 @Repository
@@ -31,46 +30,23 @@ public class TraineeRepository {
             trainee = session.merge(trainee);
         }
         session.flush();
-        log.debug("Saved trainee id={}", trainee.getId());
+        log.debug("Trainee saved");
         return trainee;
     }
 
     @Transactional
-    public void delete(Long id) {
-        TraineeEntity trainee = getSession()
-                .createQuery(
-                        "FROM TraineeEntity t LEFT JOIN FETCH t.trainers WHERE t.id = :id",
-                        TraineeEntity.class)
-                .setParameter("id", id)
-                .uniqueResult();
-
-        if (trainee != null) {
-            trainee.getTrainers().clear();
-            getSession().remove(trainee);
-            log.debug("Deleted trainee id={}", id);
-        }
+    public void deleteByUsername(String username) {
+        findByUsername(username).ifPresent(this::delete);
     }
 
-    @Transactional
-    public void deleteByUsername(String username) {
-        TraineeEntity trainee = getSession()
-                .createQuery(
-                        "FROM TraineeEntity t LEFT JOIN FETCH t.trainers LEFT JOIN FETCH t.trainings "
-                                + "WHERE t.user.username = :username",
-                        TraineeEntity.class)
-                .setParameter("username", username)
-                .uniqueResult();
-
-        if (trainee != null) {
-            trainee.getTrainers().clear();
-            getSession().remove(trainee);
-            log.debug("Deleted trainee");
-        }
+    private void delete(TraineeEntity trainee) {
+        trainee.getTrainers().clear();
+        getSession().remove(trainee);
+        log.debug("Trainee deleted");
     }
 
     @Transactional(readOnly = true)
     public Optional<TraineeEntity> findById(Long id) {
-        log.debug("findById trainee id={}", id);
         return getSession()
                 .createQuery(
                         "FROM TraineeEntity t LEFT JOIN FETCH t.trainers WHERE t.id = :id",
@@ -87,25 +63,5 @@ public class TraineeRepository {
                         TraineeEntity.class)
                 .setParameter("username", username)
                 .uniqueResultOptional();
-    }
-
-    @Transactional(readOnly = true)
-    public Stream<TraineeEntity> findAll() {
-        var trainees = getSession()
-                .createQuery("FROM TraineeEntity t LEFT JOIN FETCH t.trainers", TraineeEntity.class)
-                .getResultList();
-        log.debug("findAll trainees, count={}", trainees.size());
-        return trainees.stream();
-    }
-
-    @Transactional(readOnly = true)
-    public boolean existsByUsername(String username) {
-        Long count = getSession()
-                .createQuery(
-                        "SELECT COUNT(t) FROM TraineeEntity t WHERE t.user.username = :username",
-                        Long.class)
-                .setParameter("username", username)
-                .getSingleResult();
-        return count > 0;
     }
 }

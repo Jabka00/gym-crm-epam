@@ -1,9 +1,5 @@
 package com.epam.gymcrm.service;
 
-import com.epam.gymcrm.dto.Credentials;
-import com.epam.gymcrm.exception.AuthenticationException;
-import com.epam.gymcrm.model.AuthenticationResult;
-import com.epam.gymcrm.util.DtoValidator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.hibernate.Session;
@@ -18,59 +14,29 @@ import org.springframework.transaction.annotation.Transactional;
 public class AuthenticationService {
 
     private final SessionFactory sessionFactory;
-    private final DtoValidator dtoValidator;
 
-    public AuthenticationResult authenticate(String username, String password) {
-        Credentials credentials = new Credentials(username, password);
-        dtoValidator.validate(credentials);
-        return authenticate(credentials.username(), credentials.password(), AuthenticationTarget.USER);
+    public boolean matchesTraineeCredentials(String username, String password) {
+        boolean matched = matches(username, password, AuthenticationTarget.TRAINEE);
+        log.debug("Trainee credentials check: {}", matched ? "match" : "no match");
+        return matched;
     }
 
-    public AuthenticationResult authenticateTrainee(String username, String password) {
-        Credentials credentials = new Credentials(username, password);
-        dtoValidator.validate(credentials);
-        AuthenticationResult result = authenticate(
-                credentials.username(), credentials.password(), AuthenticationTarget.TRAINEE);
-        log.info("Trainee password verification: {}", result.isSuccess() ? "success" : "failed");
-        return result;
+    public boolean matchesTrainerCredentials(String username, String password) {
+        boolean matched = matches(username, password, AuthenticationTarget.TRAINER);
+        log.debug("Trainer credentials check: {}", matched ? "match" : "no match");
+        return matched;
     }
 
-    public AuthenticationResult authenticateTrainer(String username, String password) {
-        Credentials credentials = new Credentials(username, password);
-        dtoValidator.validate(credentials);
-        AuthenticationResult result = authenticate(
-                credentials.username(), credentials.password(), AuthenticationTarget.TRAINER);
-        log.info("Trainer password verification: {}", result.isSuccess() ? "success" : "failed");
-        return result;
-    }
-
-    public void requireAuthenticated(Credentials credentials) {
-        dtoValidator.validate(credentials);
-        if (!authenticate(credentials.username(), credentials.password(), AuthenticationTarget.USER).isSuccess()) {
-            throw new AuthenticationException("Invalid credentials");
+    private boolean matches(String username, String password, AuthenticationTarget target) {
+        if (username == null || username.isBlank() || password == null || password.isBlank()) {
+            return false;
         }
-        log.debug("Authentication succeeded");
-    }
-
-    private AuthenticationResult authenticate(String username, String password, AuthenticationTarget target) {
         Long count = getSession()
                 .createQuery(target.hql(), Long.class)
                 .setParameter("username", username)
                 .setParameter("password", password)
                 .getSingleResult();
-
-        AuthenticationResult result = AuthenticationResult.from(count > 0);
-        logAuthentication(target, result);
-        return result;
-    }
-
-    private void logAuthentication(AuthenticationTarget target, AuthenticationResult result) {
-        String outcome = result.isSuccess() ? "success" : "failed";
-        switch (target) {
-            case USER -> log.debug("Authentication: {}", outcome);
-            case TRAINEE -> log.debug("Trainee authentication: {}", outcome);
-            case TRAINER -> log.debug("Trainer authentication: {}", outcome);
-        }
+        return count > 0;
     }
 
     private Session getSession() {
@@ -78,8 +44,6 @@ public class AuthenticationService {
     }
 
     private enum AuthenticationTarget {
-        USER("SELECT COUNT(e) FROM UserEntity e "
-                + "WHERE e.username = :username AND e.password = :password AND e.active = true"),
         TRAINEE("SELECT COUNT(e) FROM TraineeEntity e "
                 + "WHERE e.user.username = :username AND e.user.password = :password AND e.user.active = true"),
         TRAINER("SELECT COUNT(e) FROM TrainerEntity e "

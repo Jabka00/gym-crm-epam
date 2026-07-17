@@ -1,9 +1,8 @@
 package com.epam.gymcrm.repository;
 
 import com.epam.gymcrm.entity.TraineeEntity;
+import com.epam.gymcrm.entity.TrainerEntity;
 import com.epam.gymcrm.entity.TrainingEntity;
-import com.epam.gymcrm.model.AuthenticationResult;
-import com.epam.gymcrm.service.AuthenticationService;
 import com.epam.gymcrm.support.MySqlIntegrationTest;
 import com.epam.gymcrm.support.TestDataFactory;
 import org.hibernate.SessionFactory;
@@ -19,44 +18,16 @@ class TraineeRepositoryTest {
     private TraineeRepository traineeRepository;
 
     @Autowired
+    private TrainerRepository trainerRepository;
+
+    @Autowired
     private TrainingRepository trainingRepository;
 
     @Autowired
-    private SessionFactory sessionFactory;
+    private UserRepository userRepository;
 
     @Autowired
-    private AuthenticationService authenticationService;
-
-    @Test
-    void shouldAuthenticateSeedTrainee() {
-        assertThat(authenticationService.authenticateTrainee("Alice.Walker", "qW3eRt5yUi"))
-                .isEqualTo(AuthenticationResult.SUCCESS);
-    }
-
-    @Test
-    void shouldAuthenticateSeedTrainer() {
-        assertThat(authenticationService.authenticateTrainer("John.Smith", "pass1234AB"))
-                .isEqualTo(AuthenticationResult.SUCCESS);
-    }
-
-    @Test
-    void shouldRejectWrongPasswordForTrainee() {
-        assertThat(authenticationService.authenticateTrainee("Alice.Walker", "WrongPass1"))
-                .isEqualTo(AuthenticationResult.FAILURE);
-    }
-
-    @Test
-    void shouldRejectTrainerCredentialsForTraineeAuthentication() {
-        assertThat(authenticationService.authenticateTrainee("John.Smith", "pass1234AB"))
-                .isEqualTo(AuthenticationResult.FAILURE);
-    }
-
-    @Test
-    void shouldDeleteByUsernameSilentlyWhenTraineeMissing() {
-        traineeRepository.deleteByUsername("Definitely.Missing.User");
-
-        assertThat(traineeRepository.findByUsername("Definitely.Missing.User")).isEmpty();
-    }
+    private SessionFactory sessionFactory;
 
     @Test
     void shouldSaveAndFindTraineeById() {
@@ -99,34 +70,6 @@ class TraineeRepositoryTest {
     }
 
     @Test
-    void shouldDeleteTrainee() {
-        TraineeEntity saved = traineeRepository.save(TestDataFactory.trainee("Third.User"));
-
-        traineeRepository.delete(saved.getId());
-
-        assertThat(traineeRepository.findById(saved.getId())).isEmpty();
-    }
-
-    @Test
-    void shouldCascadeDeleteTrainingsWhenDeletingTraineeByUsername() {
-        TraineeEntity trainee = traineeRepository.save(TestDataFactory.trainee("Cascade.User"));
-        TrainingEntity training = trainingRepository.save(
-                TestDataFactory.createDefaultTraining(trainee.getId(), 1L));
-        Long trainingId = training.getId();
-
-        sessionFactory.getCurrentSession().flush();
-        sessionFactory.getCurrentSession().clear();
-
-        traineeRepository.deleteByUsername("Cascade.User");
-
-        sessionFactory.getCurrentSession().flush();
-        sessionFactory.getCurrentSession().clear();
-
-        assertThat(traineeRepository.findByUsername("Cascade.User")).isEmpty();
-        assertThat(trainingRepository.findById(trainingId)).isEmpty();
-    }
-
-    @Test
     void shouldReturnEmptyWhenTraineeNotFound() {
         assertThat(traineeRepository.findById(404L)).isEmpty();
     }
@@ -146,24 +89,91 @@ class TraineeRepositoryTest {
     }
 
     @Test
+    void shouldFindSeedTraineeWithAssignedTrainers() {
+        assertThat(traineeRepository.findByUsername("Alice.Walker"))
+                .get()
+                .satisfies(trainee -> {
+                    assertThat(trainee.getUser().getUsername()).isEqualTo("Alice.Walker");
+                    assertThat(trainee.getTrainers())
+                            .extracting(trainer -> trainer.getUser().getUsername())
+                            .contains("John.Smith");
+                });
+    }
+
+    @Test
     void shouldReturnEmptyWhenFindByUsernameMissing() {
         assertThat(traineeRepository.findByUsername("No.Such.User")).isEmpty();
     }
 
     @Test
-    void shouldReturnAllTrainees() {
-        TraineeEntity saved = traineeRepository.save(TestDataFactory.trainee("All.User"));
+    void shouldDeleteByUsernameSilentlyWhenTraineeMissing() {
+        traineeRepository.deleteByUsername("Definitely.Missing.User");
 
-        assertThat(traineeRepository.findAll())
-                .extracting(TraineeEntity::getId)
-                .contains(saved.getId());
+        assertThat(traineeRepository.findByUsername("Definitely.Missing.User")).isEmpty();
+        assertThat(userRepository.findByUsername("Definitely.Missing.User")).isEmpty();
     }
 
     @Test
-    void shouldDetectExistingTraineeByUsername() {
-        traineeRepository.save(TestDataFactory.trainee("Exists.User"));
+    void shouldHardDeleteTraineeTrainingsAndUser() {
+        TraineeEntity trainee = traineeRepository.save(TestDataFactory.trainee("Cascade.User"));
+        TrainingEntity training = trainingRepository.save(
+                TestDataFactory.createDefaultTraining(trainee.getId(), 1L));
+        Long trainingId = training.getId();
 
-        assertThat(traineeRepository.existsByUsername("Exists.User")).isTrue();
-        assertThat(traineeRepository.existsByUsername("Missing.User")).isFalse();
+        sessionFactory.getCurrentSession().flush();
+        sessionFactory.getCurrentSession().clear();
+
+        traineeRepository.deleteByUsername("Cascade.User");
+
+        sessionFactory.getCurrentSession().flush();
+        sessionFactory.getCurrentSession().clear();
+
+        assertThat(traineeRepository.findByUsername("Cascade.User")).isEmpty();
+        assertThat(userRepository.findByUsername("Cascade.User")).isEmpty();
+        assertThat(trainingRepository.findByTraineeUsernameAndCriteria(
+                "Cascade.User", null, null, null, null)).isEmpty();
+        assertThat(trainingId).isNotNull();
+        assertThat(trainerRepository.findById(1L)).isPresent();
+    }
+
+    @Test
+    void shouldClearTrainerAssignmentsOnDeleteWithoutRemovingTrainer() {
+        TraineeEntity trainee = traineeRepository.save(TestDataFactory.trainee("Linked.User"));
+        TrainerEntity trainer = trainerRepository.save(TestDataFactory.trainer("Linked.Trainer"));
+        trainee.getTrainers().add(trainer);
+        traineeRepository.save(trainee);
+
+        sessionFactory.getCurrentSession().flush();
+        sessionFactory.getCurrentSession().clear();
+
+        assertThat(traineeRepository.findByUsername("Linked.User"))
+                .get()
+                .satisfies(found -> assertThat(found.getTrainers()).isNotEmpty());
+
+        traineeRepository.deleteByUsername("Linked.User");
+
+        sessionFactory.getCurrentSession().flush();
+        sessionFactory.getCurrentSession().clear();
+
+        assertThat(traineeRepository.findByUsername("Linked.User")).isEmpty();
+        assertThat(userRepository.findByUsername("Linked.User")).isEmpty();
+        assertThat(trainerRepository.findByUsername("Linked.Trainer")).isPresent();
+    }
+
+    @Test
+    void shouldPersistTrainerAssignments() {
+        TraineeEntity trainee = traineeRepository.save(TestDataFactory.trainee("With.Trainer"));
+        TrainerEntity trainer = trainerRepository.save(TestDataFactory.trainer("Assigned.One"));
+        trainee.getTrainers().add(trainer);
+        traineeRepository.save(trainee);
+
+        sessionFactory.getCurrentSession().flush();
+        sessionFactory.getCurrentSession().clear();
+
+        assertThat(traineeRepository.findById(trainee.getId()))
+                .get()
+                .satisfies(found -> assertThat(found.getTrainers())
+                        .extracting(assigned -> assigned.getUser().getUsername())
+                        .containsExactly("Assigned.One"));
     }
 }

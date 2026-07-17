@@ -7,7 +7,6 @@ import com.epam.gymcrm.exception.AuthenticationException;
 import com.epam.gymcrm.exception.EntityNotFoundException;
 import com.epam.gymcrm.repository.UserRepository;
 import com.epam.gymcrm.util.DtoValidator;
-import com.epam.gymcrm.util.PasswordValidator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -20,21 +19,19 @@ import org.springframework.transaction.annotation.Transactional;
 public class UserService {
 
     private final UserRepository userRepository;
-    private final PasswordValidator passwordValidator;
-    private final AuthenticationService authenticationService;
     private final DtoValidator dtoValidator;
 
     public void changePassword(ChangePasswordRequest request) {
         dtoValidator.validate(request);
-        passwordValidator.validate(request.newPassword());
-
-        if (!authenticationService.authenticate(request.username(), request.oldPassword()).isSuccess()) {
-            throw new AuthenticationException("Invalid credentials");
-        }
 
         UserEntity user = userRepository.findByUsername(request.username())
                 .orElseThrow(() -> new EntityNotFoundException(
                         "User not found with username: " + request.username()));
+
+        if (!request.oldPassword().equals(user.getPassword())) {
+            throw new AuthenticationException("Invalid credentials");
+        }
+
         user.setPassword(request.newPassword());
         userRepository.save(user);
         log.info("Password changed");
@@ -46,8 +43,8 @@ public class UserService {
         UserEntity user = userRepository.findByUsername(request.username())
                 .orElseThrow(() -> new EntityNotFoundException(
                         "User not found with username: " + request.username()));
-        user.setActive(!user.isActive());
+        user.setActive(request.active());
         userRepository.save(user);
-        log.info("Toggled activation, active={}", user.isActive());
+        log.info("User activation updated");
     }
 }

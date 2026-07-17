@@ -1,8 +1,5 @@
 package com.epam.gymcrm.service;
 
-import com.epam.gymcrm.exception.ValidationException;
-import com.epam.gymcrm.model.AuthenticationResult;
-import com.epam.gymcrm.util.DtoValidator;
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
 import org.hibernate.query.Query;
@@ -10,16 +7,13 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -38,13 +32,10 @@ class AuthenticationServiceTest {
     @Mock
     private Query<Long> query;
 
-    @Spy
-    private DtoValidator dtoValidator = new DtoValidator();
-
     @InjectMocks
     private AuthenticationService authenticationService;
 
-    private void stubSuccessfulQuery(long count) {
+    private void stubQuery(long count) {
         lenient().when(sessionFactory.getCurrentSession()).thenReturn(session);
         lenient().when(session.createQuery(anyString(), eq(Long.class))).thenReturn(query);
         lenient().when(query.setParameter(anyString(), anyString())).thenReturn(query);
@@ -52,77 +43,59 @@ class AuthenticationServiceTest {
     }
 
     @Test
-    void shouldAuthenticateActiveUser() {
-        stubSuccessfulQuery(1L);
+    void shouldMatchActiveTraineeCredentials() {
+        stubQuery(1L);
 
-        assertThat(authenticationService.authenticate("Alice.Walker", VALID_PASSWORD))
-                .isEqualTo(AuthenticationResult.SUCCESS);
-        verify(session, times(1)).createQuery(anyString(), eq(Long.class));
+        assertThat(authenticationService.matchesTraineeCredentials("Kate.Doe", VALID_PASSWORD)).isTrue();
     }
 
     @Test
-    void shouldRejectInactiveUser() {
-        stubSuccessfulQuery(0L);
+    void shouldNotMatchInactiveTraineeCredentials() {
+        stubQuery(0L);
 
-        assertThat(authenticationService.authenticate("Inactive.User", VALID_PASSWORD))
-                .isEqualTo(AuthenticationResult.FAILURE);
+        assertThat(authenticationService.matchesTraineeCredentials("Inactive.User", VALID_PASSWORD)).isFalse();
     }
 
     @Test
-    void shouldAuthenticateActiveTrainee() {
-        stubSuccessfulQuery(1L);
+    void shouldNotMatchTrainerCredentialsForTrainee() {
+        stubQuery(0L);
 
-        assertThat(authenticationService.authenticateTrainee("Kate.Doe", VALID_PASSWORD))
-                .isEqualTo(AuthenticationResult.SUCCESS);
+        assertThat(authenticationService.matchesTraineeCredentials("John.Smith", TRAINER_PASSWORD)).isFalse();
     }
 
     @Test
-    void shouldRejectTrainerCredentialsForTraineeAuthentication() {
-        stubSuccessfulQuery(0L);
+    void shouldMatchActiveTrainerCredentials() {
+        stubQuery(1L);
 
-        assertThat(authenticationService.authenticateTrainee("John.Smith", TRAINER_PASSWORD))
-                .isEqualTo(AuthenticationResult.FAILURE);
+        assertThat(authenticationService.matchesTrainerCredentials("John.Smith", TRAINER_PASSWORD)).isTrue();
     }
 
     @Test
-    void shouldAuthenticateActiveTrainer() {
-        stubSuccessfulQuery(1L);
+    void shouldNotMatchInactiveTrainerCredentials() {
+        stubQuery(0L);
 
-        assertThat(authenticationService.authenticateTrainer("John.Smith", TRAINER_PASSWORD))
-                .isEqualTo(AuthenticationResult.SUCCESS);
+        assertThat(authenticationService.matchesTrainerCredentials("Inactive.Trainer", TRAINER_PASSWORD)).isFalse();
     }
 
     @Test
-    void shouldRejectTraineeCredentialsForTrainerAuthentication() {
-        stubSuccessfulQuery(0L);
+    void shouldNotMatchTraineeCredentialsForTrainer() {
+        stubQuery(0L);
 
-        assertThat(authenticationService.authenticateTrainer("Kate.Doe", VALID_PASSWORD))
-                .isEqualTo(AuthenticationResult.FAILURE);
+        assertThat(authenticationService.matchesTrainerCredentials("Kate.Doe", VALID_PASSWORD)).isFalse();
     }
 
     @Test
-    void shouldRejectBlankUsernameForTraineeAuthentication() {
-        assertThatThrownBy(() -> authenticationService.authenticateTrainee("", VALID_PASSWORD))
-                .isInstanceOf(ValidationException.class)
-                .hasMessageContaining("Username cannot be null or empty");
+    void shouldReturnFalseForBlankUsernameWithoutQuery() {
+        assertThat(authenticationService.matchesTraineeCredentials("", VALID_PASSWORD)).isFalse();
+        assertThat(authenticationService.matchesTrainerCredentials(" ", TRAINER_PASSWORD)).isFalse();
 
         verify(sessionFactory, never()).getCurrentSession();
     }
 
     @Test
-    void shouldRejectBlankPasswordForTrainerAuthentication() {
-        assertThatThrownBy(() -> authenticationService.authenticateTrainer("John.Smith", ""))
-                .isInstanceOf(ValidationException.class)
-                .hasMessageContaining("Password cannot be null or empty");
-
-        verify(sessionFactory, never()).getCurrentSession();
-    }
-
-    @Test
-    void shouldRejectBlankUsernameForAuthentication() {
-        assertThatThrownBy(() -> authenticationService.authenticate("", VALID_PASSWORD))
-                .isInstanceOf(ValidationException.class)
-                .hasMessageContaining("Username cannot be null or empty");
+    void shouldReturnFalseForBlankPasswordWithoutQuery() {
+        assertThat(authenticationService.matchesTraineeCredentials("Kate.Doe", "")).isFalse();
+        assertThat(authenticationService.matchesTrainerCredentials("John.Smith", null)).isFalse();
 
         verify(sessionFactory, never()).getCurrentSession();
     }

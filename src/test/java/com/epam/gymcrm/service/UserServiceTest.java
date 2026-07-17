@@ -6,11 +6,9 @@ import com.epam.gymcrm.entity.UserEntity;
 import com.epam.gymcrm.exception.AuthenticationException;
 import com.epam.gymcrm.exception.EntityNotFoundException;
 import com.epam.gymcrm.exception.ValidationException;
-import com.epam.gymcrm.model.AuthenticationResult;
 import com.epam.gymcrm.repository.UserRepository;
 import com.epam.gymcrm.support.TestDataFactory;
 import com.epam.gymcrm.util.DtoValidator;
-import com.epam.gymcrm.util.PasswordValidator;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -34,12 +32,6 @@ class UserServiceTest {
     @Mock
     private UserRepository userRepository;
 
-    @Mock
-    private PasswordValidator passwordValidator;
-
-    @Mock
-    private AuthenticationService authenticationService;
-
     @Spy
     private DtoValidator dtoValidator = new DtoValidator();
 
@@ -49,42 +41,48 @@ class UserServiceTest {
     @Test
     void shouldChangePasswordWhenOldPasswordIsValid() {
         UserEntity user = TestDataFactory.traineeWithId(1L, "Alice.Walker").getUser();
-        when(authenticationService.authenticate("Alice.Walker", "secret1234"))
-                .thenReturn(AuthenticationResult.SUCCESS);
+        user.setPassword("secret1234");
         when(userRepository.findByUsername("Alice.Walker")).thenReturn(Optional.of(user));
         when(userRepository.save(user)).thenReturn(user);
 
-        userService.changePassword(new ChangePasswordRequest("Alice.Walker", "secret1234", "NewPass1!"));
+        userService.changePassword(new ChangePasswordRequest("Alice.Walker", "secret1234", "NewPass1word"));
 
-        verify(passwordValidator, times(1)).validate("NewPass1!");
-        verify(authenticationService, times(1)).authenticate("Alice.Walker", "secret1234");
+        verify(userRepository, times(1)).findByUsername("Alice.Walker");
         verify(userRepository, times(1)).save(user);
-        assertThat(user.getPassword()).isEqualTo("NewPass1!");
+        assertThat(user.getPassword()).isEqualTo("NewPass1word");
     }
 
     @Test
     void shouldRejectPasswordChangeWhenOldPasswordIsInvalid() {
-        when(authenticationService.authenticate("Alice.Walker", "wrongPass1"))
-                .thenReturn(AuthenticationResult.FAILURE);
+        UserEntity user = TestDataFactory.traineeWithId(1L, "Alice.Walker").getUser();
+        user.setPassword("correctPass1");
+        when(userRepository.findByUsername("Alice.Walker")).thenReturn(Optional.of(user));
 
         assertThatThrownBy(() -> userService.changePassword(
-                        new ChangePasswordRequest("Alice.Walker", "wrongPass1", "NewPass1!")))
+                        new ChangePasswordRequest("Alice.Walker", "wrongPass1", "NewPass1word")))
                 .isInstanceOf(AuthenticationException.class)
                 .hasMessage("Invalid credentials");
 
-        verify(passwordValidator, times(1)).validate("NewPass1!");
+        verify(userRepository, times(1)).findByUsername("Alice.Walker");
+        verify(userRepository, never()).save(any());
+    }
+
+    @Test
+    void shouldRejectWeakNewPassword() {
+        assertThatThrownBy(() -> userService.changePassword(
+                        new ChangePasswordRequest("Alice.Walker", "secret1234", "weak")))
+                .isInstanceOf(ValidationException.class);
+
         verify(userRepository, never()).findByUsername(any());
         verify(userRepository, never()).save(any());
     }
 
     @Test
     void shouldThrowWhenUserNotFoundDuringPasswordChange() {
-        when(authenticationService.authenticate("Missing.User", "secret1234"))
-                .thenReturn(AuthenticationResult.SUCCESS);
         when(userRepository.findByUsername("Missing.User")).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> userService.changePassword(
-                        new ChangePasswordRequest("Missing.User", "secret1234", "NewPass1!")))
+                        new ChangePasswordRequest("Missing.User", "secret1234", "NewPass1word")))
                 .isInstanceOf(EntityNotFoundException.class);
 
         verify(userRepository, never()).save(any());
@@ -93,11 +91,10 @@ class UserServiceTest {
     @Test
     void shouldRejectBlankUsernameOnChangePassword() {
         assertThatThrownBy(() -> userService.changePassword(
-                        new ChangePasswordRequest(" ", "secret1234", "NewPass1!")))
+                        new ChangePasswordRequest(" ", "secret1234", "NewPass1word")))
                 .isInstanceOf(ValidationException.class);
 
-        verify(passwordValidator, never()).validate(any());
-        verify(authenticationService, never()).authenticate(any(), any());
+        verify(userRepository, never()).findByUsername(any());
     }
 
     @Test
@@ -107,7 +104,7 @@ class UserServiceTest {
         when(userRepository.findByUsername("Alice.Walker")).thenReturn(Optional.of(user));
         when(userRepository.save(user)).thenReturn(user);
 
-        userService.toggleActivation(new ToggleActivationRequest("Alice.Walker"));
+        userService.toggleActivation(new ToggleActivationRequest("Alice.Walker", false));
 
         assertThat(user.isActive()).isFalse();
         verify(userRepository, times(1)).save(user);
@@ -117,13 +114,13 @@ class UserServiceTest {
     void shouldThrowWhenTogglingActivationForMissingUser() {
         when(userRepository.findByUsername("Missing.User")).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> userService.toggleActivation(new ToggleActivationRequest("Missing.User")))
+        assertThatThrownBy(() -> userService.toggleActivation(new ToggleActivationRequest("Missing.User", true)))
                 .isInstanceOf(EntityNotFoundException.class);
     }
 
     @Test
     void shouldRejectBlankUsernameOnToggleActivation() {
-        assertThatThrownBy(() -> userService.toggleActivation(new ToggleActivationRequest(" ")))
+        assertThatThrownBy(() -> userService.toggleActivation(new ToggleActivationRequest(" ", false)))
                 .isInstanceOf(ValidationException.class);
 
         verify(userRepository, never()).findByUsername(any());

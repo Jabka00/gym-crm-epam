@@ -11,8 +11,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.List;
-import java.util.Optional;
-import java.util.stream.Stream;
 
 @Slf4j
 @Repository
@@ -43,35 +41,8 @@ public class TrainingRepository {
             persisted = session.merge(training);
         }
         session.flush();
-        log.debug("Saved training id={}", persisted.getId());
+        log.debug("Training saved");
         return persisted;
-    }
-
-    @Transactional
-    public void delete(Long id) {
-        Optional.ofNullable(getSession().get(TrainingEntity.class, id))
-                .ifPresent(training -> {
-                    getSession().remove(training);
-                    log.debug("Deleted training id={}", id);
-                });
-    }
-
-    @Transactional(readOnly = true)
-    public Optional<TrainingEntity> findById(Long id) {
-        log.debug("findById training id={}", id);
-        return getSession()
-                .createQuery(FETCH_TRAINING + " WHERE t.id = :id", TrainingEntity.class)
-                .setParameter("id", id)
-                .uniqueResultOptional();
-    }
-
-    @Transactional(readOnly = true)
-    public Stream<TrainingEntity> findAll() {
-        var trainings = getSession()
-                .createQuery(FETCH_TRAINING, TrainingEntity.class)
-                .getResultList();
-        log.debug("findAll trainings, count={}", trainings.size());
-        return trainings.stream();
     }
 
     @Transactional(readOnly = true)
@@ -116,20 +87,8 @@ public class TrainingRepository {
         }
 
         List<TrainingEntity> trainings = query.getResultList();
-        log.debug("findByTraineeUsernameAndCriteria trainee={}, count={}", traineeUsername, trainings.size());
+        log.debug("Trainee trainings fetched, count={}", trainings.size());
         return trainings;
-    }
-
-    @Transactional(readOnly = true)
-    public boolean existsByTraineeId(Long traineeId) {
-        Long count = getSession()
-                .createQuery(
-                        "SELECT COUNT(t) FROM TrainingEntity t WHERE t.trainee.id = :traineeId",
-                        Long.class)
-                .setParameter("traineeId", traineeId)
-                .getSingleResult();
-        log.debug("existsByTraineeId traineeId={}, count={}", traineeId, count);
-        return count > 0;
     }
 
     @Transactional(readOnly = true)
@@ -167,7 +126,7 @@ public class TrainingRepository {
         }
 
         List<TrainingEntity> trainings = query.getResultList();
-        log.debug("findByTrainerUsernameAndCriteria trainer={}, count={}", trainerUsername, trainings.size());
+        log.debug("Trainer trainings fetched, count={}", trainings.size());
         return trainings;
     }
 }

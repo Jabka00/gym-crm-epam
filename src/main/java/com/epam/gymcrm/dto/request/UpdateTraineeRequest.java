@@ -15,8 +15,6 @@ public record UpdateTraineeRequest(
         @Valid
         UserInfo user,
 
-        boolean active,
-
         @Past(message = "Date of birth must be in the past")
         LocalDate dateOfBirth,
 

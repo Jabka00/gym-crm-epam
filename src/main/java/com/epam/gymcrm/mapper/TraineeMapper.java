@@ -1,12 +1,12 @@
 package com.epam.gymcrm.mapper;
 
+import com.epam.gymcrm.dto.Trainee;
 import com.epam.gymcrm.dto.request.CreateTraineeRequest;
 import com.epam.gymcrm.dto.request.UpdateTraineeRequest;
-import com.epam.gymcrm.dto.response.Trainee;
 import com.epam.gymcrm.entity.TraineeEntity;
 import com.epam.gymcrm.entity.UserEntity;
 import com.epam.gymcrm.service.PasswordGenerator;
-import com.epam.gymcrm.service.UserCredentialService;
+import com.epam.gymcrm.service.UsernameGenerator;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -14,7 +14,7 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class TraineeMapper {
 
-    private final UserCredentialService userCredentialService;
+    private final UsernameGenerator usernameGenerator;
     private final PasswordGenerator passwordGenerator;
 
     public Trainee toResponse(TraineeEntity entity) {
@@ -32,7 +32,7 @@ public class TraineeMapper {
         UserEntity user = new UserEntity();
         user.setFirstName(request.user().firstName());
         user.setLastName(request.user().lastName());
-        user.setUsername(userCredentialService.generateUniqueUsername(
+        user.setUsername(usernameGenerator.generateUniqueUsername(
                 request.user().firstName(), request.user().lastName()));
         user.setPassword(passwordGenerator.generatePassword());
         user.setActive(true);
@@ -44,20 +44,12 @@ public class TraineeMapper {
         return entity;
     }
 
-    public TraineeEntity toEntity(UpdateTraineeRequest request, String username, String password) {
-        UserEntity user = new UserEntity();
-        user.setId(request.id());
+    public TraineeEntity toEntity(TraineeEntity existing, UpdateTraineeRequest request) {
+        UserEntity user = existing.getUser();
         user.setFirstName(request.user().firstName());
         user.setLastName(request.user().lastName());
-        user.setUsername(username);
-        user.setPassword(password);
-        user.setActive(request.active());
-
-        TraineeEntity entity = new TraineeEntity();
-        entity.setId(request.id());
-        entity.setUser(user);
-        entity.setDateOfBirth(request.dateOfBirth());
-        entity.setAddress(request.address());
-        return entity;
+        existing.setDateOfBirth(request.dateOfBirth());
+        existing.setAddress(request.address());
+        return existing;
     }
 }
