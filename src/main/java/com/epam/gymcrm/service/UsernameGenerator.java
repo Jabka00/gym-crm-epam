@@ -6,8 +6,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.HashSet;
-import java.util.Set;
+import java.util.List;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
 
 @Slf4j
 @Service
@@ -15,23 +16,39 @@ import java.util.Set;
 public class UsernameGenerator {
 
     private final UserRepository userRepository;
+    private final ConcurrentHashMap<String, AtomicInteger> serialCounters = new ConcurrentHashMap<>();
 
     @Transactional(readOnly = true)
-    public synchronized String generateUniqueUsername(String firstName, String lastName) {
+    public String generateUniqueUsername(String firstName, String lastName) {
         String baseUsername = firstName + "." + lastName;
-        Set<String> existing = new HashSet<>(userRepository.findUsernamesStartingWith(baseUsername));
+        AtomicInteger counter = serialCounters.computeIfAbsent(baseUsername, this::initCounterFromDb);
 
-        if (!existing.contains(baseUsername)) {
-            log.debug("Generated unique username");
-            return baseUsername;
-        }
-
-        int serialNumber = 1;
-        while (existing.contains(baseUsername + serialNumber)) {
-            serialNumber++;
-        }
-
+        int serial = counter.getAndIncrement();
+        String username = serial == 0 ? baseUsername : baseUsername + serial;
         log.debug("Generated unique username");
-        return baseUsername + serialNumber;
+        return username;
+    }
+
+    private AtomicInteger initCounterFromDb(String baseUsername) {
+        List<String> existing = userRepository.findUsernamesStartingWith(baseUsername);
+        int maxSerial = 0;
+        boolean baseTaken = false;
+
+        for (String username : existing) {
+            if (baseUsername.equals(username)) {
+                baseTaken = true;
+                continue;
+            }
+            if (!username.startsWith(baseUsername)) {
+                continue;
+            }
+            String suffix = username.substring(baseUsername.length());
+            if (!suffix.isEmpty() && suffix.chars().allMatch(Character::isDigit)) {
+                maxSerial = Math.max(maxSerial, Integer.parseInt(suffix));
+            }
+        }
+
+        // 0 -> base username; otherwise next free serial after max in DB
+        return new AtomicInteger(baseTaken ? maxSerial + 1 : 0);
     }
 }
