@@ -86,7 +86,8 @@ public class TrainingService {
                 .map(trainingMapper::toResponse)
                 .toList();
 
-        log.info("Fetched trainee trainings, count={}", trainings.size());
+        log.info("Fetched trainee trainings for username={}, count={}",
+                traineeUsername, trainings.size());
         return trainings;
     }
 
@@ -112,7 +113,8 @@ public class TrainingService {
                 .map(trainingMapper::toResponse)
                 .toList();
 
-        log.info("Fetched trainer trainings, count={}", trainings.size());
+        log.info("Fetched trainer trainings for username={}, count={}",
+                trainerUsername, trainings.size());
         return trainings;
     }
 }

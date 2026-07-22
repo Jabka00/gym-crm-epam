@@ -125,7 +125,8 @@ public class TraineeService {
         }
 
         traineeRepository.save(trainee);
-        log.info("Trainee trainers list updated");
+        log.info("Trainee trainers list updated: id={}, username={}",
+                trainee.getId(), traineeUsername);
     }
 
     @Transactional(readOnly = true)
