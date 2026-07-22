@@ -104,7 +104,7 @@ class UserServiceTest {
         when(userRepository.findByUsername("Alice.Walker")).thenReturn(Optional.of(user));
         when(userRepository.save(user)).thenReturn(user);
 
-        userService.toggleActivation(new ToggleActivationRequest("Alice.Walker", false));
+        userService.toggleActivation(new ToggleActivationRequest("Alice.Walker"));
 
         assertThat(user.isActive()).isFalse();
         verify(userRepository, times(1)).save(user);
@@ -114,13 +114,13 @@ class UserServiceTest {
     void shouldThrowWhenTogglingActivationForMissingUser() {
         when(userRepository.findByUsername("Missing.User")).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> userService.toggleActivation(new ToggleActivationRequest("Missing.User", true)))
+        assertThatThrownBy(() -> userService.toggleActivation(new ToggleActivationRequest("Missing.User")))
                 .isInstanceOf(EntityNotFoundException.class);
     }
 
     @Test
     void shouldRejectBlankUsernameOnToggleActivation() {
-        assertThatThrownBy(() -> userService.toggleActivation(new ToggleActivationRequest(" ", false)))
+        assertThatThrownBy(() -> userService.toggleActivation(new ToggleActivationRequest(" ")))
                 .isInstanceOf(ValidationException.class);
 
         verify(userRepository, never()).findByUsername(any());

@@ -25,30 +25,22 @@ public class UsernameGenerator {
 
         int serial = counter.getAndIncrement();
         String username = serial == 0 ? baseUsername : baseUsername + serial;
-        log.debug("Generated unique username");
+        log.debug("Generated unique username={}", username);
         return username;
     }
 
     private AtomicInteger initCounterFromDb(String baseUsername) {
         List<String> existing = userRepository.findUsernamesStartingWith(baseUsername);
-        int maxSerial = 0;
-        boolean baseTaken = false;
 
-        for (String username : existing) {
-            if (baseUsername.equals(username)) {
-                baseTaken = true;
-                continue;
-            }
-            if (!username.startsWith(baseUsername)) {
-                continue;
-            }
-            String suffix = username.substring(baseUsername.length());
-            if (!suffix.isEmpty() && suffix.chars().allMatch(Character::isDigit)) {
-                maxSerial = Math.max(maxSerial, Integer.parseInt(suffix));
-            }
-        }
+        int maxSerial = existing.stream()
+                .map(username -> username.substring(baseUsername.length()))
+                .filter(suffix -> !suffix.isEmpty())
+                .filter(suffix -> suffix.chars().allMatch(Character::isDigit))
+                .mapToInt(Integer::parseInt)
+                .max()
+                .orElse(0);
 
-        // 0 -> base username; otherwise next free serial after max in DB
+        boolean baseTaken = existing.stream().anyMatch(baseUsername::equals);
         return new AtomicInteger(baseTaken ? maxSerial + 1 : 0);
     }
 }

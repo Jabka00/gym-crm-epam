@@ -26,10 +26,6 @@ public class TrainingRepository {
 
     private final SessionFactory sessionFactory;
 
-    private Session getSession() {
-        return sessionFactory.getCurrentSession();
-    }
-
     @Transactional
     public TrainingEntity save(TrainingEntity training) {
         Session session = getSession();
@@ -41,7 +37,7 @@ public class TrainingRepository {
             persisted = session.merge(training);
         }
         session.flush();
-        log.debug("Training saved");
+        log.debug("Saved training id={}, name={}", persisted.getId(), persisted.getTrainingName());
         return persisted;
     }
 
@@ -87,7 +83,8 @@ public class TrainingRepository {
         }
 
         List<TrainingEntity> trainings = query.getResultList();
-        log.debug("Trainee trainings fetched, count={}", trainings.size());
+        log.debug("Trainee trainings fetched for username={}, count={}",
+                traineeUsername, trainings.size());
         return trainings;
     }
 
@@ -126,7 +123,12 @@ public class TrainingRepository {
         }
 
         List<TrainingEntity> trainings = query.getResultList();
-        log.debug("Trainer trainings fetched, count={}", trainings.size());
+        log.debug("Trainer trainings fetched for username={}, count={}",
+                trainerUsername, trainings.size());
         return trainings;
+    }
+
+    private Session getSession() {
+        return sessionFactory.getCurrentSession();
     }
 }

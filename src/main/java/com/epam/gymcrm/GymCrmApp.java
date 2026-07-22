@@ -121,7 +121,7 @@ public class GymCrmApp {
             log.info("Trainee password changed");
             logTraineeAuthentication(authenticationService, kateAuth);
 
-            traineeService.toggleActivation(kateAuth, new ToggleActivationRequest(kate.username(), false));
+            traineeService.toggleActivation(kateAuth, new ToggleActivationRequest(kate.username()));
             log.info("Trainee deactivated");
 
             try {

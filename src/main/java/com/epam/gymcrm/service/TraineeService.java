@@ -46,7 +46,8 @@ public class TraineeService {
 
         TraineeEntity trainee = traineeMapper.toEntity(request);
         TraineeEntity created = traineeRepository.save(trainee);
-        log.info("Trainee profile created");
+        log.info("Trainee profile created: id={}, username={}",
+                created.getId(), created.getUser().getUsername());
         return traineeMapper.toResponse(created);
     }
 
@@ -59,7 +60,8 @@ public class TraineeService {
 
         TraineeEntity trainee = traineeMapper.toEntity(existing, request);
         TraineeEntity updated = traineeRepository.save(trainee);
-        log.info("Trainee profile updated");
+        log.info("Trainee profile updated: id={}, username={}",
+                updated.getId(), updated.getUser().getUsername());
         return traineeMapper.toResponse(updated);
     }
 
@@ -71,7 +73,7 @@ public class TraineeService {
         }
 
         traineeRepository.deleteByUsername(username);
-        log.info("Trainee profile delete requested");
+        log.info("Trainee profile delete requested: username={}", username);
     }
 
     @Transactional(readOnly = true)

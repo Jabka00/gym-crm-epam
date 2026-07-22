@@ -10,6 +10,8 @@ import com.epam.gymcrm.service.UsernameGenerator;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
+import java.util.HashSet;
+
 @Component
 @RequiredArgsConstructor
 public class TraineeMapper {
@@ -45,11 +47,23 @@ public class TraineeMapper {
     }
 
     public TraineeEntity toEntity(TraineeEntity existing, UpdateTraineeRequest request) {
-        UserEntity user = existing.getUser();
+        UserEntity existingUser = existing.getUser();
+
+        UserEntity user = new UserEntity();
+        user.setId(existingUser.getId());
         user.setFirstName(request.user().firstName());
         user.setLastName(request.user().lastName());
-        existing.setDateOfBirth(request.dateOfBirth());
-        existing.setAddress(request.address());
-        return existing;
+        user.setUsername(existingUser.getUsername());
+        user.setPassword(existingUser.getPassword());
+        user.setActive(existingUser.isActive());
+
+        TraineeEntity entity = new TraineeEntity();
+        entity.setId(existing.getId());
+        entity.setUser(user);
+        entity.setDateOfBirth(request.dateOfBirth());
+        entity.setAddress(request.address());
+        entity.setTrainers(new HashSet<>(existing.getTrainers()));
+        entity.setTrainings(new HashSet<>(existing.getTrainings()));
+        return entity;
     }
 }

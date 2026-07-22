@@ -44,7 +44,8 @@ public class TrainerService {
 
         TrainerEntity trainer = trainerMapper.toEntity(request, specialization);
         TrainerEntity created = trainerRepository.save(trainer);
-        log.info("Trainer profile created");
+        log.info("Trainer profile created: id={}, username={}",
+                created.getId(), created.getUser().getUsername());
         return trainerMapper.toResponse(created);
     }
 
@@ -61,7 +62,8 @@ public class TrainerService {
 
         TrainerEntity trainer = trainerMapper.toEntity(existing, request, specialization);
         TrainerEntity updated = trainerRepository.save(trainer);
-        log.info("Trainer profile updated");
+        log.info("Trainer profile updated: id={}, username={}",
+                updated.getId(), updated.getUser().getUsername());
         return trainerMapper.toResponse(updated);
     }
 

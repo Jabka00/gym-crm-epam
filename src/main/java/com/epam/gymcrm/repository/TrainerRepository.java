@@ -19,10 +19,6 @@ public class TrainerRepository {
 
     private final SessionFactory sessionFactory;
 
-    private Session getSession() {
-        return sessionFactory.getCurrentSession();
-    }
-
     @Transactional
     public TrainerEntity save(TrainerEntity trainer) {
         Session session = getSession();
@@ -32,7 +28,8 @@ public class TrainerRepository {
             trainer = session.merge(trainer);
         }
         session.flush();
-        log.debug("Trainer saved");
+        log.debug("Saved trainer id={}, username={}",
+                trainer.getId(), trainer.getUser().getUsername());
         return trainer;
     }
 
@@ -82,5 +79,9 @@ public class TrainerRepository {
                         TrainerEntity.class)
                 .setParameter("username", traineeUsername)
                 .getResultList();
+    }
+
+    private Session getSession() {
+        return sessionFactory.getCurrentSession();
     }
 }

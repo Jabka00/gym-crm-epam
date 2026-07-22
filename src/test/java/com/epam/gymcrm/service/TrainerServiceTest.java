@@ -196,7 +196,7 @@ class TrainerServiceTest {
     @Test
     void shouldRejectUnauthenticatedToggleActivation() {
         when(authenticationService.matchesTrainerCredentials(auth.username(), auth.password())).thenReturn(false);
-        ToggleActivationRequest request = new ToggleActivationRequest("John.Smith", false);
+        ToggleActivationRequest request = new ToggleActivationRequest("John.Smith");
 
         assertThatThrownBy(() -> trainerService.toggleActivation(auth, request))
                 .isInstanceOf(AuthenticationException.class);
@@ -242,7 +242,7 @@ class TrainerServiceTest {
 
     @Test
     void shouldToggleActivation() {
-        ToggleActivationRequest request = new ToggleActivationRequest("John.Smith", false);
+        ToggleActivationRequest request = new ToggleActivationRequest("John.Smith");
 
         trainerService.toggleActivation(auth, request);
 
@@ -326,7 +326,8 @@ class TrainerServiceTest {
 
         TrainerEntity actual = mapper.toEntity(existing, request, specialization);
 
-        assertThat(actual).isSameAs(existing);
+        assertThat(actual).isNotSameAs(existing);
+        assertThat(actual.getUser()).isNotSameAs(existing.getUser());
         assertThat(actual.getUser().getFirstName()).isEqualTo("John");
         assertThat(actual.getUser().getLastName()).isEqualTo("Smith");
         assertThat(actual.getUser().getUsername()).isEqualTo("John.Smith");

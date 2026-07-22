@@ -11,6 +11,8 @@ import com.epam.gymcrm.service.UsernameGenerator;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
+import java.util.HashSet;
+
 @Component
 @RequiredArgsConstructor
 public class TrainerMapper {
@@ -47,10 +49,22 @@ public class TrainerMapper {
             TrainerEntity existing,
             UpdateTrainerRequest request,
             TrainingTypeEntity specialization) {
-        UserEntity user = existing.getUser();
+        UserEntity existingUser = existing.getUser();
+
+        UserEntity user = new UserEntity();
+        user.setId(existingUser.getId());
         user.setFirstName(request.user().firstName());
         user.setLastName(request.user().lastName());
-        existing.setSpecialization(specialization);
-        return existing;
+        user.setUsername(existingUser.getUsername());
+        user.setPassword(existingUser.getPassword());
+        user.setActive(existingUser.isActive());
+
+        TrainerEntity entity = new TrainerEntity();
+        entity.setId(existing.getId());
+        entity.setUser(user);
+        entity.setSpecialization(specialization);
+        entity.setTrainees(new HashSet<>(existing.getTrainees()));
+        entity.setTrainings(new HashSet<>(existing.getTrainings()));
+        return entity;
     }
 }

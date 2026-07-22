@@ -17,10 +17,6 @@ public class TraineeRepository {
 
     private final SessionFactory sessionFactory;
 
-    private Session getSession() {
-        return sessionFactory.getCurrentSession();
-    }
-
     @Transactional
     public TraineeEntity save(TraineeEntity trainee) {
         Session session = getSession();
@@ -30,19 +26,18 @@ public class TraineeRepository {
             trainee = session.merge(trainee);
         }
         session.flush();
-        log.debug("Trainee saved");
+        log.debug("Saved trainee id={}, username={}",
+                trainee.getId(), trainee.getUser().getUsername());
         return trainee;
     }
 
     @Transactional
     public void deleteByUsername(String username) {
-        findByUsername(username).ifPresent(this::delete);
-    }
-
-    private void delete(TraineeEntity trainee) {
-        trainee.getTrainers().clear();
-        getSession().remove(trainee);
-        log.debug("Trainee deleted");
+        findByUsername(username).ifPresent(trainee -> {
+            trainee.getTrainers().clear();
+            getSession().remove(trainee);
+            log.debug("Deleted trainee id={}, username={}", trainee.getId(), username);
+        });
     }
 
     @Transactional(readOnly = true)
@@ -63,5 +58,9 @@ public class TraineeRepository {
                         TraineeEntity.class)
                 .setParameter("username", username)
                 .uniqueResultOptional();
+    }
+
+    private Session getSession() {
+        return sessionFactory.getCurrentSession();
     }
 }

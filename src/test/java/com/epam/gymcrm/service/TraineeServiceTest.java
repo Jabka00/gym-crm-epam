@@ -229,7 +229,7 @@ class TraineeServiceTest {
     @Test
     void shouldRejectUnauthenticatedToggleActivation() {
         when(authenticationService.matchesTraineeCredentials(auth.username(), auth.password())).thenReturn(false);
-        ToggleActivationRequest request = new ToggleActivationRequest("Alice.Walker", false);
+        ToggleActivationRequest request = new ToggleActivationRequest("Alice.Walker");
 
         assertThatThrownBy(() -> traineeService.toggleActivation(auth, request))
                 .isInstanceOf(AuthenticationException.class);
@@ -300,7 +300,7 @@ class TraineeServiceTest {
 
     @Test
     void shouldToggleActivation() {
-        ToggleActivationRequest request = new ToggleActivationRequest("Alice.Walker", false);
+        ToggleActivationRequest request = new ToggleActivationRequest("Alice.Walker");
 
         traineeService.toggleActivation(auth, request);
 
@@ -458,7 +458,8 @@ class TraineeServiceTest {
 
         TraineeEntity actual = mapper.toEntity(existing, request);
 
-        assertThat(actual).isSameAs(existing);
+        assertThat(actual).isNotSameAs(existing);
+        assertThat(actual.getUser()).isNotSameAs(existing.getUser());
         assertThat(actual.getId()).isEqualTo(3L);
         assertThat(actual.getUser().getFirstName()).isEqualTo("Jane");
         assertThat(actual.getUser().getLastName()).isEqualTo("Updated");
@@ -467,5 +468,7 @@ class TraineeServiceTest {
         assertThat(actual.getUser().isActive()).isFalse();
         assertThat(actual.getDateOfBirth()).isEqualTo(LocalDate.of(1990, 1, 1));
         assertThat(actual.getAddress()).isEqualTo("Lviv");
+        assertThat(existing.getUser().getFirstName()).isNotEqualTo("Jane");
+        assertThat(existing.getAddress()).isNotEqualTo("Lviv");
     }
 }

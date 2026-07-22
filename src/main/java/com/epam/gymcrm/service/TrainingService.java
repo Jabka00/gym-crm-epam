@@ -58,7 +58,7 @@ public class TrainingService {
 
         TrainingEntity training = trainingMapper.toEntity(request, trainee, trainer, trainingType);
         TrainingEntity created = trainingRepository.save(training);
-        log.info("Training created");
+        log.info("Training created: id={}, name={}", created.getId(), created.getTrainingName());
         return trainingMapper.toResponse(created);
     }
 

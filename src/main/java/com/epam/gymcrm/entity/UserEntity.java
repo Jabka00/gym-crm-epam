@@ -16,7 +16,7 @@ import lombok.Setter;
 @Getter
 @Setter
 @NoArgsConstructor
-@EqualsAndHashCode(of = "username")
+@EqualsAndHashCode(of = {"id", "firstName", "lastName", "username", "active"})
 public class UserEntity {
 
     @Id
@@ -29,10 +29,10 @@ public class UserEntity {
     @Column(name = "last_name", nullable = false, length = 100)
     private String lastName;
 
-    @Column(unique = true, nullable = false, length = 100)
+    @Column(name = "username", unique = true, nullable = false, length = 100)
     private String username;
 
-    @Column(nullable = false, length = 255)
+    @Column(name = "password", nullable = false, length = 255)
     private String password;
 
     @Column(name = "is_active", nullable = false)

@@ -34,7 +34,7 @@ public class UserService {
 
         user.setPassword(request.newPassword());
         userRepository.save(user);
-        log.info("Password changed");
+        log.info("Password changed for username={}", request.username());
     }
 
     public void toggleActivation(ToggleActivationRequest request) {
@@ -43,8 +43,8 @@ public class UserService {
         UserEntity user = userRepository.findByUsername(request.username())
                 .orElseThrow(() -> new EntityNotFoundException(
                         "User not found with username: " + request.username()));
-        user.setActive(request.active());
+        user.setActive(!user.isActive());
         userRepository.save(user);
-        log.info("User activation updated");
+        log.info("Toggled activation for username={}, active={}", request.username(), user.isActive());
     }
 }
