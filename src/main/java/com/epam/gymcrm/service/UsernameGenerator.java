@@ -35,7 +35,6 @@ public class UsernameGenerator {
         int maxSerial = existing.stream()
                 .map(username -> username.substring(baseUsername.length()))
                 .filter(suffix -> !suffix.isEmpty())
-                .filter(suffix -> suffix.chars().allMatch(Character::isDigit))
                 .mapToInt(Integer::parseInt)
                 .max()
                 .orElse(0);
