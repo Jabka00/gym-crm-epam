@@ -11,7 +11,7 @@ import com.epam.gymcrm.dto.request.CreateTrainerRequest;
 import com.epam.gymcrm.dto.request.ScheduleTrainingRequest;
 import com.epam.gymcrm.dto.request.ToggleActivationRequest;
 import com.epam.gymcrm.dto.request.UserInfo;
-import com.epam.gymcrm.exception.InvalidOperationException;
+import com.epam.gymcrm.exception.EntityNotFoundException;
 import com.epam.gymcrm.model.TrainingType;
 import com.epam.gymcrm.repository.TraineeRepository;
 import com.epam.gymcrm.repository.TrainerRepository;
@@ -127,14 +127,14 @@ public class GymCrmApp {
             try {
                 traineeService.getTraineeByUsername(aliceAuth, kate.username());
                 log.error("Expected inactive trainee lookup to fail");
-            } catch (InvalidOperationException e) {
+            } catch (EntityNotFoundException e) {
                 log.info("Inactive trainee correctly hidden");
             }
 
             logTraineeAuthentication(authenticationService, kateAuth);
 
             Trainer fetchedTrainer = trainerService.getTrainerByUsername(pilatesAuth, pilatesTrainer.username());
-            log.info("Trainer fetched, username present={}", fetchedTrainer.username() != null);
+            log.info("Trainer fetched, id present={}", fetchedTrainer.userId() != null);
 
             log.info("Demo completed successfully");
         } catch (Exception e) {

@@ -28,8 +28,7 @@ public class TrainerRepository {
             trainer = session.merge(trainer);
         }
         session.flush();
-        log.debug("Saved trainer id={}, username={}",
-                trainer.getId(), trainer.getUser().getUsername());
+        log.debug("Saved trainer id={}", trainer.getId());
         return trainer;
     }
 

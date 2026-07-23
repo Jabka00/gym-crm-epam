@@ -10,7 +10,6 @@ import com.epam.gymcrm.entity.TrainerEntity;
 import com.epam.gymcrm.entity.TrainingTypeEntity;
 import com.epam.gymcrm.exception.AuthenticationException;
 import com.epam.gymcrm.exception.EntityNotFoundException;
-import com.epam.gymcrm.exception.InvalidOperationException;
 import com.epam.gymcrm.mapper.TrainerMapper;
 import com.epam.gymcrm.repository.TrainerRepository;
 import com.epam.gymcrm.repository.TrainingTypeRepository;
@@ -19,8 +18,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.util.Optional;
 
 @Slf4j
 @Service
@@ -44,8 +41,7 @@ public class TrainerService {
 
         TrainerEntity trainer = trainerMapper.toEntity(request, specialization);
         TrainerEntity created = trainerRepository.save(trainer);
-        log.info("Trainer profile created: id={}, username={}",
-                created.getId(), created.getUser().getUsername());
+        log.info("Trainer profile created: id={}", created.getId());
         return trainerMapper.toResponse(created);
     }
 
@@ -62,8 +58,7 @@ public class TrainerService {
 
         TrainerEntity trainer = trainerMapper.toEntity(existing, request, specialization);
         TrainerEntity updated = trainerRepository.save(trainer);
-        log.info("Trainer profile updated: id={}, username={}",
-                updated.getId(), updated.getUser().getUsername());
+        log.info("Trainer profile updated: id={}", updated.getId());
         return trainerMapper.toResponse(updated);
     }
 
@@ -71,11 +66,13 @@ public class TrainerService {
     public Trainer getTrainerByUsername(Credentials auth, String username) {
         requireTrainerAuthenticated(auth);
 
-        return Optional.of(trainerRepository.findByUsername(username)
-                        .orElseThrow(() -> new EntityNotFoundException("Trainer not found")))
-                .filter(trainer -> trainer.getUser().isActive())
-                .map(trainerMapper::toResponse)
-                .orElseThrow(() -> new InvalidOperationException("Trainer is inactive"));
+        TrainerEntity trainer = trainerRepository.findByUsername(username)
+                .filter(t -> t.getUser().isActive())
+                .orElseThrow(() -> {
+                    log.warn("Trainer not found");
+                    return new EntityNotFoundException("Trainer not found");
+                });
+        return trainerMapper.toResponse(trainer);
     }
 
     public void changePassword(Credentials auth, ChangePasswordRequest request) {

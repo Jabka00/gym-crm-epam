@@ -12,7 +12,6 @@ import com.epam.gymcrm.entity.TrainerEntity;
 import com.epam.gymcrm.entity.TrainingTypeEntity;
 import com.epam.gymcrm.exception.AuthenticationException;
 import com.epam.gymcrm.exception.EntityNotFoundException;
-import com.epam.gymcrm.exception.InvalidOperationException;
 import com.epam.gymcrm.exception.ValidationException;
 import com.epam.gymcrm.mapper.TrainerMapper;
 import com.epam.gymcrm.model.TrainingType;
@@ -147,8 +146,8 @@ class TrainerServiceTest {
         when(trainerRepository.findByUsername("Inactive.Trainer")).thenReturn(Optional.of(trainer));
 
         assertThatThrownBy(() -> trainerService.getTrainerByUsername(auth, "Inactive.Trainer"))
-                .isInstanceOf(InvalidOperationException.class)
-                .hasMessageContaining("inactive");
+                .isInstanceOf(EntityNotFoundException.class)
+                .hasMessageContaining("Trainer not found");
 
         verify(authenticationService, times(1)).matchesTrainerCredentials(auth.username(), auth.password());
         verify(trainerRepository, times(1)).findByUsername("Inactive.Trainer");

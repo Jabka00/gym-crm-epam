@@ -26,8 +26,7 @@ public class TraineeRepository {
             trainee = session.merge(trainee);
         }
         session.flush();
-        log.debug("Saved trainee id={}, username={}",
-                trainee.getId(), trainee.getUser().getUsername());
+        log.debug("Saved trainee id={}", trainee.getId());
         return trainee;
     }
 
@@ -36,7 +35,7 @@ public class TraineeRepository {
         findByUsername(username).ifPresent(trainee -> {
             trainee.getTrainers().clear();
             getSession().remove(trainee);
-            log.debug("Deleted trainee id={}, username={}", trainee.getId(), username);
+            log.debug("Deleted trainee id={}", trainee.getId());
         });
     }
 

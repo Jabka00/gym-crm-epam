@@ -170,8 +170,8 @@ class TraineeServiceTest {
         when(traineeRepository.findByUsername("Inactive.User")).thenReturn(Optional.of(trainee));
 
         assertThatThrownBy(() -> traineeService.getTraineeByUsername(auth, "Inactive.User"))
-                .isInstanceOf(InvalidOperationException.class)
-                .hasMessageContaining("inactive");
+                .isInstanceOf(EntityNotFoundException.class)
+                .hasMessageContaining("Trainee not found");
 
         verify(traineeRepository, times(1)).findByUsername("Inactive.User");
         verify(authenticationService, times(1)).matchesTraineeCredentials(auth.username(), auth.password());
@@ -240,11 +240,14 @@ class TraineeServiceTest {
 
     @Test
     void shouldDeleteTraineeByUsername() {
+        TraineeEntity trainee = TestDataFactory.traineeWithId(1L, "Alice.Walker");
+        when(traineeRepository.findByUsername("Alice.Walker")).thenReturn(Optional.of(trainee));
+
         traineeService.deleteTraineeByUsername(auth, "Alice.Walker");
 
         verify(authenticationService, times(1)).matchesTraineeCredentials(auth.username(), auth.password());
+        verify(traineeRepository, times(1)).findByUsername("Alice.Walker");
         verify(traineeRepository, times(1)).deleteByUsername("Alice.Walker");
-        verify(traineeRepository, never()).findByUsername("Alice.Walker");
     }
 
     @Test
@@ -344,11 +347,14 @@ class TraineeServiceTest {
     }
 
     @Test
-    void shouldSilentlyIgnoreDeletingMissingTrainee() {
-        traineeService.deleteTraineeByUsername(auth, "Missing.User");
+    void shouldThrowWhenDeletingMissingTrainee() {
+        when(traineeRepository.findByUsername("Missing.User")).thenReturn(Optional.empty());
 
-        verify(traineeRepository, times(1)).deleteByUsername("Missing.User");
-        verify(traineeRepository, never()).findByUsername("Missing.User");
+        assertThatThrownBy(() -> traineeService.deleteTraineeByUsername(auth, "Missing.User"))
+                .isInstanceOf(EntityNotFoundException.class);
+
+        verify(traineeRepository, times(1)).findByUsername("Missing.User");
+        verify(traineeRepository, never()).deleteByUsername("Missing.User");
     }
 
     @Test

@@ -24,7 +24,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.Optional;
 import java.util.Set;
 
 @Slf4j
@@ -46,8 +45,7 @@ public class TraineeService {
 
         TraineeEntity trainee = traineeMapper.toEntity(request);
         TraineeEntity created = traineeRepository.save(trainee);
-        log.info("Trainee profile created: id={}, username={}",
-                created.getId(), created.getUser().getUsername());
+        log.info("Trainee profile created: id={}", created.getId());
         return traineeMapper.toResponse(created);
     }
 
@@ -60,8 +58,7 @@ public class TraineeService {
 
         TraineeEntity trainee = traineeMapper.toEntity(existing, request);
         TraineeEntity updated = traineeRepository.save(trainee);
-        log.info("Trainee profile updated: id={}, username={}",
-                updated.getId(), updated.getUser().getUsername());
+        log.info("Trainee profile updated: id={}", updated.getId());
         return traineeMapper.toResponse(updated);
     }
 
@@ -72,19 +69,24 @@ public class TraineeService {
             throw new ValidationException("Trainee username cannot be null or empty");
         }
 
+        TraineeEntity trainee = traineeRepository.findByUsername(username)
+                .orElseThrow(() -> new EntityNotFoundException("Trainee not found"));
+        Long id = trainee.getId();
         traineeRepository.deleteByUsername(username);
-        log.info("Trainee profile delete requested: username={}", username);
+        log.info("Trainee profile deleted: id={}", id);
     }
 
     @Transactional(readOnly = true)
     public Trainee getTraineeByUsername(Credentials auth, String username) {
         requireTraineeAuthenticated(auth);
 
-        return Optional.of(traineeRepository.findByUsername(username)
-                        .orElseThrow(() -> new EntityNotFoundException("Trainee not found")))
-                .filter(trainee -> trainee.getUser().isActive())
-                .map(traineeMapper::toResponse)
-                .orElseThrow(() -> new InvalidOperationException("Trainee is inactive"));
+        TraineeEntity trainee = traineeRepository.findByUsername(username)
+                .filter(t -> t.getUser().isActive())
+                .orElseThrow(() -> {
+                    log.warn("Trainee not found");
+                    return new EntityNotFoundException("Trainee not found");
+                });
+        return traineeMapper.toResponse(trainee);
     }
 
     public void changePassword(Credentials auth, ChangePasswordRequest request) {
@@ -119,14 +121,13 @@ public class TraineeService {
 
         for (TrainerEntity trainer : trainers) {
             if (!trainer.getUser().isActive()) {
-                throw new InvalidOperationException("Trainer is inactive");
+                throw new InvalidOperationException("Trainer is inactive with id: " + trainer.getId());
             }
             trainee.getTrainers().add(trainer);
         }
 
         traineeRepository.save(trainee);
-        log.info("Trainee trainers list updated: id={}, username={}",
-                trainee.getId(), traineeUsername);
+        log.info("Trainee trainers list updated: id={}", trainee.getId());
     }
 
     @Transactional(readOnly = true)

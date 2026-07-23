@@ -58,7 +58,7 @@ public class TrainingService {
 
         TrainingEntity training = trainingMapper.toEntity(request, trainee, trainer, trainingType);
         TrainingEntity created = trainingRepository.save(training);
-        log.info("Training created: id={}, name={}", created.getId(), created.getTrainingName());
+        log.info("Training created: id={}", created.getId());
         return trainingMapper.toResponse(created);
     }
 
@@ -79,6 +79,10 @@ public class TrainingService {
             throw new ValidationException("Trainee username is required");
         }
 
+        Long traineeId = traineeRepository.findByUsername(traineeUsername)
+                .orElseThrow(() -> new EntityNotFoundException("Trainee not found"))
+                .getId();
+
         List<Training> trainings = trainingRepository
                 .findByTraineeUsernameAndCriteria(
                         traineeUsername, fromDate, toDate, trainerUsername, trainingTypeName)
@@ -86,8 +90,7 @@ public class TrainingService {
                 .map(trainingMapper::toResponse)
                 .toList();
 
-        log.info("Fetched trainee trainings for username={}, count={}",
-                traineeUsername, trainings.size());
+        log.info("Fetched trainee trainings for id={}, count={}", traineeId, trainings.size());
         return trainings;
     }
 
@@ -107,14 +110,17 @@ public class TrainingService {
             throw new ValidationException("Trainer username is required");
         }
 
+        Long trainerId = trainerRepository.findByUsername(trainerUsername)
+                .orElseThrow(() -> new EntityNotFoundException("Trainer not found"))
+                .getId();
+
         List<Training> trainings = trainingRepository
                 .findByTrainerUsernameAndCriteria(trainerUsername, fromDate, toDate, traineeUsername)
                 .stream()
                 .map(trainingMapper::toResponse)
                 .toList();
 
-        log.info("Fetched trainer trainings for username={}, count={}",
-                trainerUsername, trainings.size());
+        log.info("Fetched trainer trainings for id={}, count={}", trainerId, trainings.size());
         return trainings;
     }
 }

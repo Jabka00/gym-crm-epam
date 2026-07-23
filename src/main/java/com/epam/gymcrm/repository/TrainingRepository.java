@@ -37,7 +37,7 @@ public class TrainingRepository {
             persisted = session.merge(training);
         }
         session.flush();
-        log.debug("Saved training id={}, name={}", persisted.getId(), persisted.getTrainingName());
+        log.debug("Saved training id={}", persisted.getId());
         return persisted;
     }
 
@@ -83,8 +83,7 @@ public class TrainingRepository {
         }
 
         List<TrainingEntity> trainings = query.getResultList();
-        log.debug("Trainee trainings fetched for username={}, count={}",
-                traineeUsername, trainings.size());
+        log.debug("Trainee trainings fetched, count={}", trainings.size());
         return trainings;
     }
 
@@ -123,8 +122,7 @@ public class TrainingRepository {
         }
 
         List<TrainingEntity> trainings = query.getResultList();
-        log.debug("Trainer trainings fetched for username={}, count={}",
-                trainerUsername, trainings.size());
+        log.debug("Trainer trainings fetched, count={}", trainings.size());
         return trainings;
     }
 

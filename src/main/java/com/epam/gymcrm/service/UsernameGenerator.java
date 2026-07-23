@@ -25,7 +25,7 @@ public class UsernameGenerator {
 
         int serial = counter.getAndIncrement();
         String username = serial == 0 ? baseUsername : baseUsername + serial;
-        log.debug("Generated unique username={}", username);
+        log.debug("Generated unique username");
         return username;
     }
 

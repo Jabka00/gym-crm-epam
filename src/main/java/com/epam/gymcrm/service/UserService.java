@@ -25,8 +25,7 @@ public class UserService {
         dtoValidator.validate(request);
 
         UserEntity user = userRepository.findByUsername(request.username())
-                .orElseThrow(() -> new EntityNotFoundException(
-                        "User not found with username: " + request.username()));
+                .orElseThrow(() -> new EntityNotFoundException("User not found"));
 
         if (!request.oldPassword().equals(user.getPassword())) {
             throw new AuthenticationException("Invalid credentials");
@@ -34,17 +33,16 @@ public class UserService {
 
         user.setPassword(request.newPassword());
         userRepository.save(user);
-        log.info("Password changed for username={}", request.username());
+        log.info("Password changed for user id={}", user.getId());
     }
 
     public void toggleActivation(ToggleActivationRequest request) {
         dtoValidator.validate(request);
 
         UserEntity user = userRepository.findByUsername(request.username())
-                .orElseThrow(() -> new EntityNotFoundException(
-                        "User not found with username: " + request.username()));
+                .orElseThrow(() -> new EntityNotFoundException("User not found"));
         user.setActive(!user.isActive());
         userRepository.save(user);
-        log.info("Toggled activation for username={}, active={}", request.username(), user.isActive());
+        log.info("Toggled activation for user id={}, active={}", user.getId(), user.isActive());
     }
 }
