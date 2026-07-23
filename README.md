@@ -1,47 +1,64 @@
 # Gym CRM
 
-Spring Core module for managing gym clients, trainers, and training sessions.
+Spring + Hibernate CRM for trainees, trainers, and training sessions.
 
 ## Requirements
 
-- Java 17+
+- Java 21
 - Maven 3.9+
-
-## Build
-
-```bash
-mvn clean compile
-```
+- Docker
 
 ## Run
 
 ```bash
+docker compose up -d
 mvn exec:java
 ```
 
-Or after building:
+Stop database:
 
 ```bash
-mvn clean package
-java -cp target/gym-crm-1.0.0-SNAPSHOT.jar com.epam.gymcrm.GymCrmApp
+docker compose down
 ```
 
 ## Tests
 
 ```bash
+docker compose up -d
 mvn test
 ```
 
+Integration tests use the same MySQL instance as the app (`gymdb` on port `3306`). Seed data from `docker/mysql/init/` must be present.
+
+If schema validation fails (for example, `missing column [duration_minutes]`), reset the database volume and recreate it:
+
+```bash
+docker compose down -v
+docker compose up -d
+```
+
+Or apply the migration manually:
+
+```bash
+docker exec -i gym-crm-mysql mysql -ugym_user -pgym_password gymdb < docker/mysql/init/03-migration-duration-minutes.sql
+```
+
+## Database
+
+MySQL runs in Docker on port `3306`. Schema and seed data are applied on first container start from `docker/mysql/init/`.
+
+| | |
+|---|---|
+| Database | `gymdb` |
+| User | `gym_user` |
+| Password | `gym_password` |
+
+Connection settings: `src/main/resources/application.properties`.
+
 ## Structure
 
-- `model` — domain entities
-- `repository` — in-memory repositories, each holding its own `Map`
-- `service` - business logic (including credential generation)
-- `storage` - CSV parsing (`StorageCsvSeeder`) and startup seeding (`StorageSeedBeanPostProcessor`)
-
-## Seed data
-
-CSV file paths are configured in `src/main/resources/application.properties`.
-Repositories are populated at startup by `StorageSeedBeanPostProcessor`, which detects
-repository beans by type (`TrainerRepository`, `TraineeRepository`, `TrainingRepository`),
-parses the CSV files via `StorageCsvSeeder`, and calls each repository's `load(...)` method.
+- `entity` — JPA entities
+- `repository` — Hibernate `SessionFactory` repositories
+- `service` — business logic
+- `mapper` — MapStruct DTO mapping
+- `config` — Spring and Hibernate configuration

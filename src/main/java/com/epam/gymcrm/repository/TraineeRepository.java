@@ -1,48 +1,65 @@
 package com.epam.gymcrm.repository;
 
 import com.epam.gymcrm.entity.TraineeEntity;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.hibernate.Session;
+import org.hibernate.SessionFactory;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Map;
 import java.util.Optional;
-import java.util.stream.Stream;
 
 @Slf4j
 @Repository
+@RequiredArgsConstructor
 public class TraineeRepository {
 
-    private Map<Long, TraineeEntity> storage;
+    private final SessionFactory sessionFactory;
 
-    public void setStorage(Map<Long, TraineeEntity> storage) {
-        if (this.storage != null) {
-            throw new IllegalStateException("Trainee storage is already initialized");
-        }
-        this.storage = storage;
-    }
-
+    @Transactional
     public TraineeEntity save(TraineeEntity trainee) {
-        storage.put(trainee.getUserId(), trainee);
-        log.debug("Saved trainee id={}", trainee.getUserId());
+        Session session = getSession();
+        if (trainee.getId() == null) {
+            session.persist(trainee);
+        } else {
+            trainee = session.merge(trainee);
+        }
+        session.flush();
+        log.debug("Saved trainee id={}", trainee.getId());
         return trainee;
     }
 
-    public void delete(Long id) {
-        storage.remove(id);
-        log.debug("Deleted trainee id={}", id);
+    @Transactional
+    public void deleteByUsername(String username) {
+        findByUsername(username).ifPresent(trainee -> {
+            trainee.getTrainers().clear();
+            getSession().remove(trainee);
+            log.debug("Deleted trainee id={}", trainee.getId());
+        });
     }
 
+    @Transactional(readOnly = true)
     public Optional<TraineeEntity> findById(Long id) {
-        log.debug("findById trainee id={}", id);
-        return Optional.ofNullable(storage.get(id));
+        return getSession()
+                .createQuery(
+                        "FROM TraineeEntity t LEFT JOIN FETCH t.trainers WHERE t.id = :id",
+                        TraineeEntity.class)
+                .setParameter("id", id)
+                .uniqueResultOptional();
     }
 
-    public Stream<TraineeEntity> findAll() {
-        log.debug("findAll trainees, count={}", storage.size());
-        return storage.values().stream();
+    @Transactional(readOnly = true)
+    public Optional<TraineeEntity> findByUsername(String username) {
+        return getSession()
+                .createQuery(
+                        "FROM TraineeEntity t LEFT JOIN FETCH t.trainers WHERE t.user.username = :username",
+                        TraineeEntity.class)
+                .setParameter("username", username)
+                .uniqueResultOptional();
     }
 
-    public boolean existsById(Long id) {
-        return storage.containsKey(id);
+    private Session getSession() {
+        return sessionFactory.getCurrentSession();
     }
 }

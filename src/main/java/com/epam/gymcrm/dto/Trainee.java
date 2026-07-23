@@ -1,4 +1,4 @@
-package com.epam.gymcrm.dto.response;
+package com.epam.gymcrm.dto;
 
 import java.time.LocalDate;
 
@@ -8,4 +8,5 @@ public record Trainee(
         String username,
         LocalDate dateOfBirth,
         String address
-) {}
+) {
+}

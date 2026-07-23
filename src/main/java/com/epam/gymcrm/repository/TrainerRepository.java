@@ -1,43 +1,86 @@
 package com.epam.gymcrm.repository;
 
 import com.epam.gymcrm.entity.TrainerEntity;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.hibernate.Session;
+import org.hibernate.SessionFactory;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Map;
+import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
-import java.util.stream.Stream;
 
 @Slf4j
 @Repository
+@RequiredArgsConstructor
 public class TrainerRepository {
 
-    private Map<Long, TrainerEntity> storage;
+    private final SessionFactory sessionFactory;
 
-    public void setStorage(Map<Long, TrainerEntity> storage) {
-        if (this.storage != null) {
-            throw new IllegalStateException("Trainer storage is already initialized");
-        }
-        this.storage = storage;
-    }
-
+    @Transactional
     public TrainerEntity save(TrainerEntity trainer) {
-        storage.put(trainer.getUserId(), trainer);
-        log.debug("Saved trainer id={}", trainer.getUserId());
+        Session session = getSession();
+        if (trainer.getId() == null) {
+            session.persist(trainer);
+        } else {
+            trainer = session.merge(trainer);
+        }
+        session.flush();
+        log.debug("Saved trainer id={}", trainer.getId());
         return trainer;
     }
 
+    @Transactional(readOnly = true)
     public Optional<TrainerEntity> findById(Long id) {
-        log.debug("findById trainer id={}", id);
-        return Optional.ofNullable(storage.get(id));
+        return getSession()
+                .createQuery(
+                        "FROM TrainerEntity t LEFT JOIN FETCH t.specialization WHERE t.id = :id",
+                        TrainerEntity.class)
+                .setParameter("id", id)
+                .uniqueResultOptional();
     }
 
-    public Stream<TrainerEntity> findAll() {
-        log.debug("findAll trainers, count={}", storage.size());
-        return storage.values().stream();
+    @Transactional(readOnly = true)
+    public Optional<TrainerEntity> findByUsername(String username) {
+        return getSession()
+                .createQuery(
+                        "FROM TrainerEntity t LEFT JOIN FETCH t.specialization "
+                                + "WHERE t.user.username = :username",
+                        TrainerEntity.class)
+                .setParameter("username", username)
+                .uniqueResultOptional();
     }
 
-    public boolean existsById(Long id) {
-        return storage.containsKey(id);
+    @Transactional(readOnly = true)
+    public List<TrainerEntity> findByUsernames(Collection<String> usernames) {
+        if (usernames == null || usernames.isEmpty()) {
+            return List.of();
+        }
+        return getSession()
+                .createQuery(
+                        "FROM TrainerEntity t LEFT JOIN FETCH t.specialization "
+                                + "WHERE t.user.username IN :usernames",
+                        TrainerEntity.class)
+                .setParameter("usernames", usernames)
+                .getResultList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<TrainerEntity> findNotAssignedToTrainee(String traineeUsername) {
+        return getSession()
+                .createQuery(
+                        "FROM TrainerEntity tr LEFT JOIN FETCH tr.specialization "
+                                + "WHERE tr.user.active = true AND tr.id NOT IN "
+                                + "(SELECT t.id FROM TraineeEntity te JOIN te.trainers t "
+                                + "WHERE te.user.username = :username)",
+                        TrainerEntity.class)
+                .setParameter("username", traineeUsername)
+                .getResultList();
+    }
+
+    private Session getSession() {
+        return sessionFactory.getCurrentSession();
     }
 }

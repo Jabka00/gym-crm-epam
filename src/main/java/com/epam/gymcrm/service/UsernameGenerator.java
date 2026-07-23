@@ -1,47 +1,45 @@
 package com.epam.gymcrm.service;
 
+import com.epam.gymcrm.repository.UserRepository;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class UsernameGenerator {
 
-    private static final Pattern SUFFIX_PATTERN = Pattern.compile("^(.*?)(\\d+)$");
+    private final UserRepository userRepository;
+    private final ConcurrentHashMap<String, AtomicInteger> serialCounters = new ConcurrentHashMap<>();
 
-    private final ConcurrentHashMap<String, AtomicInteger> usernameCounters = new ConcurrentHashMap<>();
+    @Transactional(readOnly = true)
+    public String generateUniqueUsername(String firstName, String lastName) {
+        String baseUsername = firstName + "." + lastName;
+        AtomicInteger counter = serialCounters.computeIfAbsent(baseUsername, this::initCounterFromDb);
 
-    public String generateUsername(String firstName, String lastName) {
-        String base = firstName + "." + lastName;
-        AtomicInteger counter = usernameCounters.computeIfAbsent(base, k -> new AtomicInteger(0));
-        int count = counter.getAndIncrement();
-        String username = count == 0
-                ? base
-                : new StringBuilder(base).append(count).toString();
-        log.debug("Username generated");
+        int serial = counter.getAndIncrement();
+        String username = serial == 0 ? baseUsername : baseUsername + serial;
+        log.debug("Generated unique username");
         return username;
     }
 
-    public void registerExistingUsername(String username) {
-        Matcher m = SUFFIX_PATTERN.matcher(username);
-        if (m.matches()) {
-            int needed = Integer.parseInt(m.group(2)) + 1;
-            usernameCounters.compute(m.group(1), (k, v) -> {
-                if (v == null) return new AtomicInteger(needed);
-                v.updateAndGet(cur -> Math.max(cur, needed));
-                return v;
-            });
-        } else {
-            usernameCounters.compute(username, (k, v) -> {
-                if (v == null) return new AtomicInteger(1);
-                v.updateAndGet(cur -> Math.max(cur, 1));
-                return v;
-            });
-        }
+    private AtomicInteger initCounterFromDb(String baseUsername) {
+        List<String> existing = userRepository.findUsernamesStartingWith(baseUsername);
+
+        int maxSerial = existing.stream()
+                .map(username -> username.substring(baseUsername.length()))
+                .filter(suffix -> !suffix.isEmpty())
+                .mapToInt(Integer::parseInt)
+                .max()
+                .orElse(0);
+
+        boolean baseTaken = existing.stream().anyMatch(baseUsername::equals);
+        return new AtomicInteger(baseTaken ? maxSerial + 1 : 0);
     }
 }
